@@ -1,6 +1,9 @@
 import { Briefcase, Users, CalendarCheck, BarChart3, ShieldCheck, Rocket, ClipboardList } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export default function HomePage() {
+  const navigate = useNavigate();
+
   return (
     <div className="font-sans bg-gray-50 text-gray-900">
       {/* 🌟 Hero Section with video background */}
@@ -22,10 +25,16 @@ export default function HomePage() {
             management, and project tracking in one unified system.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <button className="bg-white text-blue-700 font-semibold px-6 py-3 rounded-full shadow hover:bg-blue-50 transition">
-              Add New Employee
+            <button
+              className="bg-white text-blue-700 font-semibold px-6 py-3 rounded-full shadow hover:bg-blue-50 transition"
+              onClick={() => navigate("/about-us")}
+            >
+              About Us
             </button>
-            <button className="bg-transparent border border-white text-white font-semibold px-6 py-3 rounded-full hover:bg-white hover:text-blue-700 transition">
+            <button
+              className="bg-blue-600 text-white font-semibold px-6 py-3 rounded-full shadow hover:bg-blue-700 transition"
+              onClick={() => navigate("/dashboard")}
+            >
               View Dashboard
             </button>
           </div>
