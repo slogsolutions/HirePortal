@@ -99,7 +99,7 @@ export default function CandidatesPage() {
 
   function CandidateForm({ initial = {}, onCancel }) {
     // toggle this to true to show payload/errors debug UI and extra console logs
-    const debug = true;
+    const debug = false;
 
     const emptyAddress = { line1: "", line2: "", city: "", state: "", pincode: "" };
 
@@ -400,20 +400,27 @@ export default function CandidatesPage() {
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-xs text-gray-500">Date of Birth</label>
             <DatePicker selected={form.dob} onChange={(date) => handleChange("dob", date)} className={`w-full border rounded px-3 py-2 text-sm ${errors.dob ? "border-red-500" : ""}`} />
             {errors.dob && <div className="text-red-500 text-xs mt-1">{errors.dob}</div>}
           </div>
+
           <div>
             <label className="text-xs text-gray-500">Date of Joining</label>
             <DatePicker selected={form.DateOfJoining} onChange={(date) => handleChange("DateOfJoining", date)} className={`w-full border rounded px-3 py-2 text-sm ${errors.DateOfJoining ? "border-red-500" : ""}`} />
             {errors.DateOfJoining && <div className="text-red-500 text-xs mt-1">{errors.DateOfJoining}</div>}
           </div>
+
+          {/* Next Increment string + date grouped */}
           <div>
-            <label className="text-xs text-gray-500">Next Increment Date</label>
-            <DatePicker selected={form.NextIncreamentDate} onChange={(date) => handleChange("NextIncreamentDate", date)} className="w-full border rounded px-3 py-2 text-sm" />
+            <label className="text-xs text-gray-500">Next Increment (note)</label>
+            <input type="text" value={form.NextIncreament || ""} onChange={(e) => handleChange("NextIncreament", e.target.value)} className="w-full border rounded px-3 py-2 text-sm" placeholder="E.g., 10% / performance based" />
+            <div className="mt-2">
+              <label className="text-xs text-gray-500">Next Increment Date</label>
+              <DatePicker selected={form.NextIncreamentDate} onChange={(date) => handleChange("NextIncreamentDate", date)} className="w-full border rounded px-3 py-2 text-sm" />
+            </div>
           </div>
         </div>
 

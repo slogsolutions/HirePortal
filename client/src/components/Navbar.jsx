@@ -43,6 +43,12 @@ const Navbar = () => {
           >
             Home
           </Link>
+          <Link
+            to="/"
+            className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          >
+            Home
+          </Link>
 
            <Link
             to="/dashboard"
