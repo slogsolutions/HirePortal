@@ -4,7 +4,8 @@
   "main": "app.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "postinstall": "echo 'Skipping Puppeteer Chromium download for Render deployment'"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
@@ -24,5 +25,8 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
+  },
+  "puppeteer": {
+    "skipDownload": true
   }
 }
