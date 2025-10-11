@@ -10,6 +10,7 @@ import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import CandidatesPage from "./pages/CandidatesPage";
 import CandidateProfilePage from "./pages/CandidateProfilePage";
+import AboutUs from './pages/AboutUs';
 function App() {
   const [count, setCount] = useState(0)
 
@@ -25,6 +26,7 @@ function App() {
 
 <Route path="/login" element={<Login />} />
 <Route path="/register" element={<Register />} />
+<Route path="/about-us" element={<AboutUs />} />
 
 
 {/* Protected routes wrapper - uses <Outlet /> inside */}

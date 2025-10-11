@@ -32,7 +32,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo / Brand */}
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-          MyWebsite
+          Slog Solutions Pvt Ltd
         </h1>
 
         {/* Desktop Menu */}
@@ -44,10 +44,10 @@ const Navbar = () => {
             Home
           </Link>
           <Link
-            to="/"
+            to="/about-us"
             className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
           >
-            Home
+            About Us
           </Link>
 
            <Link
@@ -56,12 +56,7 @@ const Navbar = () => {
           >
             Dashboard
           </Link>
-          <a
-            href="#about"
-            className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
-          >
-            About
-          </a>
+         
 
           {/* Dark Mode Toggle */}
           <button
