@@ -11,6 +11,7 @@ import Dashboard from "./pages/Dashboard";
 import CandidatesPage from "./pages/CandidatesPage";
 import CandidateProfilePage from "./pages/CandidateProfilePage";
 import AboutUs from './pages/AboutUs';
+import IDCard from './pages/IDCard';
 function App() {
   const [count, setCount] = useState(0)
 
@@ -27,7 +28,8 @@ function App() {
 <Route path="/login" element={<Login />} />
 <Route path="/register" element={<Register />} />
 <Route path="/about-us" element={<AboutUs />} />
-
+{/* <Route path="/idcard" element={<IDCard />} /> */}
+ <Route path="/idcard/:id" element={<IDCard />} />
 
 {/* Protected routes wrapper - uses <Outlet /> inside */}
 <Route element={<ProtectedRoute />}>
