@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PencilIcon } from "@heroicons/react/24/outline";
@@ -215,7 +214,27 @@ export default function CandidateProfilePage() {
                     </div>
                     {active && !completed && (
                       <button
-                        onClick={() => updateStatus(STATUS_ORDER[Math.min(currentIdx + 1, STATUS_ORDER.length - 1)])}
+                        onClick={() => {
+                          // route to task pages for steps that require action
+                          switch (step) {
+                            case "applied":
+                              // applied: just advance status locally/server-side
+                              updateStatus("verifying"); // or leave as-is if you want applied -> verifying automatically
+                              break;
+                            case "verifying":
+                              navigate(`/candidates/${candidateId}/verify`);
+                              break;
+                            case "interviewing":
+                              navigate(`/candidates/${candidateId}/interview`);
+                              break;
+                            case "offered":
+                              navigate(`/candidates/${candidateId}/offer`);
+                              break;
+                            default:
+                              // fallback: just advance to next
+                              updateStatus(STATUS_ORDER[Math.min(currentIdx + 1, STATUS_ORDER.length - 1)]);
+                          }
+                        }}
                         className="mt-1 px-3 py-1 bg-indigo-600 text-white rounded text-xs"
                       >
                         Mark Complete
@@ -854,10 +873,19 @@ function EditableCandidateForm({ candidate, setCandidate }) {
       {/* Address */}
       <SectionEditor title="Addresses" sectionKey="address">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {["current", "permanent"].map((section) => (
+          {[
+            "current",
+            "permanent",
+          ].map((section) => (
             <div key={section}>
               <h3 className="text-sm font-semibold">{section === "current" ? "Current Address" : "Permanent Address"}</h3>
-              {["line1", "line2", "city", "state", "pincode"].map((f) => (
+              {[
+                "line1",
+                "line2",
+                "city",
+                "state",
+                "pincode",
+              ].map((f) => (
                 <div key={f}>
                   <label className="text-xs text-gray-500">{f}</label>
                   <input value={form.address?.[section]?.[f] || ""} onChange={(e) => handleAddressChange(section, f, e.target.value)} className="w-full border rounded px-2 py-1" />
@@ -934,7 +962,14 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 }
 
 
-// // src/pages/CandidateProfilePage.jsx
+// --------------------- OLD WORKING BEFORE ADDED DIFFERENT SWITCH CASES
+
+
+
+
+
+
+
 // import React, { useEffect, useState, useRef } from "react";
 // import { useParams, useNavigate } from "react-router-dom";
 // import { PencilIcon } from "@heroicons/react/24/outline";
@@ -965,6 +1000,9 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //   // photo modal state
 //   const [photoModalOpen, setPhotoModalOpen] = useState(false);
 
+//   // derived id used for API calls (candidate._id may not exist immediately)
+//   const candidateId = candidate?._id || id;
+
 //   useEffect(() => {
 //     if (!id) return;
 //     let mounted = true;
@@ -975,6 +1013,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //         if (!mounted) return;
 //         setCandidate(res.data);
 //       } catch (err) {
+//         console.error(err);
 //         alert(err?.response?.data?.message || "Failed to load candidate");
 //       } finally {
 //         if (mounted) setLoading(false);
@@ -985,35 +1024,36 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 
 //   useEffect(() => {
 //     if (!id) return;
+//     let mounted = true;
 //     (async () => {
 //       try {
 //         const res = await api.get(`/candidates/${id}/documents`);
+//         if (!mounted) return;
 //         setDocs(Array.isArray(res.data) ? res.data : []);
-//       } catch {
+//       } catch (err) {
+//         console.error(err);
 //         setDocs([]);
 //       }
 //     })();
+//     return () => (mounted = false);
 //   }, [id]);
 
-//   if (loading)
-//     return <div className="p-8 text-center">Loading candidate...</div>;
+//   if (loading) return <div className="p-8 text-center">Loading candidate...</div>;
 //   if (!candidate)
 //     return (
 //       <div className="p-8 text-center text-gray-500">Candidate not found</div>
 //     );
 
-//   const currentIdx = Math.max(
-//     0,
-//     STATUS_ORDER.indexOf(candidate.status || "applied")
-//   );
+//   const currentIdx = Math.max(0, STATUS_ORDER.indexOf(candidate.status || "applied"));
 
 //   const updateStatus = async (newStatus) => {
 //     if (!newStatus || candidate.status === newStatus) return;
 //     const prev = candidate.status;
 //     setCandidate((c) => ({ ...c, status: newStatus }));
 //     try {
-//       await api.put(`/candidates/${id}`, { status: newStatus });
+//       await api.put(`/candidates/${candidateId}`, { status: newStatus });
 //     } catch (err) {
+//       console.error(err);
 //       alert(err?.response?.data?.message || "Failed to update status");
 //       setCandidate((c) => ({ ...c, status: prev }));
 //     }
@@ -1026,10 +1066,10 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //     setCandidate((c) => ({ ...c, mobileVerified: true }));
 //     try {
 //       const payload = { mobileVerified: true };
-//       if ((candidate.status || "applied") === "applied")
-//         payload.status = "verifying";
-//       await api.put(`/candidates/${id}`, payload);
+//       if ((candidate.status || "applied") === "applied") payload.status = "verifying";
+//       await api.put(`/candidates/${candidateId}`, payload);
 //     } catch (err) {
+//       console.error(err);
 //       alert(err?.response?.data?.message || "Verify failed");
 //       setCandidate(prev);
 //     } finally {
@@ -1037,22 +1077,19 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //     }
 //   };
 
-//   const createdAt = candidate.createdAt
-//     ? new Date(candidate.createdAt).toLocaleString()
-//     : "-";
+//   const createdAt = candidate.createdAt ? new Date(candidate.createdAt).toLocaleString() : "-";
 
 //   // Helpers to render value or '-' and to format date
-//   const show = (val) =>
-//     val === null || val === undefined || val === "" ? "-" : val;
+//   const show = (val) => (val === null || val === undefined || val === "" ? "-" : val);
 //   const showDate = (iso) => (iso ? new Date(iso).toLocaleDateString() : "-");
 
 //   // Photo upload utilities: passed to PhotoModal
 //   const refreshCandidate = async () => {
 //     try {
-//       const res = await api.get(`/candidates/${id}`);
+//       const res = await api.get(`/candidates/${candidateId}`);
 //       setCandidate(res.data);
-//     } catch {
-//       /* ignore */
+//     } catch (err) {
+//       console.error(err);
 //     }
 //   };
 
@@ -1069,18 +1106,10 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //               title="View / change photo"
 //             >
 //               {candidate.photoUrl ? (
-//                 <img
-//                   src={candidate.photoUrl}
-//                   alt="avatar"
-//                   className="w-full h-full object-cover"
-//                 />
+//                 <img src={candidate.photoUrl} alt="avatar" className="w-full h-full object-cover" />
 //               ) : (
 //                 <div className="text-gray-500 font-semibold text-lg">
-//                   {(
-//                     candidate.firstName?.[0] ||
-//                     candidate.lastName?.[0] ||
-//                     "?"
-//                   ).toUpperCase()}
+//                   {(candidate.firstName?.[0] || candidate.lastName?.[0] || "?").toUpperCase()}
 //                 </div>
 //               )}
 //             </button>
@@ -1096,54 +1125,33 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //           </div>
 
 //           <div>
-//             <button
-//               onClick={() => navigate("/candidates")}
-//               className="text-sm text-indigo-600 hover:underline"
-//             >
+//             <button onClick={() => navigate("/candidates")} className="text-sm text-indigo-600 hover:underline">
 //               &larr; Back
 //             </button>
 //             <h1 className="text-2xl font-semibold mt-2">
-//               {show(candidate.firstName)}{" "}
-//               {candidate.lastName ? show(candidate.lastName) : ""}
+//               {show(candidate.firstName)} {candidate.lastName ? show(candidate.lastName) : ""}
 //             </h1>
 //             <div className="text-sm text-gray-500 mt-1">
 //               {show(candidate.email)} • {show(candidate.mobile)}
 //             </div>
-//             <div className="text-xs text-gray-400 mt-1">
-//               Created: {createdAt}
-//             </div>
+//             <div className="text-xs text-gray-400 mt-1">Created: {createdAt}</div>
 //           </div>
 //         </div>
 
 //         <div className="flex gap-2 flex-wrap">
-//           <button
-//             className="px-3 py-1 rounded bg-green-500 text-white-800 border border-green-200"
-//             onClick={() => navigate(`/idcard/${id}`)}
-//           >
+//           <button className="px-3 py-1 rounded bg-green-500 text-white-800 border border-green-200" onClick={() => navigate(`/idcard/${candidateId}`)}>
 //             Candidate Card
 //           </button>
 
 //           <button
 //             onClick={handleVerifyMobile}
 //             disabled={verifying || candidate.mobileVerified}
-//             className={`px-3 py-1 rounded ${
-//               candidate.mobileVerified
-//                 ? "bg-green-100 text-green-800 border border-green-200"
-//                 : "bg-indigo-600 text-white"
-//             }`}
+//             className={`px-3 py-1 rounded ${candidate.mobileVerified ? "bg-green-100 text-green-800 border border-green-200" : "bg-indigo-600 text-white"}`}
 //           >
-//             {candidate.mobileVerified
-//               ? "Mobile Verified"
-//               : verifying
-//               ? "Verifying..."
-//               : "Verify Mobile"}
+//             {candidate.mobileVerified ? "Mobile Verified" : verifying ? "Verifying..." : "Verify Mobile"}
 //           </button>
 
-//           <select
-//             value={candidate.status || "applied"}
-//             onChange={(e) => updateStatus(e.target.value)}
-//             className="px-2 py-1 border rounded"
-//           >
+//           <select value={candidate.status || "applied"} onChange={(e) => updateStatus(e.target.value)} className="px-2 py-1 border rounded">
 //             {STATUS_ORDER.map((s) => (
 //               <option key={s} value={s}>
 //                 {prettyStatus(s)}
@@ -1165,47 +1173,20 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //               return (
 //                 <div key={step} className="flex items-start gap-3">
 //                   <div className="flex flex-col items-center">
-//                     <div
-//                       className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${
-//                         completed
-//                           ? "bg-green-600"
-//                           : active
-//                           ? "bg-indigo-600"
-//                           : "bg-gray-300"
-//                       }`}
-//                     >
+//                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white ${completed ? "bg-green-600" : active ? "bg-indigo-600" : "bg-gray-300"}`}>
 //                       {completed ? "✓" : idx + 1}
 //                     </div>
 //                     {idx !== STATUS_ORDER.length - 1 && (
-//                       <div
-//                         className={`w-px flex-1 ${
-//                           idx < currentIdx ? "bg-green-200" : "bg-gray-200"
-//                         }`}
-//                         style={{ height: 28 }}
-//                       />
+//                       <div className={`w-px flex-1 ${idx < currentIdx ? "bg-green-200" : "bg-gray-200"}`} style={{ height: 28 }} />
 //                     )}
 //                   </div>
 //                   <div className="flex-1">
-//                     <div
-//                       className={`font-medium ${
-//                         active
-//                           ? "text-indigo-700"
-//                           : completed
-//                           ? "text-gray-700"
-//                           : "text-gray-500"
-//                       }`}
-//                     >
+//                     <div className={`font-medium ${active ? "text-indigo-700" : completed ? "text-gray-700" : "text-gray-500"}`}>
 //                       {prettyStatus(step)}
 //                     </div>
 //                     {active && !completed && (
 //                       <button
-//                         onClick={() =>
-//                           updateStatus(
-//                             STATUS_ORDER[
-//                               Math.min(currentIdx + 1, STATUS_ORDER.length - 1)
-//                             ]
-//                           )
-//                         }
+//                         onClick={() => updateStatus(STATUS_ORDER[Math.min(currentIdx + 1, STATUS_ORDER.length - 1)])}
 //                         className="mt-1 px-3 py-1 bg-indigo-600 text-white rounded text-xs"
 //                       >
 //                         Mark Complete
@@ -1222,10 +1203,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //         <div className="col-span-2 bg-white rounded-xl shadow p-6 space-y-4">
 //           <div className="flex justify-between items-center">
 //             <h2 className="text-lg font-semibold">Candidate Details</h2>
-//             <button
-//               onClick={() => setEditModalOpen(true)}
-//               className="text-indigo-600 hover:text-indigo-800"
-//             >
+//             <button onClick={() => setEditModalOpen(true)} className="text-indigo-600 hover:text-indigo-800">
 //               <PencilIcon className="w-5 h-5 inline" />
 //             </button>
 //           </div>
@@ -1234,10 +1212,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //             <div>
 //               <div className="text-xs text-gray-500">Full Name</div>
-//               <div>
-//                 {(candidate.firstName || "") +
-//                   (candidate.lastName ? " " + candidate.lastName : "") || "-"}
-//               </div>
+//               <div>{(candidate.firstName || "") + (candidate.lastName ? " " + candidate.lastName : "") || "-"}</div>
 //             </div>
 
 //             <div>
@@ -1325,28 +1300,20 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //               <div>{show(candidate.address?.current?.line1)}</div>
 //               <div>{show(candidate.address?.current?.line2)}</div>
 //               <div>
-//                 {show(candidate.address?.current?.city)},{" "}
-//                 {show(candidate.address?.current?.state)}{" "}
-//                 {show(candidate.address?.current?.pincode)}
+//                 {show(candidate.address?.current?.city)}, {show(candidate.address?.current?.state)} {show(candidate.address?.current?.pincode)}
 //               </div>
 //             </div>
 
 //             <div>
-//               <div className="text-xs text-gray-500 mb-1">
-//                 Permanent Address
-//               </div>
+//               <div className="text-xs text-gray-500 mb-1">Permanent Address</div>
 //               <div>{show(candidate.address?.permanent?.line1)}</div>
 //               <div>{show(candidate.address?.permanent?.line2)}</div>
 //               <div>
-//                 {show(candidate.address?.permanent?.city)},{" "}
-//                 {show(candidate.address?.permanent?.state)}{" "}
-//                 {show(candidate.address?.permanent?.pincode)}
+//                 {show(candidate.address?.permanent?.city)}, {show(candidate.address?.permanent?.state)} {show(candidate.address?.permanent?.pincode)}
 //               </div>
 
 //               <div className="text-xs text-gray-400 mt-2">
-//                 {candidate.address?.isPermanentSameAsCurrent
-//                   ? "Permanent same as current"
-//                   : ""}
+//                 {candidate.address?.isPermanentSameAsCurrent ? "Permanent same as current" : ""}
 //               </div>
 //             </div>
 //           </div>
@@ -1391,11 +1358,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 
 //             <div>
 //               <div className="text-xs text-gray-500">Date of Joining</div>
-//               <div>
-//                 {candidate.DateOfJoining
-//                   ? showDate(candidate.DateOfJoining)
-//                   : "-"}
-//               </div>
+//               <div>{candidate.DateOfJoining ? showDate(candidate.DateOfJoining) : "-"}</div>
 //             </div>
 //             <div>
 //               <div className="text-xs text-gray-500">Next Increment</div>
@@ -1403,11 +1366,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //             </div>
 //             <div>
 //               <div className="text-xs text-gray-500">Next Increment Date</div>
-//               <div>
-//                 {candidate.NextIncreamentDate
-//                   ? showDate(candidate.NextIncreamentDate)
-//                   : "-"}
-//               </div>
+//               <div>{candidate.NextIncreamentDate ? showDate(candidate.NextIncreamentDate) : "-"}</div>
 //             </div>
 //           </div>
 
@@ -1443,33 +1402,19 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //           {/* Documents */}
 //           <div>
 //             <div className="flex items-center justify-between font-semibold text-sm mb-2">
-//               Documents{" "}
-//               <span className="text-gray-500 text-xs">{docs.length} files</span>
+//               Documents <span className="text-gray-500 text-xs">{docs.length} files</span>
 //             </div>
 //             {docs.length === 0 ? (
 //               <div className="text-sm text-gray-500">No documents uploaded</div>
 //             ) : (
 //               docs.map((d) => (
-//                 <div
-//                   key={d._id || d.id}
-//                   className="flex items-center justify-between gap-2 mb-1"
-//                 >
-//                   <div className="font-medium text-sm">
-//                     {d.filename || d.name}
-//                   </div>
+//                 <div key={d._id || d.id} className="flex items-center justify-between gap-2 mb-1">
+//                   <div className="font-medium text-sm">{d.filename || d.name}</div>
 //                   <div className="flex gap-2">
-//                     <a
-//                       href={d.url || `/uploads/${d.filename}`}
-//                       target="_blank"
-//                       rel="noreferrer"
-//                       className="text-indigo-600 underline text-sm"
-//                     >
+//                     <a href={d.url || `/uploads/${d.filename}`} target="_blank" rel="noreferrer" className="text-indigo-600 underline text-sm">
 //                       Open
 //                     </a>
-//                     <button
-//                       onClick={() => setPreviewDoc(d)}
-//                       className="px-2 py-1 text-sm border rounded"
-//                     >
+//                     <button onClick={() => setPreviewDoc(d)} className="px-2 py-1 text-sm border rounded">
 //                       Preview
 //                     </button>
 //                   </div>
@@ -1481,11 +1426,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //       </div>
 
 //       {/* Edit Modal */}
-//       <Modal
-//         isOpen={editModalOpen}
-//         onClose={() => setEditModalOpen(false)}
-//         title="Edit Candidate"
-//       >
+//       <Modal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)} title="Edit Candidate">
 //         <EditableCandidateForm
 //           candidate={candidate}
 //           setCandidate={(updated) => {
@@ -1496,38 +1437,17 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //       </Modal>
 
 //       {/* Photo Modal */}
-//       <Modal
-//         isOpen={photoModalOpen}
-//         onClose={() => setPhotoModalOpen(false)}
-//         title="Profile Photo"
-//       >
-//         <PhotoModalContent
-//           candidate={candidate}
-//           onClose={() => setPhotoModalOpen(false)}
-//           onUploaded={refreshCandidate}
-//         />
+//       <Modal isOpen={photoModalOpen} onClose={() => setPhotoModalOpen(false)} title="Profile Photo">
+//         <PhotoModalContent candidate={candidate} onClose={() => setPhotoModalOpen(false)} onUploaded={refreshCandidate} />
 //       </Modal>
 
 //       {/* Document Preview Modal */}
-//       <Modal
-//         isOpen={!!previewDoc}
-//         onClose={() => setPreviewDoc(null)}
-//         title={previewDoc?.filename || "Preview"}
-//       >
+//       <Modal isOpen={!!previewDoc} onClose={() => setPreviewDoc(null)} title={previewDoc?.filename || "Preview"}>
 //         {previewDoc?.contentType?.startsWith("image/") ? (
-//           <img
-//             src={previewDoc.url}
-//             alt={previewDoc.filename}
-//             className="w-full h-auto"
-//           />
+//           <img src={previewDoc.url} alt={previewDoc.filename} className="w-full h-auto" />
 //         ) : (
-//           <a
-//             href={previewDoc?.url}
-//             target="_blank"
-//             rel="noreferrer"
-//             className="text-indigo-600 underline"
-//           >
-//             {previewDoc?.filename}
+//           <a href={previewDoc?.url} target="_blank" rel="noreferrer" className="text-indigo-600 underline">
+//             {previewDoc?.filename || "Open document"}
 //           </a>
 //         )}
 //       </Modal>
@@ -1569,14 +1489,14 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //     try {
 //       const fd = new FormData();
 //       fd.append("photo", file);
-//       const res = await api.post(`/candidates/${candidate._id}/photo`, fd, {
-//         headers: { "Content-Type": "multipart/form-data" },
-//       });
-//       // server should return updated candidate or photoUrl; best to refresh
+//       // prefer candidate._id but fall back to route id
+//       const id = candidate._id || candidate.id;
+//       await api.post(`/candidates/${id}/photo`, fd, { headers: { "Content-Type": "multipart/form-data" } });
 //       if (onUploaded) await onUploaded();
 //       alert("Uploaded");
 //       onClose();
 //     } catch (err) {
+//       console.error(err);
 //       alert(err?.response?.data?.message || "Upload failed");
 //     } finally {
 //       setUploading(false);
@@ -1584,13 +1504,14 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //   };
 
 //   const resetImage = async () => {
-//     if (!confirm("Reset profile photo to empty?")) return;
+//     if (!window.confirm("Reset profile photo to empty?")) return;
 //     try {
-//       // If your API supports deleting picture, call DELETE. Otherwise set photoUrl to empty via PUT.
-//       await api.put(`/candidates/${candidate._id}`, { photoUrl: "" });
+//       const id = candidate._id || candidate.id;
+//       await api.put(`/candidates/${id}`, { photoUrl: "" });
 //       if (onUploaded) await onUploaded();
 //       alert("Reset");
 //     } catch (err) {
+//       console.error(err);
 //       alert(err?.response?.data?.message || "Reset failed");
 //     }
 //   };
@@ -1599,53 +1520,24 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //     <div className="space-y-4">
 //       <div className="flex items-center justify-center">
 //         {preview ? (
-//           <img
-//             src={preview}
-//             alt="preview"
-//             className="max-w-full max-h-[50vh] rounded-md object-contain"
-//           />
+//           <img src={preview} alt="preview" className="max-w-full max-h-[50vh] rounded-md object-contain" />
 //         ) : (
-//           <div className="w-48 h-48 rounded-full bg-gray-100 flex items-center justify-center">
-//             No image
-//           </div>
+//           <div className="w-48 h-48 rounded-full bg-gray-100 flex items-center justify-center">No image</div>
 //         )}
 //       </div>
 
 //       <div className="flex items-center gap-2">
-//         <input
-//           ref={inputRef}
-//           type="file"
-//           accept="image/*"
-//           onChange={onFileChange}
-//           className="hidden"
-//         />
-//         <button
-//           type="button"
-//           onClick={() => inputRef.current?.click()}
-//           className="px-3 py-2 border rounded bg-white"
-//         >
+//         <input ref={inputRef} type="file" accept="image/*" onChange={onFileChange} className="hidden" />
+//         <button type="button" onClick={() => inputRef.current?.click()} className="px-3 py-2 border rounded bg-white">
 //           Choose
 //         </button>
-//         <button
-//           type="button"
-//           onClick={upload}
-//           disabled={uploading}
-//           className="px-3 py-2 bg-indigo-600 text-white rounded"
-//         >
+//         <button type="button" onClick={upload} disabled={uploading} className="px-3 py-2 bg-indigo-600 text-white rounded">
 //           {uploading ? "Uploading..." : "Upload"}
 //         </button>
-//         <button
-//           type="button"
-//           onClick={resetImage}
-//           className="px-3 py-2 border rounded text-sm"
-//         >
+//         <button type="button" onClick={resetImage} className="px-3 py-2 border rounded text-sm">
 //           Reset Image
 //         </button>
-//         <button
-//           type="button"
-//           onClick={onClose}
-//           className="px-3 py-2 border rounded text-sm"
-//         >
+//         <button type="button" onClick={onClose} className="px-3 py-2 border rounded text-sm">
 //           Close
 //         </button>
 //       </div>
@@ -1768,73 +1660,44 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //     }
 
 //     try {
-//       const res = await api.put(`/candidates/${candidate._id}`, payload);
+//       const res = await api.put(`/candidates/${candidate._id || candidate.id}`, payload);
 //       // update parent
 //       setCandidate(res.data);
 //       setFeedback({ section, type: "success", msg: "Saved!" });
 //       setEditingSection(null);
 //     } catch (err) {
-//       setFeedback({
-//         section,
-//         type: "error",
-//         msg: err?.response?.data?.message || "Save failed",
-//       });
+//       console.error(err);
+//       setFeedback({ section, type: "error", msg: err?.response?.data?.message || "Save failed" });
 //     } finally {
 //       setTimeout(() => setFeedback(null), 3000);
 //     }
 //   };
 
-//   const handleChange = (name, value) =>
-//     setForm((p) => ({ ...p, [name]: value }));
+//   const handleChange = (name, value) => setForm((p) => ({ ...p, [name]: value }));
 //   const handleAddressChange = (section, field, value) =>
-//     setForm((p) => ({
-//       ...p,
-//       address: {
-//         ...p.address,
-//         [section]: { ...p.address[section], [field]: value },
-//       },
-//     }));
+//     setForm((p) => ({ ...p, address: { ...p.address, [section]: { ...p.address[section], [field]: value } } }));
 
 //   // copy current -> permanent
 //   const copyPermanent = (checked) => {
 //     if (!checked) {
-//       setForm((p) => ({
-//         ...p,
-//         address: { ...p.address, isPermanentSameAsCurrent: false },
-//       }));
+//       setForm((p) => ({ ...p, address: { ...p.address, isPermanentSameAsCurrent: false } }));
 //       return;
 //     }
-//     setForm((p) => ({
-//       ...p,
-//       address: {
-//         ...p.address,
-//         permanent: { ...p.address.current },
-//         isPermanentSameAsCurrent: true,
-//       },
-//     }));
+//     setForm((p) => ({ ...p, address: { ...p.address, permanent: { ...p.address.current }, isPermanentSameAsCurrent: true } }));
 //   };
 
 //   // UI Section wrapper (not memoized to avoid weird re-render swaps)
 //   function SectionEditor({ title, sectionKey, children }) {
 //     return (
-//       <div
-//         ref={(el) => (sectionRefs.current[sectionKey] = el)}
-//         className="bg-white rounded-xl shadow p-4 space-y-2"
-//       >
+//       <div ref={(el) => (sectionRefs.current[sectionKey] = el)} className="bg-white rounded-xl shadow p-4 space-y-2">
 //         <div className="flex justify-between items-center mb-2">
 //           <h3 className="text-sm font-semibold">{title}</h3>
 //           {editingSection === sectionKey ? (
 //             <div className="flex gap-2">
-//               <button
-//                 onClick={() => setEditingSection(null)}
-//                 className="px-2 py-1 border rounded text-xs"
-//               >
+//               <button onClick={() => setEditingSection(null)} className="px-2 py-1 border rounded text-xs">
 //                 Cancel
 //               </button>
-//               <button
-//                 onClick={() => handleSaveSection(sectionKey)}
-//                 className="px-2 py-1 bg-indigo-600 text-white rounded text-xs"
-//               >
+//               <button onClick={() => handleSaveSection(sectionKey)} className="px-2 py-1 bg-indigo-600 text-white rounded text-xs">
 //                 Save
 //               </button>
 //             </div>
@@ -1852,24 +1715,10 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //         </div>
 
 //         {feedback?.section === sectionKey && (
-//           <div
-//             className={`text-xs ${
-//               feedback.type === "success" ? "text-green-600" : "text-red-600"
-//             } mb-2`}
-//           >
-//             {feedback.msg}
-//           </div>
+//           <div className={`text-xs ${feedback.type === "success" ? "text-green-600" : "text-red-600"} mb-2`}>{feedback.msg}</div>
 //         )}
 
-//         <div
-//           className={`${
-//             editingSection !== sectionKey
-//               ? "opacity-70 pointer-events-none"
-//               : ""
-//           }`}
-//         >
-//           {children}
-//         </div>
+//         <div className={`${editingSection !== sectionKey ? "opacity-70 pointer-events-none" : ""}`}>{children}</div>
 //       </div>
 //     );
 //   }
@@ -1881,70 +1730,32 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //           <div>
 //             <label className="text-xs text-gray-500">First name</label>
-//             <input
-//               name="firstName"
-//               value={form.firstName}
-//               onChange={(e) => handleChange("firstName", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input name="firstName" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">Last name</label>
-//             <input
-//               name="lastName"
-//               value={form.lastName}
-//               onChange={(e) => handleChange("lastName", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input name="lastName" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">Email</label>
-//             <input
-//               name="email"
-//               value={form.email}
-//               onChange={(e) => handleChange("email", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input name="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">Mobile</label>
-//             <input
-//               name="mobile"
-//               value={form.mobile}
-//               onChange={(e) => handleChange("mobile", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input name="mobile" value={form.mobile} onChange={(e) => handleChange("mobile", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">Alternative Mobile</label>
-//             <input
-//               name="AlternativeMobile"
-//               value={form.AlternativeMobile}
-//               onChange={(e) =>
-//                 handleChange("AlternativeMobile", e.target.value)
-//               }
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input name="AlternativeMobile" value={form.AlternativeMobile} onChange={(e) => handleChange("AlternativeMobile", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">DOB</label>
-//             <input
-//               name="dob"
-//               type="date"
-//               value={form.dob}
-//               onChange={(e) => handleChange("dob", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input name="dob" type="date" value={form.dob} onChange={(e) => handleChange("dob", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 
 //           <div>
 //             <label className="text-xs text-gray-500">Gender</label>
-//             <select
-//               name="Gender"
-//               value={form.Gender}
-//               onChange={(e) => handleChange("Gender", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             >
+//             <select name="Gender" value={form.Gender} onChange={(e) => handleChange("Gender", e.target.value)} className="w-full border rounded px-2 py-1">
 //               <option value="">Select</option>
 //               <option value="male">Male</option>
 //               <option value="female">Female</option>
@@ -1953,12 +1764,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 
 //           <div>
 //             <label className="text-xs text-gray-500">Blood Group</label>
-//             <input
-//               name="BloodGroup"
-//               value={form.BloodGroup}
-//               onChange={(e) => handleChange("BloodGroup", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input name="BloodGroup" value={form.BloodGroup} onChange={(e) => handleChange("BloodGroup", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //         </div>
 //       </SectionEditor>
@@ -1966,33 +1772,18 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //       {/* Marital */}
 //       <SectionEditor title="Marital" sectionKey="marital">
 //         <div className="flex items-center gap-2">
-//           <input
-//             id="isMarried"
-//             type="checkbox"
-//             checked={form.isMarried}
-//             onChange={(e) =>
-//               setForm((p) => ({ ...p, isMarried: e.target.checked }))
-//             }
-//           />
+//           <input id="isMarried" type="checkbox" checked={form.isMarried} onChange={(e) => setForm((p) => ({ ...p, isMarried: e.target.checked }))} />
 //           <label htmlFor="isMarried">Married</label>
 //         </div>
 //         {form.isMarried && (
 //           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
 //             <div>
 //               <label className="text-xs text-gray-500">Spouse Name</label>
-//               <input
-//                 value={form.spouseName}
-//                 onChange={(e) => handleChange("spouseName", e.target.value)}
-//                 className="w-full border rounded px-2 py-1"
-//               />
+//               <input value={form.spouseName} onChange={(e) => handleChange("spouseName", e.target.value)} className="w-full border rounded px-2 py-1" />
 //             </div>
 //             <div>
 //               <label className="text-xs text-gray-500">Spouse Number</label>
-//               <input
-//                 value={form.spouseNumber}
-//                 onChange={(e) => handleChange("spouseNumber", e.target.value)}
-//                 className="w-full border rounded px-2 py-1"
-//               />
+//               <input value={form.spouseNumber} onChange={(e) => handleChange("spouseNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
 //             </div>
 //           </div>
 //         )}
@@ -2003,59 +1794,30 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 //           <div>
 //             <label className="text-xs text-gray-500">Company</label>
-//             <input
-//               type="text"
-//               disabled
-//               value="SLOG"
-//               className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed"
-//             />
+//             <input type="text" disabled value="SLOG" className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">Designation</label>
-//             <input
-//               value={form.Designation}
-//               onChange={(e) => handleChange("Designation", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input value={form.Designation} onChange={(e) => handleChange("Designation", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">Salary</label>
-//             <input
-//               value={form.Salary}
-//               onChange={(e) => handleChange("Salary", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input value={form.Salary} onChange={(e) => handleChange("Salary", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 
 //           <div>
 //             <label className="text-xs text-gray-500">Date of Joining</label>
-//             <input
-//               type="date"
-//               value={form.DateOfJoining}
-//               onChange={(e) => handleChange("DateOfJoining", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input type="date" value={form.DateOfJoining} onChange={(e) => handleChange("DateOfJoining", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 
 //           <div>
 //             <label className="text-xs text-gray-500">Next Increment</label>
-//             <input
-//               value={form.NextIncreament}
-//               onChange={(e) => handleChange("NextIncreament", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input value={form.NextIncreament} onChange={(e) => handleChange("NextIncreament", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 
 //           <div>
 //             <label className="text-xs text-gray-500">Next Increment Date</label>
-//             <input
-//               type="date"
-//               value={form.NextIncreamentDate}
-//               onChange={(e) =>
-//                 handleChange("NextIncreamentDate", e.target.value)
-//               }
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input type="date" value={form.NextIncreamentDate} onChange={(e) => handleChange("NextIncreamentDate", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //         </div>
 //       </SectionEditor>
@@ -2065,31 +1827,17 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 //           {["current", "permanent"].map((section) => (
 //             <div key={section}>
-//               <h3 className="text-sm font-semibold">
-//                 {section === "current"
-//                   ? "Current Address"
-//                   : "Permanent Address"}
-//               </h3>
+//               <h3 className="text-sm font-semibold">{section === "current" ? "Current Address" : "Permanent Address"}</h3>
 //               {["line1", "line2", "city", "state", "pincode"].map((f) => (
 //                 <div key={f}>
 //                   <label className="text-xs text-gray-500">{f}</label>
-//                   <input
-//                     value={form.address?.[section]?.[f] || ""}
-//                     onChange={(e) =>
-//                       handleAddressChange(section, f, e.target.value)
-//                     }
-//                     className="w-full border rounded px-2 py-1"
-//                   />
+//                   <input value={form.address?.[section]?.[f] || ""} onChange={(e) => handleAddressChange(section, f, e.target.value)} className="w-full border rounded px-2 py-1" />
 //                 </div>
 //               ))}
 
 //               {section === "permanent" && (
 //                 <div className="flex items-center gap-2 mt-2">
-//                   <input
-//                     type="checkbox"
-//                     checked={!!form.address.isPermanentSameAsCurrent}
-//                     onChange={(e) => copyPermanent(e.target.checked)}
-//                   />
+//                   <input type="checkbox" checked={!!form.address.isPermanentSameAsCurrent} onChange={(e) => copyPermanent(e.target.checked)} />
 //                   <label>Same as Current Address</label>
 //                 </div>
 //               )}
@@ -2099,16 +1847,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 
 //         <div className="mt-3">
 //           <div className="flex items-center gap-2">
-//             <input
-//               type="checkbox"
-//               checked={!!form.address.isPG}
-//               onChange={(e) =>
-//                 setForm((p) => ({
-//                   ...p,
-//                   address: { ...p.address, isPG: e.target.checked },
-//                 }))
-//               }
-//             />
+//             <input type="checkbox" checked={!!form.address.isPG} onChange={(e) => setForm((p) => ({ ...p, address: { ...p.address, isPG: e.target.checked } }))} />
 //             <label>PG / Rent</label>
 //           </div>
 
@@ -2116,42 +1855,15 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
 //               <div>
 //                 <label className="text-xs text-gray-500">PG Owner Name</label>
-//                 <input
-//                   value={form.address.pgOwnerName}
-//                   onChange={(e) =>
-//                     setForm((p) => ({
-//                       ...p,
-//                       address: { ...p.address, pgOwnerName: e.target.value },
-//                     }))
-//                   }
-//                   className="w-full border rounded px-2 py-1"
-//                 />
+//                 <input value={form.address.pgOwnerName} onChange={(e) => setForm((p) => ({ ...p, address: { ...p.address, pgOwnerName: e.target.value } }))} className="w-full border rounded px-2 py-1" />
 //               </div>
 //               <div>
 //                 <label className="text-xs text-gray-500">PG Name</label>
-//                 <input
-//                   value={form.address.pgName}
-//                   onChange={(e) =>
-//                     setForm((p) => ({
-//                       ...p,
-//                       address: { ...p.address, pgName: e.target.value },
-//                     }))
-//                   }
-//                   className="w-full border rounded px-2 py-1"
-//                 />
+//                 <input value={form.address.pgName} onChange={(e) => setForm((p) => ({ ...p, address: { ...p.address, pgName: e.target.value } }))} className="w-full border rounded px-2 py-1" />
 //               </div>
 //               <div>
 //                 <label className="text-xs text-gray-500">PG Number</label>
-//                 <input
-//                   value={form.address.pgNumber}
-//                   onChange={(e) =>
-//                     setForm((p) => ({
-//                       ...p,
-//                       address: { ...p.address, pgNumber: e.target.value },
-//                     }))
-//                   }
-//                   className="w-full border rounded px-2 py-1"
-//                 />
+//                 <input value={form.address.pgNumber} onChange={(e) => setForm((p) => ({ ...p, address: { ...p.address, pgNumber: e.target.value } }))} className="w-full border rounded px-2 py-1" />
 //               </div>
 //             </div>
 //           )}
@@ -2163,56 +1875,28 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 //         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 //           <div>
 //             <label className="text-xs text-gray-500">Aadhaar</label>
-//             <input
-//               value={form.aadhaarNumber}
-//               onChange={(e) => handleChange("aadhaarNumber", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input value={form.aadhaarNumber} onChange={(e) => handleChange("aadhaarNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">PAN</label>
-//             <input
-//               value={form.panNumber}
-//               onChange={(e) => handleChange("panNumber", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input value={form.panNumber} onChange={(e) => handleChange("panNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">Driving License</label>
-//             <input
-//               value={form.drivingLicenseNumber}
-//               onChange={(e) =>
-//                 handleChange("drivingLicenseNumber", e.target.value)
-//               }
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input value={form.drivingLicenseNumber} onChange={(e) => handleChange("drivingLicenseNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 
 //           <div>
 //             <label className="text-xs text-gray-500">PF Number</label>
-//             <input
-//               value={form.pfNumber}
-//               onChange={(e) => handleChange("pfNumber", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input value={form.pfNumber} onChange={(e) => handleChange("pfNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">ESIC Number</label>
-//             <input
-//               value={form.esicNumber}
-//               onChange={(e) => handleChange("esicNumber", e.target.value)}
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input value={form.esicNumber} onChange={(e) => handleChange("esicNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //           <div>
 //             <label className="text-xs text-gray-500">Medical Policy</label>
-//             <input
-//               value={form.medicalPolicyNumber}
-//               onChange={(e) =>
-//                 handleChange("medicalPolicyNumber", e.target.value)
-//               }
-//               className="w-full border rounded px-2 py-1"
-//             />
+//             <input value={form.medicalPolicyNumber} onChange={(e) => handleChange("medicalPolicyNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
 //           </div>
 //         </div>
 //       </SectionEditor>

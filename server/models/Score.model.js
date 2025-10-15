@@ -1,18 +1,30 @@
-// models/Score.js
+// models/InterviewRound.js
 const mongoose = require('mongoose');
 
 const scoreSchema = new mongoose.Schema({
-  candidate: { type: mongoose.Types.ObjectId, ref: 'Candidate', required: true, index: true },
-  round: { type: String, enum: ['hr','technical','founder'], required: true },
-  score: { type: Number, required: true },            // numeric score (e.g. 0-100)
-  maxScore: { type: Number, default: 10 },           // optional max scale
-  comments: { type: String, default: '' },
-  interviewer: { type: mongoose.Types.ObjectId, ref: 'User', required: true },
-  createdAt: { type: Date, default: Date.now },
-  // in all fields  personality , communication , body language , salary  each fields rating rating each rounds comment 
+  grooming: { type: Number, min: 0, max: 10, default: 0 },
+  personality: { type: Number, min: 0, max: 10, default: 0 },
+  communication: { type: Number, min: 0, max: 10, default: 0 },
+  knowledge: { type: Number, min: 0, max: 10, default: 0 },
 });
 
-// optional: prevent duplicate submissions by same interviewer for same round (if desired)
-// scoreSchema.index({ candidate: 1, round: 1, interviewer: 1 }, { unique: true });
+const interviewRoundSchema = new mongoose.Schema({
+  candidate: { type: mongoose.Types.ObjectId, ref: 'Candidate', required: true, index: true },
+  interviewer: { type: mongoose.Types.ObjectId, ref: 'User' }, // or a string if you prefer
+  interviewerName: { type: String }, // helpful if interviewer user may be deleted
+  type: { type: String, enum: ['HR', 'Technical', 'Director', 'Round 1','Round 2','Round 3','Other'], default: 'Other' },
+  date: { type: Date, default: Date.now },
+  scores: { type: scoreSchema, required: true },
+  total: { type: Number, min: 0, max: 40 },
+  comments: { type: String },
+  createdAt: { type: Date, default: Date.now }
+});
 
-module.exports = mongoose.model('Score', scoreSchema);
+// compute total before save
+interviewRoundSchema.pre('save', function(next) {
+  const s = this.scores || {};
+  this.total = (Number(s.grooming || 0) + Number(s.personality || 0) + Number(s.communication || 0) + Number(s.knowledge || 0));
+  next();
+});
+
+module.exports = mongoose.model('InterviewRound', interviewRoundSchema);

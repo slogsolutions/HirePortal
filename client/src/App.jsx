@@ -12,6 +12,10 @@ import CandidatesPage from "./pages/CandidatesPage";
 import CandidateProfilePage from "./pages/CandidateProfilePage";
 import AboutUs from './pages/AboutUs';
 import IDCard from './pages/IDCard';
+import VerifyCandidatePage from "./pages/VerifyCandidatePage";
+import InterviewPage from "./pages/InterviewPage";
+import OfferPage from "./pages/OfferPage";
+import OfferLetterTabPage from './pages/OfferLetterTabPage';
 function App() {
   const [count, setCount] = useState(0)
 
@@ -39,6 +43,12 @@ function App() {
 
 <Route path="/candidates" element={<CandidatesPage />} />
 <Route path="/candidates/:id" element={<CandidateProfilePage />} />
+
+<Route path="/candidates/:id/verify" element={<VerifyCandidatePage />} />
+<Route path="/candidates/:id/interview" element={<InterviewPage />} />
+<Route path="/candidates/:id/offer" element={<OfferPage />} />
+
+ <Route path="/offerletter" element={<OfferLetterTabPage />} />
 
 
 {/* catch-all -> redirect to home */}

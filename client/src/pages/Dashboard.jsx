@@ -1,6 +1,8 @@
 // src/pages/DashboardPage.jsx
 import React, { useState, lazy, Suspense } from "react";
 import Documents from "./Documents";
+import OfferLetterTabPage from './OfferLetterTabPage';
+import ReportsPage from "./ReportsPage";
 // import CandidatesPage from "./CandidatesPage"; // <-- your real page
 const CandidatesPage = lazy(() => import("./CandidatesPage"));
 const VerificationPage = lazy(() => import("./VerificationPage"));
@@ -29,7 +31,7 @@ const Settings = () => (
 const TABS = [
   { key: "candidates", label: "Candidates" },
   { key: "reports", label: "Reports" },
-  { key: "settings", label: "Settings" },
+  { key: "offerLetter", label: "Offer Letter" },
   { key: "verification", label: "Verification" },
   { key: "documents", label: "Documents" },
 ];
@@ -46,9 +48,9 @@ export default function DashboardPage({ initialTab = "candidates" }) {
           </Suspense>
         );
       case "reports":
-        return <Reports />;
-      case "settings":
-        return <Settings />;
+        return <ReportsPage />;
+      case "offerLetter":
+        return < OfferLetterTabPage/>;
          case "verification":
             return (
                  <Suspense fallback={<div>Loading...</div>}>

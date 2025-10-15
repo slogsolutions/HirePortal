@@ -1,27 +1,116 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>Offer Letter</title>
+  <meta charset="UTF-8">
+  <title>Offer Letter - Slog Solutions</title>
   <style>
-    body { font-family: Arial, sans-serif; line-height: 1.4; padding: 30px; color: #111; }
-    header { text-align:center; margin-bottom:20px; }
-    .content { margin-top: 20px; }
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f6f8;
+      color: #333;
+    }
+    .container {
+      width: 80%;
+      max-width: 700px;
+      margin: 40px auto;
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      overflow: hidden;
+      border-top: 5px solid #007BFF;
+    }
+    header {
+      background-color: #007BFF;
+      color: #fff;
+      text-align: center;
+      padding: 30px 20px;
+    }
+    header img {
+      max-width: 120px;
+      margin-bottom: 15px;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+    header p {
+      margin: 5px 0 0 0;
+      font-size: 16px;
+    }
+    .content {
+      padding: 30px 40px;
+      line-height: 1.6;
+    }
+    .content p {
+      margin: 15px 0;
+    }
+    .content strong {
+      color: #007BFF;
+    }
+    .footer {
+      margin-top: 30px;
+      text-align: center;
+      font-size: 14px;
+      color: #888;
+      padding-bottom: 20px;
+    }
+    .button {
+      display: inline-block;
+      padding: 10px 20px;
+      background-color: #007BFF;
+      color: #fff;
+      text-decoration: none;
+      border-radius: 5px;
+      margin-top: 20px;
+    }
+    .signature {
+      margin-top: 40px;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h2>{{companyName}}</h2>
-    <p>Offer Letter</p>
-  </header>
-  <div class="content">
-    <p>Dear {{candidateName}},</p>
-    <p>We are pleased to offer you the position of <strong>{{position}}</strong> at {{companyName}}.</p>
-    <p>Your CTC will be ₹{{ctc}} per annum. Expected joining date: {{joiningDate}}. Probation: {{probationMonths}} months.</p>
-    <p>Candidate mobile: {{candidate_mobile}} | Father's name: {{father_name}} | Aadhaar: {{aadhaar_masked}}</p>
-    <p>Please review and confirm.</p>
-    <p>Sincerely,<br/>{{hrName}}</p>
+  <div class="container">
+    <header>
+     <img src="/template-images/Slog-logo.png" alt="Slog Solutions Logo" width="120">
+
+      <h1>Slog Solutions</h1>
+      <p>Offer Letter</p>
+    </header>
+    <div class="content">
+      <p>Dear <strong>{{candidateName}}</strong>,</p>
+
+      <p>Congratulations! We are thrilled to offer you the position of <strong>{{position}}</strong> at <strong>Slog Solutions</strong>. Your skills and experience are a perfect match for our team, and we look forward to working with you.</p>
+
+      <p><strong>Offer Details:</strong></p>
+      <ul>
+        <li>CTC: ₹{{ctc}} per annum</li>
+        <li>Expected Joining Date: {{joiningDate}}</li>
+        <li>Probation Period: {{probationMonths}} months</li>
+      </ul>
+
+      <p>Candidate Details:</p>
+      <ul>
+        <li>Mobile: {{candidate_mobile}}</li>
+        <li>Father's Name: {{father_name}}</li>
+        <li>Aadhaar (Masked): {{aadhaar_masked}}</li>
+      </ul>
+
+      <p>Please review this offer carefully. To accept, kindly acknowledge by replying to this email or contacting our HR team.</p>
+
+      <p class="signature">
+        Best Regards,<br>
+        <strong>{{hrName}}</strong><br>
+        Human Resources<br>
+        Slog Solutions
+      </p>
+
+      <a href="#" class="button">Confirm Acceptance</a>
+    </div>
+    <div class="footer">
+      &copy; {{currentYear}} Slog Solutions. All rights reserved.
+    </div>
   </div>
 </body>
 </html>
-
