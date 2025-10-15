@@ -13,10 +13,11 @@ const Login = () => {
     e.preventDefault();
     setError(null);
     try {
-      await login({ email, password });
-      navigate("/dashboard", { replace: true });
+      await login(email, password);
+      // Redirect to the portal page after successful login
+      navigate("/portal", { replace: true });
     } catch (err) {
-      setError(err.message || "Login failed");
+      setError(err.message || "Login failed. Please check your credentials and try again.");
     }
   };
 

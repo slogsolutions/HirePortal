@@ -1,10 +1,8 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
 
-const STORAGE_KEY = "auth:v1";
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
-// Create the context
 export const AuthContext = createContext({
   user: null,
   token: null,
@@ -16,15 +14,6 @@ export const AuthContext = createContext({
   logout: () => {},
   authFetch: async () => {},
 });
-
-// Custom hook to use the auth context
-export const useAuth = () => {
-  const context = React.useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
 
 export const AuthProvider = ({ children }) => {
   const [authState, setAuthState] = useState(() => {
@@ -69,66 +58,28 @@ export const AuthProvider = ({ children }) => {
     setAuthState(prev => ({ ...prev, loading: true, error: null }));
     
     try {
-      console.log('Attempting login with:', { email });
-      const response = await axios.post(`${API_BASE}/auth/login`, 
-        { email, password },
-        {
-          headers: {
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-      
-      console.log('Login response:', response.data);
-      
-      if (!response.data || !response.data.token) {
-        throw new Error('Invalid response from server');
-      }
-
+      const response = await axios.post(`${API_BASE}/auth/login`, { email, password });
       const { user, token } = response.data;
       
-      // Make sure we have the required user data
-      if (!user || !user.id) {
-        throw new Error('Invalid user data received');
+      if (!token) {
+        throw new Error('No authentication token received');
       }
 
-      // Update auth state with the user data from the response
-      const updatedUser = {
-        id: user.id,
-        name: user.name || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'User',
-        email: user.email,
-        role: user.role || 'user',
-        type: user.type || 'user'
-      };
-
       setAuthState({
-        user: updatedUser,
+        user,
         token,
         loading: false,
         error: null
       });
 
-      // Store user data in localStorage
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-
-      // Set default authorization header for future requests
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-
-      return { user: updatedUser, token };
+      return { user, token };
     } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = error.response?.data?.message || 
-                         error.response?.data?.error || 
-                         error.message || 
-                         'Login failed';
-      
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
       setAuthState(prev => ({
         ...prev,
         loading: false,
         error: errorMessage
       }));
-      
       throw new Error(errorMessage);
     }
   }, []);
@@ -197,20 +148,17 @@ export const AuthProvider = ({ children }) => {
     }
   }, [logout]);
 
-  // Add isAuthenticated to the auth state
-  const isAuthenticated = !!authState.token;
-
   const value = useMemo(() => ({
     user: authState.user,
     token: authState.token,
-    isAuthenticated,
+    isAuthenticated: !!authState.token,
     loading: authState.loading,
     error: authState.error,
     login,
     register,
     logout,
     authFetch
-  }), [authState.user, authState.token, isAuthenticated, authState.loading, authState.error, login, register, logout, authFetch]);
+  }), [authState.user, authState.token, authState.loading, authState.error, login, register, logout, authFetch]);
 
   return (
     <AuthContext.Provider value={value}>
@@ -218,3 +166,13 @@ export const AuthProvider = ({ children }) => {
     </AuthContext.Provider>
   );
 };
+
+export const useAuth = () => {
+  const context = React.useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
+
+export default AuthContext;

@@ -1,5 +1,8 @@
 const asyncHandler = require('express-async-handler');
+const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const Candidate = require('../models/Candidate.model');
+const User = require('../models/User.model');
 const Document = require('../models/Document.model');
 const AuditLog = require('../models/AuditLog.model');
 const fs = require('fs');
@@ -13,6 +16,8 @@ const createCandidate = asyncHandler(async (req, res) => {
     firstName,
     lastName,
     email,
+    password,
+    role = 'employee', // Default role is employee
     mobile,
     AlternativeMobile,
     BloodGroup,
@@ -42,12 +47,16 @@ const createCandidate = asyncHandler(async (req, res) => {
   } = req.body;
 
   // Basic validation
-  if (!firstName || !lastName || !email || !mobile) {
-    return res.status(400).json({ message: "firstName, lastName, email and mobile are required" });
+  if (!firstName || !lastName || !email || !mobile || !password) {
+    return res.status(400).json({ message: "firstName, lastName, email, mobile, and password are required" });
   }
 
   const emailNormalized = String(email).trim().toLowerCase();
   const mobileNormalized = String(mobile).trim();
+  
+  // Hash the password
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash(password, salt);
   const fatherMobileNormalized = fatherMobile ? String(fatherMobile).trim() : undefined;
 
   // Prevent duplicates
@@ -78,46 +87,86 @@ const createCandidate = asyncHandler(async (req, res) => {
       }
     : undefined;
 
-  const candidate = await Candidate.create({
-    firstName: firstName.trim(),
-    lastName: lastName.trim(),
-    email: emailNormalized,
-    mobile: mobileNormalized,
-    fatherMobile: fatherMobileNormalized,
-    AlternativeMobile,
-    BloodGroup,
-    DateOfJoining: dateOfJoiningValue,
-    photoUrl,
-    Designation,
-    Salary,
-    NextIncreament,
-    NextIncreamentDate: nextIncrementDateValue,
-    Gender,
-    MotherName,
-    fatherName,
-    dob: dobValue,
-    address: candidateAddress,
-    aadhaarNumber,
-    panNumber,
-    drivingLicenseNumber,
-    pfNumber,
-    esicNumber,
-    medicalPolicyNumber,
-    department,
-    isMarried,
-    spouseName,
-    spouseNumber,
-    status: status || 'applied',
-    createdBy: req.user?._id
-  });
+  // Start a session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  await AuditLog.create({
-    actor: req.user?._id,
-    action: "reception_created",
-    details: { candidateId: candidate._id }
-  });
+  try {
+    // Create user first
+    const user = await User.create([{
+      name: `${firstName} ${lastName}`.trim(),
+      email: emailNormalized,
+      password: hashedPassword,
+      role: role,
+      // Add other user fields as needed
+    }], { session });
 
-  res.status(201).json(candidate);
+    // Then create candidate
+    const candidate = await Candidate.create([{
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      email: emailNormalized,
+      password: hashedPassword,
+      mobile: mobileNormalized,
+      fatherMobile: fatherMobileNormalized,
+      AlternativeMobile,
+      BloodGroup,
+      DateOfJoining: dateOfJoiningValue,
+      photoUrl,
+      Designation,
+      Salary,
+      NextIncreament,
+      NextIncreamentDate: nextIncrementDateValue,
+      Gender,
+      MotherName,
+      fatherName,
+      dob: dobValue,
+      address: candidateAddress,
+      aadhaarNumber,
+      panNumber,
+      drivingLicenseNumber,
+      pfNumber,
+      esicNumber,
+      medicalPolicyNumber,
+      department,
+      isMarried,
+      spouseName,
+      spouseNumber,
+      status: status || 'applied',
+      createdBy: req.user?._id,
+      user: user[0]._id // Reference to the created user
+    }], { session });
+
+    // Create audit log
+    await AuditLog.create([{
+      actor: req.user?._id,
+      action: "reception_created",
+      details: { candidateId: candidate[0]._id }
+    }], { session });
+
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
+
+    res.status(201).json(candidate[0]);
+  } catch (error) {
+    // If anything fails, abort the transaction
+    await session.abortTransaction();
+    session.endSession();
+    
+    // Handle duplicate key error (e.g., email already exists in users collection)
+    if (error.code === 11000) {
+      return res.status(409).json({ 
+        message: "Email already exists in the system" 
+      });
+    }
+    
+    console.error('Error creating candidate and user:', error);
+    res.status(500).json({ 
+      message: 'Error creating candidate', 
+      error: error.message 
+    });
+  }
 });
 
 // UPDATE CANDIDATE
@@ -125,27 +174,57 @@ const updateCandidate = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const incoming = req.body || {};
 
-  const candidate = await Candidate.findById(id);
-  if (!candidate) return res.status(404).json({ message: "Candidate not found" });
+  // Start a session for transaction
+  const session = await mongoose.startSession();
+  session.startTransaction();
 
-  // Normalize email, mobile, fatherMobile
-  if (incoming.email) incoming.email = String(incoming.email).trim().toLowerCase();
-  if (incoming.mobile) incoming.mobile = String(incoming.mobile).trim();
-  if (incoming.fatherMobile) incoming.fatherMobile = String(incoming.fatherMobile).trim();
+  try {
+    const candidate = await Candidate.findById(id).session(session);
+    if (!candidate) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({ message: "Candidate not found" });
+    }
 
-  // Ensure uniqueness
-  if (incoming.email && incoming.email !== (candidate.email || "").toLowerCase()) {
-    const exists = await Candidate.findOne({ email: incoming.email, _id: { $ne: id } });
-    if (exists) return res.status(409).json({ message: "Another candidate with this email already exists" });
-  }
-  if (incoming.mobile && incoming.mobile !== (candidate.mobile || "").toString()) {
-    const exists = await Candidate.findOne({ mobile: incoming.mobile, _id: { $ne: id } });
-    if (exists) return res.status(409).json({ message: "Another candidate with this mobile already exists" });
-  }
-  if (incoming.fatherMobile && incoming.fatherMobile !== (candidate.fatherMobile || "").toString()) {
-    const exists = await Candidate.findOne({ fatherMobile: incoming.fatherMobile, _id: { $ne: id } });
-    if (exists) return res.status(409).json({ message: "Another candidate with this fatherMobile already exists" });
-  }
+    // Check if we need to update user record
+    let user = null;
+    if (candidate.user) {
+      user = await User.findById(candidate.user).session(session);
+    } else if (incoming.email) {
+      // If candidate doesn't have a user but has an email, try to find one
+      user = await User.findOne({ email: candidate.email }).session(session);
+      if (user) {
+        // Link the found user to the candidate
+        candidate.user = user._id;
+        await candidate.save({ session });
+      }
+    }
+
+    // Normalize email, mobile, fatherMobile
+    if (incoming.email) incoming.email = String(incoming.email).trim().toLowerCase();
+    if (incoming.mobile) incoming.mobile = String(incoming.mobile).trim();
+    if (incoming.fatherMobile) incoming.fatherMobile = String(incoming.fatherMobile).trim();
+
+    // Ensure uniqueness for candidate
+    if (incoming.email && incoming.email !== (candidate.email || "").toLowerCase()) {
+      const exists = await Candidate.findOne({ email: incoming.email, _id: { $ne: id } }).session(session);
+      if (exists) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).json({ message: "Another candidate with this email already exists" });
+      }
+    }
+    
+    // Check if email is being changed and update user email if needed
+    if (incoming.email && incoming.email !== candidate.email) {
+      // Check if new email already exists in users collection
+      const emailExists = await User.findOne({ email: incoming.email, _id: { $ne: user?._id } }).session(session);
+      if (emailExists) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).json({ message: "This email is already registered as a user" });
+      }
+    }
 
   const allowed = [
     "firstName",
@@ -176,13 +255,33 @@ const updateCandidate = asyncHandler(async (req, res) => {
     "department",
     "isMarried",
     "spouseName",
-    "spouseNumber"
+    "spouseNumber",
+    "role"  // Added role to allowed fields
   ];
 
   const update = {};
+  const userUpdate = {};
+  let needsUserUpdate = false;
+  let passwordHash = null;
+
+  // Handle password hashing if password is being updated
+  if (incoming.password) {
+    const salt = await bcrypt.genSalt(10);
+    passwordHash = await bcrypt.hash(incoming.password, salt);
+    update.password = passwordHash;
+    userUpdate.password = passwordHash;
+    needsUserUpdate = true;
+  }
+
+  // Process all allowed fields
   allowed.forEach(k => {
     if (Object.prototype.hasOwnProperty.call(incoming, k)) {
-      if ((k === "dob" || k === "DateOfJoining" || k === "NextIncreamentDate") && incoming[k]) {
+      if (k === 'email' || k === 'role') {
+        // These fields need to be updated in both candidate and user
+        update[k] = incoming[k];
+        userUpdate[k] = incoming[k];
+        needsUserUpdate = true;
+      } else if ((k === "dob" || k === "DateOfJoining" || k === "NextIncreamentDate") && incoming[k]) {
         const d = new Date(incoming[k]);
         update[k] = isNaN(d.getTime()) ? candidate[k] : d;
       } else if (k === "address" && incoming.address) {
@@ -195,23 +294,98 @@ const updateCandidate = asyncHandler(async (req, res) => {
           pgName: incoming.address.pgName ?? candidate.address?.pgName,
           pgNumber: incoming.address.pgNumber ?? candidate.address?.pgNumber
         };
+      } else if (k === 'firstName' || k === 'lastName') {
+        // Update name in candidate and also in user if it exists
+        update[k] = incoming[k];
+        if (user) {
+          needsUserUpdate = true;
+          if (k === 'firstName') userUpdate.name = incoming[k] + ' ' + (update.lastName || candidate.lastName || '');
+          if (k === 'lastName') userUpdate.name = (update.firstName || candidate.firstName || '') + ' ' + incoming[k];
+        }
       } else {
         update[k] = incoming[k];
       }
     }
   });
 
-  if (Object.keys(update).length === 0) return res.json(candidate);
+  if (Object.keys(update).length === 0 && !needsUserUpdate) {
+    await session.abortTransaction();
+    session.endSession();
+    return res.json(candidate);
+  }
 
-  const updated = await Candidate.findByIdAndUpdate(id, { $set: update }, { new: true }).populate("documents");
+  // Update candidate
+  const updatedCandidate = await Candidate.findByIdAndUpdate(
+    id, 
+    { $set: update },
+    { new: true, session }
+  ).populate("documents");
 
-  await AuditLog.create({
+  // Update corresponding user if needed
+  if (needsUserUpdate && user) {
+    // If email is being updated, make sure it doesn't conflict with existing users
+    if (userUpdate.email) {
+      const emailExists = await User.findOne({ 
+        email: userUpdate.email, 
+        _id: { $ne: user._id } 
+      }).session(session);
+      
+      if (emailExists) {
+        await session.abortTransaction();
+        session.endSession();
+        return res.status(409).json({ message: "This email is already registered as a user" });
+      }
+    }
+
+    // Update user
+    await User.findByIdAndUpdate(
+      user._id,
+      { $set: userUpdate },
+      { new: true, session }
+    );
+  } else if (needsUserUpdate && !user && incoming.email) {
+    // If no user exists but we have an email, create a new user
+    const newUser = await User.create([{
+      name: `${update.firstName || candidate.firstName} ${update.lastName || candidate.lastName}`.trim(),
+      email: update.email || candidate.email,
+      password: passwordHash || candidate.password,
+      role: update.role || 'employee',
+      // Add other default fields as needed
+    }], { session });
+
+    // Link the new user to the candidate
+    updatedCandidate.user = newUser[0]._id;
+    await updatedCandidate.save({ session });
+  }
+
+  // Create audit log
+  await AuditLog.create([{
     actor: req.user?._id,
     action: "reception_updated",
-    details: { candidateId: id, changed: Object.keys(update) }
-  });
+    details: { 
+      candidateId: id, 
+      changed: [...Object.keys(update), ...(needsUserUpdate ? ['user'] : [])]
+    }
+  }], { session });
 
-  res.json(updated);
+  // Commit the transaction
+  await session.commitTransaction();
+  session.endSession();
+
+  res.json(updatedCandidate);
+  } catch (error) {
+    // If anything fails, abort the transaction
+    if (session.inTransaction()) {
+      await session.abortTransaction();
+    }
+    session.endSession();
+    
+    console.error('Error updating candidate:', error);
+    res.status(500).json({ 
+      message: 'Error updating candidate', 
+      error: error.message 
+    });
+  }
 });
 
 // UPLOAD PROFILE PHOTO

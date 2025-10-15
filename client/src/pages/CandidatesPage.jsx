@@ -109,6 +109,7 @@ export default function CandidatesPage() {
       firstName: initial.firstName || "",
       lastName: initial.lastName || "",
       email: initial.email || "",
+      password: "", // New password field
       mobile: initial.mobile || "",
       AlternativeMobile: initial.AlternativeMobile || "",
       fatherName: initial.fatherName || "",
@@ -338,6 +339,7 @@ export default function CandidatesPage() {
               firstName: form.firstName,
               lastName: form.lastName,
               email: form.email,
+              password: form.password,
               mobile: form.mobile,
               dob: form.dob ? form.dob.toISOString().slice(0,10) : null,
               DateOfJoining: form.DateOfJoining ? form.DateOfJoining.toISOString().slice(0,10) : null,
@@ -360,10 +362,16 @@ export default function CandidatesPage() {
 
         {/* Basic Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {["firstName", "lastName", "email", "mobile", "AlternativeMobile", "fatherName", "fatherMobile", "MotherName", "Designation", "Salary"].map((key) => (
+          {["firstName", "lastName", "email", "password", "mobile", "AlternativeMobile", "fatherName", "fatherMobile", "MotherName", "Designation", "Salary"].map((key) => (
             <div key={key}>
               <label className="text-xs text-gray-500">{key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase())}</label>
-              <input type="text" value={form[key] || ""} onChange={(e) => handleChange(key, e.target.value)} className={`w-full border rounded px-3 py-2 text-sm ${errors[key] ? "border-red-500" : ""}`} />
+              <input 
+                type={key === "password" ? "password" : "text"} 
+                value={form[key] || ""} 
+                onChange={(e) => handleChange(key, e.target.value)} 
+                className={`w-full border rounded px-3 py-2 text-sm ${errors[key] ? "border-red-500" : ""}`} 
+                placeholder={key === "password" && form._id ? "Leave empty to keep current password" : ""}
+              />
               {errors[key] && <div className="text-red-500 text-xs mt-1">{errors[key]}</div>}
             </div>
           ))}

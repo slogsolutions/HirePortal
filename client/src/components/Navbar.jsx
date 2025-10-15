@@ -50,12 +50,22 @@ const Navbar = () => {
             About Us
           </Link>
 
-           <Link
-            to="/dashboard"
-            className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
-          >
-            Dashboard
-          </Link>
+           {user && (
+            <Link
+              to="/dashboard"
+              className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+            >
+              Dashboard
+            </Link>
+          )}
+          {user && (
+            <Link
+              to="/portal"
+              className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+            >
+              User Portal
+            </Link>
+          )}
          
 
           {/* Dark Mode Toggle */}
@@ -96,13 +106,31 @@ const Navbar = () => {
           >
             Home
           </Link>
-          <a
-            href="#about"
+          <Link
+            to="/about-us"
             className="block text-gray-800 dark:text-gray-200 hover:text-blue-500"
             onClick={() => setIsOpen(false)}
           >
-            About
-          </a>
+            About Us
+          </Link>
+          {user && (
+            <>
+              <Link
+                to="/dashboard"
+                className="block text-gray-800 dark:text-gray-200 hover:text-blue-500"
+                onClick={() => setIsOpen(false)}
+              >
+                Dashboard
+              </Link>
+              <Link
+                to="/portal"
+                className="block text-gray-800 dark:text-gray-200 hover:text-blue-500"
+                onClick={() => setIsOpen(false)}
+              >
+                User Portal
+              </Link>
+            </>
+          )}
 
           <button
             onClick={() => setIsDark(!isDark)}

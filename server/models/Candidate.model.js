@@ -3,7 +3,8 @@ const mongoose = require('mongoose');
 const candidateSchema = new mongoose.Schema({
   firstName: String,
   lastName: String,
-  email: String,
+  email: { type: String, unique: true, sparse: true },
+  password: { type: String, select: false }, // select: false to prevent password from being returned in queries
   mobile: String,
   AlternativeMobile: String,
   BloodGroup: String,

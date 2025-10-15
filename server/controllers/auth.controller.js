@@ -34,16 +34,62 @@ const verifyOtp = asyncHandler(async (req, res) => {
 });
 
 const login = asyncHandler(async (req, res) => {
-
   const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).json({ message: 'Invalid credentials' });
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
-  res.json({ token, user: { id: user._id, name: user.name, role: user.role, email: user.email } });
-
-
+  
+  if (!email || !password) {
+    return res.status(400).json({ message: 'Email and password are required' });
+  }
+  
+  // First try to find a user
+  let account = await User.findOne({ email }).select('+password').lean();
+  let isCandidate = false;
+  
+  // If not found as a user, try as a candidate
+  if (!account) {
+    account = await Candidate.findOne({ email }).select('+password').lean();
+    isCandidate = true;
+    if (!account) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+  }
+  
+  // Check if account has a password
+  if (!account.password) {
+    return res.status(401).json({ message: 'Account not properly configured. Please contact support.' });
+  }
+  
+  // Verify password
+  const match = await bcrypt.compare(password, account.password);
+  if (!match) {
+    return res.status(401).json({ message: 'Invalid credentials' });
+  }
+  
+  // Create token with user type in payload
+  const tokenPayload = { 
+    id: account._id,
+    type: isCandidate ? 'candidate' : 'user',
+    ...(isCandidate ? {} : { role: account.role })
+  };
+  
+  const token = jwt.sign(
+    tokenPayload, 
+    process.env.JWT_SECRET, 
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+  );
+  
+  // Prepare response based on account type
+  const response = {
+    token,
+    user: {
+      id: account._id,
+      name: isCandidate ? `${account.firstName} ${account.lastName}` : account.name,
+      email: account.email,
+      type: isCandidate ? 'candidate' : 'user',
+      ...(isCandidate ? {} : { role: account.role })
+    }
+  };
+  
+  res.json(response);
 });
 
 module.exports = { sendOtp, verifyOtp, login };

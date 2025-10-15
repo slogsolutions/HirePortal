@@ -12,6 +12,8 @@ const authRoutes = require('./routes/auth.routes');
 const candidateRoutes = require('./routes/candidates.routes');
 const scoreRoutes = require('./routes/scores.routes');
 const offerRoutes = require('./routes/offers.routes');
+const userRoutes = require('./routes/users.routes');
+const profileRoutes = require('./routes/profile.routes');
 const rulesdocument = require("./routes/documentRules.routes")
 const AllowedOrigin = [process.env.FRONTEND_URL,process.env.DEV_URL,"*"]
 
@@ -29,10 +31,12 @@ app.use(bodyParser.urlencoded({ extended: true }));
 //   .catch(err => { console.error(err); process.exit(1); });
 
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/scores', scoreRoutes);
 app.use('/api/offers', offerRoutes);
-app.use('/api/docs', rulesdocument );
+app.use('/api/profile', profileRoutes);
+app.use('/api/docs', rulesdocument);
 
 // serve uploads folder
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
