@@ -16,7 +16,7 @@ const router = express.Router();
 
 // List/create
 router.get('/', protect, requireRole(['hr','admin']), listCandidates);
-router.post('/', protect, requireRole(['reception','hr','admin']), createCandidate);
+router.post('/', protect, requireRole(['hr','admin']), createCandidate);
 
 // Single
 router.get('/:id', protect, getCandidate);

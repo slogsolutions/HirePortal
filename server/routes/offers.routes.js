@@ -1,6 +1,8 @@
 // routes/offers.routes.js
 const express = require('express');
 const router = express.Router();
+const { protect } = require('../middlewares/auth.middleware');
+const { requireRole } = require('../middlewares/roles.middleware');
 const {
   generateOffer,
   previewOffer,

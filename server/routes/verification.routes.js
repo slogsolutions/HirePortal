@@ -1,5 +1,7 @@
 // routes/verificationRoutes.js
 const express = require('express');
+const { protect } = require('../middlewares/auth.middleware');
+const { requireRole } = require('../middlewares/roles.middleware');
 const router = express.Router({ mergeParams: true });
 const verification = require('../controllers/verification.controller');
 

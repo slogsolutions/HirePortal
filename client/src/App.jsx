@@ -1,6 +1,6 @@
-import { useState } from 'react'
-import './App.css'
-import Navbar from './components/Navbar'
+import { useState } from 'react';
+import './App.css';
+import Navbar from './components/Navbar';
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import ProtectedRoute from "./pages/ProtectedRoute";
@@ -16,47 +16,60 @@ import VerifyCandidatePage from "./pages/VerifyCandidatePage";
 import InterviewPage from "./pages/InterviewPage";
 import OfferPage from "./pages/OfferPage";
 import OfferLetterTabPage from './pages/OfferLetterTabPage';
+
+// ✅ FCM hook
+import useFirebaseMessaging from "./hooks/useFirebaseMessaging";
+// ✅ Sonner Toaster
+import { Toaster } from "sonner";
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
+
+  // Example user object - replace with your actual auth user
+  const user = {
+    _id: "12345",
+    name: "John Doe"
+  };
+
+  // Initialize FCM (foreground notifications + token handling)
+  const fcmToken = useFirebaseMessaging(user);
 
   return (
-  <AuthProvider>
-<BrowserRouter>
-<Navbar />
+    <AuthProvider>
+      <BrowserRouter>
+        {/* Global Sonner Toaster */}
+        <Toaster position="top-right" richColors />
 
+        <Navbar />
 
-<Routes>
-<Route path="/" element={<HomePage />} />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/about-us" element={<AboutUs />} />
+          <Route path="/idcard/:id" element={<IDCard />} />
 
+          {/* Protected routes wrapper */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+          </Route>
 
-<Route path="/login" element={<Login />} />
-<Route path="/register" element={<Register />} />
-<Route path="/about-us" element={<AboutUs />} />
-{/* <Route path="/idcard" element={<IDCard />} /> */}
- <Route path="/idcard/:id" element={<IDCard />} />
+          <Route path="/candidates" element={<CandidatesPage />} />
+          <Route path="/candidates/:id" element={<CandidateProfilePage />} />
+          <Route path="/candidates/:id/verify" element={<VerifyCandidatePage />} />
+          <Route path="/candidates/:id/interview" element={<InterviewPage />} />
+          <Route path="/candidates/:id/offer" element={<OfferPage />} />
 
-{/* Protected routes wrapper - uses <Outlet /> inside */}
-<Route element={<ProtectedRoute />}>
-<Route path="/dashboard" element={<Dashboard/>} />
-</Route>
+          <Route path="/offerletter" element={<OfferLetterTabPage />} />
 
-
-<Route path="/candidates" element={<CandidatesPage />} />
-<Route path="/candidates/:id" element={<CandidateProfilePage />} />
-
-<Route path="/candidates/:id/verify" element={<VerifyCandidatePage />} />
-<Route path="/candidates/:id/interview" element={<InterviewPage />} />
-<Route path="/candidates/:id/offer" element={<OfferPage />} />
-
- <Route path="/offerletter" element={<OfferLetterTabPage />} />
-
-
-{/* catch-all -> redirect to home */}
-<Route path="*" element={<Navigate to="/" replace />} />
-</Routes>
-</BrowserRouter>
-</AuthProvider>
-  )
+          {/* catch-all -> redirect to home */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
+  );
 }
 
-export default App
+export default App;
+// ________________OLD ________________
+
