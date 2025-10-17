@@ -11,8 +11,9 @@ const useFirebaseMessaging = (user) => {
   const notificationStoreRef = useRef({});
 
   useEffect(() => {
-    if (!user || !user._id) {
-      console.log("[FCM] ❌ No user found, skipping FCM hook.");
+    if (!user || !user.id) {
+        console.log(user,"data")
+      console.log("[FCM] ❌ No authenticated user, skipping FCM setup.");
       return;
     }
 
@@ -48,22 +49,25 @@ const useFirebaseMessaging = (user) => {
           }
         }
 
-        const needSendToBackend =
-          !saved || saved.token !== token || saved.userId !== user._id;
+        // Send to backend whenever a NEW token is generated for this user
+        const needSendToBackend = !saved || saved.token !== token || saved.userId !== user.id;
 
-        console.log("[FCM] 📤 Need to send token to backend:", needSendToBackend);
+        console.log("[FCM] 📤 Need to send token to backend:", needSendToBackend, {
+          savedUserId: saved?.userId,
+          currentUserId: user.id,
+        });
 
-        localStorage.setItem(localKey, JSON.stringify({ token, userId: user._id }));
+        localStorage.setItem(localKey, JSON.stringify({ token, userId: user.id }));
 
         if (needSendToBackend) {
           if (mounted) setFcmToken(token);
 
           try {
             console.log("[FCM] 🚀 Sending token to backend...");
-            await api.post("/users/save-token", {
-              userId: user._id,
-              fcmToken: token,
-              deviceInfo: navigator.userAgent,
+            await api.post("/fcm/token", {
+              userId: user.id,
+              token,
+              platform: "web",
             });
             console.log("[FCM] ✅ Token saved to backend successfully!");
           } catch (err) {
@@ -147,7 +151,7 @@ const useFirebaseMessaging = (user) => {
         listenerRef.current.unsub = undefined;
       }
     };
-  }, [user?._id]);
+  }, [user?.id]);
 
   return fcmToken;
 };

@@ -19,20 +19,19 @@ import OfferLetterTabPage from './pages/OfferLetterTabPage';
 
 // ✅ FCM hook
 import useFirebaseMessaging from "./hooks/useFirebaseMessaging";
+import { useContext } from "react";
+import { AuthContext } from "./context/AuthContext";
 // ✅ Sonner Toaster
 import { Toaster } from "sonner";
 
 function App() {
   const [count, setCount] = useState(0);
 
-  // Example user object - replace with your actual auth user
-  const user = {
-    _id: "12345",
-    name: "John Doe"
-  };
+  // Get real auth user from context
+  const { user, isAuthenticated } = useContext(AuthContext);
 
-  // Initialize FCM (foreground notifications + token handling)
-  const fcmToken = useFirebaseMessaging(user);
+  // Initialize FCM only when authenticated
+  const fcmToken = useFirebaseMessaging(isAuthenticated ? user : null);
 
   return (
     <AuthProvider>

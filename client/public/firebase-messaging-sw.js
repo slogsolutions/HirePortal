@@ -32,7 +32,7 @@ messaging.onBackgroundMessage((payload) => {
 
   const options = {
     body: notificationStore[userTag].body,
-    icon: "/logo192.png",
+    icon: "/slog-logo.png",
     tag: userTag,
     renotify: true,
     data: payload.data

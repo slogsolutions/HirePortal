@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from "react";
 import { Sun, Moon, Menu, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import FcmTokenModal from "./FcmTokenModal";
 
 const Navbar = () => {
   const [isDark, setIsDark] = useState(false);
@@ -26,6 +27,8 @@ const Navbar = () => {
       navigate("/login");
     }
   };
+
+  const [showFcmModal, setShowFcmModal] = useState(false);
 
   return (
     <nav className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50">
@@ -65,6 +68,16 @@ const Navbar = () => {
           >
             {isDark ? <Sun size={20} /> : <Moon size={20} />}
           </button>
+
+          {/* Save FCM Token Button (visible when logged in) */}
+          {user && (
+            <button
+              onClick={() => setShowFcmModal(true)}
+              className="px-4 py-2 rounded-lg text-white bg-green-600 hover:bg-green-700"
+            >
+              Save FCM Token
+            </button>
+          )}
 
           {/* Login/Logout Button */}
           <button
@@ -126,6 +139,7 @@ const Navbar = () => {
           </button>
         </div>
       )}
+      <FcmTokenModal isOpen={showFcmModal} onClose={() => setShowFcmModal(false)} />
     </nav>
   );
 };
