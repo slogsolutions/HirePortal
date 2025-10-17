@@ -53,6 +53,13 @@ const Navbar = () => {
             About Us
           </Link>
 
+          <Link
+            to="/notifications"
+            className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          >
+            Notifications
+          </Link>
+
            <Link
             to="/dashboard"
             className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
@@ -116,6 +123,14 @@ const Navbar = () => {
           >
             About
           </a>
+
+          <Link
+            to="/notifications"
+            className="block text-gray-800 dark:text-gray-200 hover:text-blue-500"
+            onClick={() => setIsOpen(false)}
+          >
+            Notifications
+          </Link>
 
           <button
             onClick={() => setIsDark(!isDark)}

@@ -3,6 +3,7 @@ import React, { useState, lazy, Suspense } from "react";
 import Documents from "./Documents";
 import OfferLetterTabPage from './OfferLetterTabPage';
 import ReportsPage from "./ReportsPage";
+import NotificationsAdmin from "./NotificationsAdmin";
 // import CandidatesPage from "./CandidatesPage"; // <-- your real page
 const CandidatesPage = lazy(() => import("./CandidatesPage"));
 const VerificationPage = lazy(() => import("./VerificationPage"));
@@ -34,6 +35,8 @@ const TABS = [
   { key: "offerLetter", label: "Offer Letter" },
   { key: "verification", label: "Verification" },
   { key: "documents", label: "Documents" },
+    { key: "notification", label: "Notification" },
+  
 ];
 
 export default function DashboardPage({ initialTab = "candidates" }) {
@@ -59,6 +62,8 @@ export default function DashboardPage({ initialTab = "candidates" }) {
             );
             case "documents" :
               return <Documents/>
+               case "notification" :
+              return <NotificationsAdmin/>
       default:
         return <div>Not found</div>;
     }

@@ -16,6 +16,7 @@ import VerifyCandidatePage from "./pages/VerifyCandidatePage";
 import InterviewPage from "./pages/InterviewPage";
 import OfferPage from "./pages/OfferPage";
 import OfferLetterTabPage from './pages/OfferLetterTabPage';
+import NotificationsAdmin from "./pages/NotificationsAdmin";
 
 // ✅ FCM hook
 import useFirebaseMessaging from "./hooks/useFirebaseMessaging";
@@ -60,6 +61,7 @@ function App() {
           <Route path="/candidates/:id/offer" element={<OfferPage />} />
 
           <Route path="/offerletter" element={<OfferLetterTabPage />} />
+          <Route path="/notifications" element={<NotificationsAdmin />} />
 
           {/* catch-all -> redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
