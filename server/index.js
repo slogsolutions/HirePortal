@@ -3,18 +3,21 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 const cors = require('cors');
-
+const bcrypt = require('bcryptjs');
+const mongoose = require('mongoose');
 const db = require('./config/db.config'); // ensure this connects to mongoose
+
+// ====== MODELS ======
+const User = require('./models/User.model'); // make sure path is correct
 
 // ====== ROUTES ======
 const authRoutes = require('./routes/auth.routes');
 const candidateRoutes = require('./routes/candidates.routes');
 const scoreRoutes = require('./routes/scores.routes');
-const offerRoutes = require('./routes/offers.routes');           // candidate & offer routes
+const offerRoutes = require('./routes/offers.routes');
 const rulesDocumentRoutes = require('./routes/documentRules.routes');
-
-const verificationRoutes = require('./routes/verification.routes'); // expects /:id/verify/...
-const interviewRoutes = require('./routes/interview.routes');       // expects /:id/interviews
+const verificationRoutes = require('./routes/verification.routes');
+const interviewRoutes = require('./routes/interview.routes');
 
 const app = express();
 
@@ -30,17 +33,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ====== STATIC FOLDERS ======
-
-// Uploads (user uploaded files)
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
-// Generated offer files
 app.use('/offers', express.static(path.join(__dirname, 'public', 'offers')));
-
-// Template images (for HTML templates, e.g., offer letters)
 app.use('/template-images', express.static(path.join(__dirname, 'public', 'template-images')));
-
-// Optional: Serve other static assets in public (CSS, JS)
 app.use('/static', express.static(path.join(__dirname, 'public')));
 
 // ====== API ROUTES ======
@@ -49,12 +44,10 @@ app.use('/api/candidates', candidateRoutes);
 app.use('/api/scores', scoreRoutes);
 app.use('/api', offerRoutes);
 app.use('/api/docs', rulesDocumentRoutes);
-
-// ====== Candidate sub-routes (verification & interviews) ======
 app.use('/api/candidates', verificationRoutes);
 app.use('/api/candidates', interviewRoutes);
 
-// ====== SERVE HTML TEMPLATES ======
+// ====== SERVE HTML TEMPLATE ======
 app.get('/offerletter', (req, res) => {
   res.sendFile(path.join(__dirname, 'template', 'offerletter.html'));
 });
@@ -68,8 +61,43 @@ app.use((err, req, res, next) => {
   res.status(err.status || 500).json({ message: err.message || 'Server error' });
 });
 
+// ====== AUTO-CREATE SUPER ADMIN ======
+async function ensureSuperAdmin() {
+  try {
+    const existing = await User.findOne({ role: 'superadmin' });
+    if (!existing) {
+      const email = process.env.SUPERADMIN_EMAIL || 'admin@hireportal.com';
+      const password = process.env.SUPERADMIN_PASSWORD || 'Super@123';
+      const hashed = await bcrypt.hash(password, 10);
+
+      const admin = await User.create({
+        name: 'Super Admin',
+        email,
+        password: hashed,
+        role: 'superadmin'
+      });
+
+      console.log('✅ Super Admin created:', {
+        email: admin.email,
+        password: process.env.SUPERADMIN_PASSWORD || 'Super@123'
+      });
+    } else {
+      console.log('✅ Super Admin already exists');
+    }
+  } catch (err) {
+    console.error('❌ Error ensuring Super Admin:', err);
+  }
+}
+
 // ====== START SERVER ======
 const port = process.env.PORT || 5000;
-app.listen(port, () => console.log(`Server running on port ${port}`));
+
+// Wait for DB connection before starting
+mongoose.connection.once('open', async () => {
+  console.log('✅ Database connected');
+  await ensureSuperAdmin();
+
+  app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+});
 
 module.exports = app;

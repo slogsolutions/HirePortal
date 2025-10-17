@@ -32,7 +32,7 @@ const Navbar = () => {
       <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo / Brand */}
         <h1 className="text-2xl font-bold text-gray-800 dark:text-white">
-          Slog Solutions Pvt Ltd
+          Slog Solutions
         </h1>
 
         {/* Desktop Menu */}

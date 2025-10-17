@@ -1,4 +1,3 @@
-// src/pages/CandidatesPage.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import api from "../api/axios";
@@ -39,6 +38,10 @@ const validateField = (field, value) => {
     return "Must be 10 digits";
   if (field === "aadhaarNumber" && value && !/^\d{12}$/.test(String(value)))
     return "Must be 12 digits";
+  if (field === "password" && value) {
+    // basic password rule: min 6 chars (adjust as needed)
+    if (String(value).length < 6) return "Password must be at least 6 characters";
+  }
   return "";
 };
 
@@ -57,6 +60,8 @@ const departments = [
   "Legal",
   "Other",
 ];
+
+const roles = ["hr", "employee", "admin", "manager"];
 
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState([]);
@@ -118,7 +123,7 @@ export default function CandidatesPage() {
       Gender: initial.Gender || "",
       BloodGroup: initial.BloodGroup || "",
       department: initial.department || "",
-      departmentOther: "",
+      departmentOther: initial.departmentOther || "",
       Designation: initial.Designation || "",
       Salary: initial.Salary || "",
       NextIncreament: initial.NextIncreament || "",
@@ -144,6 +149,10 @@ export default function CandidatesPage() {
       medicalPolicyNumber: initial.medicalPolicyNumber || "",
       status: initial.status || "applied",
       photoUrl: initial.photoUrl || "",
+      // NEW FIELDS
+      password: "",
+      confirmPassword: "",
+      role: initial.role || "employee",
     };
 
     const [form, setForm] = useState(canonicalInitial);
@@ -160,6 +169,10 @@ export default function CandidatesPage() {
         DateOfJoining: initial.DateOfJoining ? new Date(initial.DateOfJoining) : null,
         NextIncreamentDate: initial.NextIncreamentDate ? new Date(initial.NextIncreamentDate) : null,
         address: initial.address || canonicalInitial.address,
+        // if editing existing user and password isn't provided, keep empty
+        password: "",
+        confirmPassword: "",
+        role: initial.role || canonicalInitial.role,
       };
       setForm(ci);
       setSelectedFile(null);
@@ -188,7 +201,7 @@ export default function CandidatesPage() {
     const handleAddressChange = (key, value, type = "current") => {
       setForm((f) => ({
         ...f,
-        address: { ...f.address, [type]: { ...f.address[type], [key]: value } },
+        address: { ...(f.address || {}), [type]: { ...(f.address?.[type] || {}), [key]: value } },
       }));
       // Address-level validation (inline)
       setErrors((e) => ({ ...e, [`address.${type}.${key}`]: value ? "" : "Required" }));
@@ -213,9 +226,13 @@ export default function CandidatesPage() {
     };
 
     const copyPermanent = (checked) => {
-      if (!checked || !form.address?.current) return;
+      if (!checked || !form.address?.current) {
+        // still set the flag so checkbox state is consistent
+        setForm((f) => ({ ...f, address: { ...(f.address || {}), isPermanentSameAsCurrent: !!checked } }));
+        return;
+      }
       const current = form.address.current;
-      setForm((f) => ({ ...f, address: { ...f.address, permanent: { ...current }, isPermanentSameAsCurrent: checked } }));
+      setForm((f) => ({ ...f, address: { ...(f.address || {}), permanent: { ...current }, isPermanentSameAsCurrent: checked } }));
     };
 
     // Explicit required fields list (avoids validating nested objects wrongly)
@@ -227,6 +244,9 @@ export default function CandidatesPage() {
       "Gender",
       "BloodGroup",
       "department",
+      // new required fields
+      "password",
+      "role",
     ];
 
     const validateForm = () => {
@@ -241,6 +261,13 @@ export default function CandidatesPage() {
         newErrors[f] = validateField(f, form[f]);
       });
 
+      // confirmPassword check (client-side only)
+      if (form.password || form.confirmPassword) {
+        if (form.password !== form.confirmPassword) {
+          newErrors.confirmPassword = "Passwords do not match";
+        }
+      }
+
       // dates are optional but if provided, make sure they're valid Date objects
       ["dob", "DateOfJoining", "NextIncreamentDate"].forEach((d) => {
         if (form[d] && !(form[d] instanceof Date && !isNaN(form[d].getTime()))) {
@@ -252,7 +279,7 @@ export default function CandidatesPage() {
       if (form.address) {
         ["current", "permanent"].forEach((type) => {
           ["line1", "city", "state", "pincode"].forEach((k) => {
-            // pincode may be optional for some flows, but you had "Required" before — keep required here
+            // pincode may be optional for some flows, but keep required here per your original
             if (!form.address[type]?.[k]) newErrors[`address.${type}.${k}`] = "Required";
           });
         });
@@ -296,7 +323,15 @@ export default function CandidatesPage() {
           permanent: { ...(form.address?.permanent || emptyAddress) },
         },
       };
+
+      // If department === Other, send departmentOther value as department (keeps your previous behavior)
       if (payload.department === "Other") payload.department = payload.departmentOther;
+
+      // Only send password (omit confirmPassword)
+      if (payload.confirmPassword !== undefined) delete payload.confirmPassword;
+
+      // Make sure role is present (it is part of payload by default)
+      // payload.role is already set from form.role
 
       if (debug) console.debug("Prepared payload for API:", payload);
       try {
@@ -363,7 +398,12 @@ export default function CandidatesPage() {
           {["firstName", "lastName", "email", "mobile", "AlternativeMobile", "fatherName", "fatherMobile", "MotherName", "Designation", "Salary"].map((key) => (
             <div key={key}>
               <label className="text-xs text-gray-500">{key.replace(/([A-Z])/g, " $1").replace(/^./, s => s.toUpperCase())}</label>
-              <input type="text" value={form[key] || ""} onChange={(e) => handleChange(key, e.target.value)} className={`w-full border rounded px-3 py-2 text-sm ${errors[key] ? "border-red-500" : ""}`} />
+              <input
+                type="text"
+                value={form[key] || ""}
+                onChange={(e) => handleChange(key, e.target.value)}
+                className={`w-full border rounded px-3 py-2 text-sm ${errors[key] ? "border-red-500" : ""}`}
+              />
               {errors[key] && <div className="text-red-500 text-xs mt-1">{errors[key]}</div>}
             </div>
           ))}
@@ -396,6 +436,45 @@ export default function CandidatesPage() {
             {form.department === "Other" && <input type="text" placeholder="Enter department" value={form.departmentOther || ""} onChange={(e) => handleChange("departmentOther", e.target.value)} className="mt-1 w-full border rounded px-3 py-2 text-sm" />}
             {errors.department && <div className="text-red-500 text-xs mt-1">{errors.department}</div>}
             {errors.departmentOther && <div className="text-red-500 text-xs mt-1">{errors.departmentOther}</div>}
+          </div>
+        </div>
+
+        {/* NEW: Password & Role */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label className="text-xs text-gray-500">Password</label>
+            <input
+              type="password"
+              value={form.password || ""}
+              onChange={(e) => handleChange("password", e.target.value)}
+              className={`w-full border rounded px-3 py-2 text-sm ${errors.password ? "border-red-500" : ""}`}
+              placeholder={form._id ? "Leave blank to keep existing password" : "Enter password"}
+            />
+            {errors.password && <div className="text-red-500 text-xs mt-1">{errors.password}</div>}
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500">Confirm Password</label>
+            <input
+              type="password"
+              value={form.confirmPassword || ""}
+              onChange={(e) => handleChange("confirmPassword", e.target.value)}
+              className={`w-full border rounded px-3 py-2 text-sm ${errors.confirmPassword ? "border-red-500" : ""}`}
+            />
+            {errors.confirmPassword && <div className="text-red-500 text-xs mt-1">{errors.confirmPassword}</div>}
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500">Role</label>
+            <select
+              value={form.role || "employee"}
+              onChange={(e) => handleChange("role", e.target.value)}
+              className={`w-full border rounded px-3 py-2 text-sm ${errors.role ? "border-red-500" : ""}`}
+            >
+              <option value="">Select Role</option>
+              {roles.map((r) => <option key={r} value={r}>{r}</option>)}
+            </select>
+            {errors.role && <div className="text-red-500 text-xs mt-1">{errors.role}</div>}
           </div>
         </div>
 
@@ -451,7 +530,12 @@ export default function CandidatesPage() {
               {["line1", "line2", "city", "state", "pincode"].map((f) => (
                 <div key={f}>
                   <label className="text-xs text-gray-500">{f}</label>
-                  <input type="text" value={form.address?.[type]?.[f] || ""} onChange={(e) => handleAddressChange(f, e.target.value, type)} className={`w-full border rounded px-3 py-2 text-sm ${errors[`address.${type}.${f}`] ? "border-red-500" : ""}`} />
+                  <input
+                    type="text"
+                    value={form.address?.[type]?.[f] || ""}
+                    onChange={(e) => handleAddressChange(f, e.target.value, type)}
+                    className={`w-full border rounded px-3 py-2 text-sm ${errors[`address.${type}.${f}`] ? "border-red-500" : ""}`}
+                  />
                   {errors[`address.${type}.${f}`] && <div className="text-red-500 text-xs mt-1">{errors[`address.${type}.${f}`]}</div>}
                 </div>
               ))}
@@ -466,7 +550,7 @@ export default function CandidatesPage() {
         </div>
 
         <div className="flex items-center gap-2 mt-2">
-          <input type="checkbox" checked={!!form.address?.isPG} onChange={(e) => setForm((f) => ({ ...f, address: { ...f.address, isPG: e.target.checked } }))} />
+          <input type="checkbox" checked={!!form.address?.isPG} onChange={(e) => setForm((f) => ({ ...f, address: { ...(f.address || {}), isPG: e.target.checked } }))} />
           <label>PG / Rent</label>
         </div>
         {form.address?.isPG && (
@@ -474,7 +558,7 @@ export default function CandidatesPage() {
             {["pgOwnerName", "pgName", "pgNumber"].map((f) => (
               <div key={f}>
                 <label className="text-xs text-gray-500">{f}</label>
-                <input type="text" value={form.address?.[f] || ""} onChange={(e) => setForm((fm) => ({ ...fm, address: { ...fm.address, [f]: e.target.value } }))} className="w-full border rounded px-3 py-2 text-sm" />
+                <input type="text" value={form.address?.[f] || ""} onChange={(e) => setForm((fm) => ({ ...fm, address: { ...(fm.address || {}), [f]: e.target.value } }))} className="w-full border rounded px-3 py-2 text-sm" />
               </div>
             ))}
           </div>
@@ -519,7 +603,7 @@ export default function CandidatesPage() {
     <div key={c._id} className="flex items-center gap-4 p-4 md:p-6 border-b last:border-b-0 bg-white dark:bg-gray-800">
       <div className="flex-shrink-0">
         <button onClick={() => setAvatarPreview(c.photoUrl || null)} className="w-14 h-14 rounded-full overflow-hidden border">
-          {c.photoUrl ? <img src={c.photoUrl} alt={`${c.firstName}`} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-100">{(c.firstName?.[0] || "?").toUpperCase()}</div>}
+          {c.photoUrl ? <img src={c.photoUrl} alt={c.firstName} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center bg-gray-100">{(c.firstName?.[0] || "?").toUpperCase()}</div>}
         </button>
       </div>
       <div className="flex-1 min-w-0">

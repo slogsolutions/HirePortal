@@ -1,80 +1,150 @@
 const asyncHandler = require('express-async-handler');
-const Score = require('../models/Score.model');
-const Candidate = require('../models/Candidate.model');
+const InterviewRound = require('../models/InterviewRoundString.model');
 const AuditLog = require('../models/AuditLog.model');
 
-function computeWeighted(summary) {
-  const hr = summary.hr?.score || 0;
-  const tech = summary.technical?.score || 0;
-  const founder = summary.founder?.score || 0;
-  // calculate digit-by-digit: but simple arithmetic is fine here
-  const weighted = (tech * 0.5) + (hr * 0.3) + (founder * 0.2);
-  return Math.round(weighted * 100) / 100; // round to 2 decimals
+// Utility: safely compute total from scores
+function computeTotal(scores) {
+  if (!scores || typeof scores !== 'object') return 0;
+  const keys = ['grooming','personality','communication','knowledge'];
+  return keys.reduce((sum, k) => sum + (Number(scores[k]) || 0), 0);
 }
 
 /**
- * submitScore
- * - Creates a Score document
- * - Updates Candidate.scoresSummary.<round> with latest data
- * - Recomputes weightedAvg and optionally updates candidate.status
+ * Create a new interview round
  */
-const submitScore = asyncHandler(async (req, res) => {
+const createRound = asyncHandler(async (req, res) => {
   const { candidateId } = req.params;
-  const { round, score, comments } = req.body;
+  const { type, scores, comments, date, interviewerName } = req.body;
 
-  if (!['hr','technical','founder'].includes(round)) {
-    return res.status(400).json({ message: 'Invalid round' });
-  }
-  if (typeof score !== 'number') {
-    return res.status(400).json({ message: 'score must be a number' });
-  }
+  if (!candidateId) return res.status(400).json({ message: 'Candidate ID is required' });
+  if (!scores || typeof scores !== 'object') return res.status(400).json({ message: 'Scores are required' });
 
-  // create score doc
-  const s = await Score.create({
+  const round = await InterviewRound.create({
     candidate: candidateId,
-    round,
-    score,
+    type: type || 'Other',
+    scores,
+    total: computeTotal(scores),
     comments: comments || '',
-    interviewer: req.user._id
+    date: date ? new Date(date) : new Date(),
+    interviewerName: interviewerName || req.user?.name || 'Unknown'
   });
-
-  // update candidate summary (latest)
-  const update = {};
-  update[`scoresSummary.${round}`] = {
-    score,
-    comments: comments || '',
-    by: req.user._id,
-    at: new Date()
-  };
-
-  await Candidate.findByIdAndUpdate(candidateId, { $set: update });
-
-  // recompute weighted average using fresh candidate doc
-  const candidate = await Candidate.findById(candidateId);
-  candidate.scoresSummary.weightedAvg = computeWeighted(candidate.scoresSummary || {});
-  // example rule: if weightedAvg >= 70 then mark 'offered' (you may change this)
-  if (candidate.scoresSummary.weightedAvg >= 70) candidate.status = 'offered';
-  await candidate.save();
 
   await AuditLog.create({
-    actor: req.user._id,
-    action: 'score_submitted',
-    details: { candidateId, round, score, scoreDocId: s._id }
+    actor: req.user?._id,
+    action: 'round_created',
+    details: { candidateId, roundId: round._id }
   });
 
-  res.json({ score: s, weightedAvg: candidate.scoresSummary.weightedAvg });
+  res.status(201).json(round);
 });
 
 /**
- * getScoresForCandidate
- * - returns all Score documents for a candidate (history)
+ * Update an existing round
  */
-const getScoresForCandidate = asyncHandler(async (req, res) => {
-  const candidateId = req.params.candidateId;
-  const scores = await Score.find({ candidate: candidateId })
-    .populate('interviewer', 'name email role')
-    .sort({ createdAt: 1 });
-  res.json(scores);
+const updateRound = asyncHandler(async (req, res) => {
+  const { roundId } = req.params;
+  const { type, scores, comments, date, interviewerName } = req.body;
+
+  const round = await InterviewRound.findById(roundId);
+  if (!round) return res.status(404).json({ message: 'Round not found' });
+
+  if (type) round.type = type;
+  if (scores) {
+    round.scores = scores;
+    round.total = computeTotal(scores);
+  }
+  if (comments !== undefined) round.comments = comments;
+  if (date) round.date = new Date(date);
+  if (interviewerName) round.interviewerName = interviewerName;
+
+  await round.save();
+
+  await AuditLog.create({
+    actor: req.user?._id,
+    action: 'round_updated',
+    details: { roundId }
+  });
+
+  res.json(round);
 });
 
-module.exports = { submitScore, getScoresForCandidate };
+/**
+ * Delete a round
+ */
+const deleteRound = asyncHandler(async (req, res) => {
+  const { roundId } = req.params;
+  const round = await InterviewRound.findById(roundId);
+  if (!round) return res.status(404).json({ message: 'Round not found' });
+
+  await InterviewRound.findByIdAndDelete(roundId);
+
+  await AuditLog.create({
+    actor: req.user?._id,
+    action: 'round_deleted',
+    details: { roundId }
+  });
+
+  res.json({ message: 'Round deleted successfully' });
+});
+
+/**
+ * Get all rounds for a specific candidate
+ */
+const getRoundsForCandidate = asyncHandler(async (req, res) => {
+  const { candidateId } = req.params;
+
+  const rounds = await InterviewRound.find({ candidate: candidateId })
+    .populate('interviewer', 'name email role')
+    .sort({ date: 1 });
+
+  res.json(rounds);
+});
+
+/**
+ * Get all rounds (admin dashboard)
+ */
+const getAllRounds = asyncHandler(async (req, res) => {
+  const rounds = await InterviewRound.find()
+    .populate('candidate', 'firstName lastName email status')
+    .populate('interviewer', 'name email role')
+    .sort({ date: -1 });
+
+  res.json(rounds);
+});
+
+// Get all rounds for a specific candidate with detailed fields
+const getRoundsForCandidateDetailed = asyncHandler(async (req, res) => {
+  const { candidateId } = req.params;
+
+  if (!candidateId) return res.status(400).json({ message: 'Candidate ID is required' });
+
+  const rounds = await InterviewRound.find({ candidate: candidateId })
+    .populate('interviewer', 'name email role')
+    .sort({ date: 1 })
+    .lean(); // use lean to return plain JS objects
+
+  // Ensure each round has total safely calculated
+  const detailedRounds = rounds.map(r => ({
+    _id: r._id,
+    type: r.type,
+    date: r.date,
+    interviewer: r.interviewer,
+    interviewerName: r.interviewerName || (r.interviewer?.name || 'Unknown'),
+    scores: r.scores || {},
+    total: r.total || 0,
+    comments: r.comments || '',
+    createdAt: r.createdAt
+  }));
+
+  res.json(detailedRounds);
+});
+
+
+module.exports = {
+  createRound,
+  updateRound,
+  deleteRound,
+  getRoundsForCandidate,
+  getAllRounds,
+  getRoundsForCandidateDetailed
+};

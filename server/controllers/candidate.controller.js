@@ -1,5 +1,8 @@
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
+const bcrypt = require('bcrypt');
 const Candidate = require('../models/Candidate.model');
+const User = require('../models/User.model');
 const Document = require('../models/Document.model');
 const AuditLog = require('../models/AuditLog.model');
 const fs = require('fs');
@@ -38,87 +41,112 @@ const createCandidate = asyncHandler(async (req, res) => {
     department,
     isMarried,
     spouseName,
-    spouseNumber
+    spouseNumber,
+    password,
+    role
   } = req.body;
 
-  // Basic validation
-  if (!firstName || !lastName || !email || !mobile) {
-    return res.status(400).json({ message: "firstName, lastName, email and mobile are required" });
+  if (!firstName || !lastName || !email || !mobile || !password) {
+    return res.status(400).json({ message: "firstName, lastName, email, mobile, and password are required" });
   }
 
   const emailNormalized = String(email).trim().toLowerCase();
-  const mobileNormalized = String(mobile).trim();
-  const fatherMobileNormalized = fatherMobile ? String(fatherMobile).trim() : undefined;
 
   // Prevent duplicates
-  const existing = await Candidate.findOne({
-    $or: [
-      { email: emailNormalized },
-      { mobile: mobileNormalized },
-      fatherMobileNormalized ? { fatherMobile: fatherMobileNormalized } : {}
-    ].filter(Boolean),
-  });
-  if (existing) return res.status(409).json({ message: "Candidate with this email, mobile, or fatherMobile already exists" });
+  const existingCandidate = await Candidate.findOne({ email: emailNormalized });
+  if (existingCandidate) return res.status(409).json({ message: "Candidate already exists" });
 
-  // Parse dates
-  const dobValue = dob ? new Date(dob) : undefined;
-  const dateOfJoiningValue = DateOfJoining ? new Date(DateOfJoining) : undefined;
-  const nextIncrementDateValue = NextIncreamentDate ? new Date(NextIncreamentDate) : undefined;
+  const existingUser = await User.findOne({ email: emailNormalized });
+  if (existingUser) return res.status(409).json({ message: "User with this email already exists" });
 
-  // Prepare address
-  const candidateAddress = address
-    ? {
-        current: { ...address.current },
-        permanent: { ...address.permanent },
-        isPermanentSameAsCurrent: address.isPermanentSameAsCurrent || false,
-        isPG: address.isPG || false,
-        pgOwnerName: address.pgOwnerName,
-        pgName: address.pgName,
-        pgNumber: address.pgNumber
+  // Start a transaction for consistency
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    // Create candidate first
+    const candidate = await Candidate.create([{
+      firstName,
+      lastName,
+      email: emailNormalized,
+      mobile,
+      AlternativeMobile,
+      BloodGroup,
+      DateOfJoining,
+      photoUrl,
+      Designation,
+      Salary,
+      NextIncreament,
+      NextIncreamentDate,
+      Gender,
+      MotherName,
+      fatherName,
+      fatherMobile,
+      dob,
+      address,
+      aadhaarNumber,
+      panNumber,
+      drivingLicenseNumber,
+      pfNumber,
+      esicNumber,
+      medicalPolicyNumber,
+      department,
+      isMarried,
+      spouseName,
+      spouseNumber,
+      status: status || 'applied',
+      createdBy: req.user?._id
+    }], { session });
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create linked user
+    const user = await User.create([{
+      name: `${firstName} ${lastName}`,
+      email: emailNormalized,
+      password: hashedPassword,
+      role: role || 'employee',
+      candidateId: candidate[0]._id
+    }], { session });
+
+    // Link back userId in candidate
+    candidate[0].userId = user[0]._id;
+    await candidate[0].save({ session });
+
+    await AuditLog.create([{
+      actor: req.user?._id,
+      action: "candidate_created_with_user",
+      details: { candidateId: candidate[0]._id, userId: user[0]._id }
+    }], { session });
+
+    await session.commitTransaction();
+    session.endSession();
+
+    const populatedCandidate = await Candidate.findById(candidate[0]._id)
+      .populate("userId")
+      .populate("documents");
+
+    res.status(201).json({
+      message: "Candidate and user created successfully",
+      candidate: populatedCandidate,
+      user: {
+        id: user[0]._id,
+        email: user[0].email,
+        role: user[0].role,
+        candidateId: user[0].candidateId
       }
-    : undefined;
-
-  const candidate = await Candidate.create({
-    firstName: firstName.trim(),
-    lastName: lastName.trim(),
-    email: emailNormalized,
-    mobile: mobileNormalized,
-    fatherMobile: fatherMobileNormalized,
-    AlternativeMobile,
-    BloodGroup,
-    DateOfJoining: dateOfJoiningValue,
-    photoUrl,
-    Designation,
-    Salary,
-    NextIncreament,
-    NextIncreamentDate: nextIncrementDateValue,
-    Gender,
-    MotherName,
-    fatherName,
-    dob: dobValue,
-    address: candidateAddress,
-    aadhaarNumber,
-    panNumber,
-    drivingLicenseNumber,
-    pfNumber,
-    esicNumber,
-    medicalPolicyNumber,
-    department,
-    isMarried,
-    spouseName,
-    spouseNumber,
-    status: status || 'applied',
-    createdBy: req.user?._id
-  });
-
-  await AuditLog.create({
-    actor: req.user?._id,
-    action: "reception_created",
-    details: { candidateId: candidate._id }
-  });
-
-  res.status(201).json(candidate);
+    });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    console.error("createCandidate error:", err);
+    res.status(500).json({ message: "Failed to create candidate", error: err.message });
+  }
 });
+
+// ======================================================
+// UPDATE, DELETE, LIST remain same except small improve
+// ======================================================
 
 // UPDATE CANDIDATE
 const updateCandidate = asyncHandler(async (req, res) => {
@@ -128,55 +156,24 @@ const updateCandidate = asyncHandler(async (req, res) => {
   const candidate = await Candidate.findById(id);
   if (!candidate) return res.status(404).json({ message: "Candidate not found" });
 
-  // Normalize email, mobile, fatherMobile
+  // normalize email/mobile
   if (incoming.email) incoming.email = String(incoming.email).trim().toLowerCase();
   if (incoming.mobile) incoming.mobile = String(incoming.mobile).trim();
   if (incoming.fatherMobile) incoming.fatherMobile = String(incoming.fatherMobile).trim();
 
-  // Ensure uniqueness
-  if (incoming.email && incoming.email !== (candidate.email || "").toLowerCase()) {
+  // unique check
+  if (incoming.email && incoming.email !== candidate.email) {
     const exists = await Candidate.findOne({ email: incoming.email, _id: { $ne: id } });
     if (exists) return res.status(409).json({ message: "Another candidate with this email already exists" });
   }
-  if (incoming.mobile && incoming.mobile !== (candidate.mobile || "").toString()) {
-    const exists = await Candidate.findOne({ mobile: incoming.mobile, _id: { $ne: id } });
-    if (exists) return res.status(409).json({ message: "Another candidate with this mobile already exists" });
-  }
-  if (incoming.fatherMobile && incoming.fatherMobile !== (candidate.fatherMobile || "").toString()) {
-    const exists = await Candidate.findOne({ fatherMobile: incoming.fatherMobile, _id: { $ne: id } });
-    if (exists) return res.status(409).json({ message: "Another candidate with this fatherMobile already exists" });
-  }
 
   const allowed = [
-    "firstName",
-    "lastName",
-    "email",
-    "mobile",
-    "fatherMobile",
-    "AlternativeMobile",
-    "BloodGroup",
-    "DateOfJoining",
-    "photoUrl",
-    "Designation",
-    "Salary",
-    "NextIncreament",
-    "NextIncreamentDate",
-    "Gender",
-    "MotherName",
-    "fatherName",
-    "dob",
-    "address",
-    "aadhaarNumber",
-    "panNumber",
-    "drivingLicenseNumber",
-    "pfNumber",
-    "esicNumber",
-    "medicalPolicyNumber",
-    "status",
-    "department",
-    "isMarried",
-    "spouseName",
-    "spouseNumber"
+    "firstName", "lastName", "email", "mobile", "fatherMobile", "AlternativeMobile",
+    "BloodGroup", "DateOfJoining", "photoUrl", "Designation", "Salary",
+    "NextIncreament", "NextIncreamentDate", "Gender", "MotherName", "fatherName",
+    "dob", "address", "aadhaarNumber", "panNumber", "drivingLicenseNumber",
+    "pfNumber", "esicNumber", "medicalPolicyNumber", "status", "department",
+    "isMarried", "spouseName", "spouseNumber"
   ];
 
   const update = {};
@@ -195,19 +192,19 @@ const updateCandidate = asyncHandler(async (req, res) => {
           pgName: incoming.address.pgName ?? candidate.address?.pgName,
           pgNumber: incoming.address.pgNumber ?? candidate.address?.pgNumber
         };
-      } else {
-        update[k] = incoming[k];
-      }
+      } else update[k] = incoming[k];
     }
   });
 
   if (Object.keys(update).length === 0) return res.json(candidate);
 
-  const updated = await Candidate.findByIdAndUpdate(id, { $set: update }, { new: true }).populate("documents");
+  const updated = await Candidate.findByIdAndUpdate(id, { $set: update }, { new: true })
+    .populate("documents")
+    .populate("userId");
 
   await AuditLog.create({
     actor: req.user?._id,
-    action: "reception_updated",
+    action: "candidate_updated",
     details: { candidateId: id, changed: Object.keys(update) }
   });
 
