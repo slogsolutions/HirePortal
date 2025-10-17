@@ -193,8 +193,39 @@ export default function CandidatesPage() {
       };
     }, [selectedFile]);
 
+    // DYNAMIC PASSWORD MATCH VALIDATION:
+    // whenever password or confirmPassword changes, update the errors for both fields
+    useEffect(() => {
+      setErrors((prev) => {
+        const next = { ...prev };
+        // don't override password's own other validation (like min-length) unless mismatch
+        const passwordHasLengthError = validateField("password", form.password);
+
+        if (form.password || form.confirmPassword) {
+          if (form.password !== form.confirmPassword) {
+            // set mismatch error on both fields (so user sees it under either)
+            next.password = passwordHasLengthError || "Passwords do not match";
+            next.confirmPassword = "Passwords do not match";
+          } else {
+            // passwords match: clear mismatch errors but preserve other password error (like length)
+            if (next.confirmPassword === "Passwords do not match") delete next.confirmPassword;
+            if (next.password === "Passwords do not match") {
+              if (passwordHasLengthError) next.password = passwordHasLengthError;
+              else delete next.password;
+            }
+          }
+        } else {
+          // neither provided: remove confirmPassword mismatch if present; leave other errors untouched
+          if (next.confirmPassword === "Passwords do not match") delete next.confirmPassword;
+        }
+        return next;
+      });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [form.password, form.confirmPassword]);
+
     const handleChange = (field, value) => {
       setForm((f) => ({ ...f, [field]: value }));
+      // run per-field validation immediately (same behavior as other fields)
       setErrors((e) => ({ ...e, [field]: validateField(field, value) }));
     };
 
@@ -265,6 +296,8 @@ export default function CandidatesPage() {
       if (form.password || form.confirmPassword) {
         if (form.password !== form.confirmPassword) {
           newErrors.confirmPassword = "Passwords do not match";
+          // also set password mismatch if there's no other password error
+          if (!newErrors.password) newErrors.password = "Passwords do not match";
         }
       }
 
