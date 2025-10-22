@@ -1,7 +1,7 @@
 // createCandidateForUsers.js
 const mongoose = require('mongoose');
 
-const mongoUri = "mongodb+srv://SLOG:aVTJUIBvSraMwARc@cluster0.ii34a.mongodb.net/hireportal";
+const mongoUri = "";
 
 const User = require('../models/User.model');       // adjust path if needed
 const Candidate = require('../models/Candidate.model');
