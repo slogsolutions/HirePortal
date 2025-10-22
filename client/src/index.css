@@ -5,3 +5,18 @@
 html, body {
   background-color: rgb(243, 244, 246) !important; /* replaces bg-gray-100 */
 }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes scaleUp {
+  from { transform: scale(0.95); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease-out forwards;
+}
+.animate-scaleUp {
+  animation: scaleUp 0.25s ease-out forwards;
+}

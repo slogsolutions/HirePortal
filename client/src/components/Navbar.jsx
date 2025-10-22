@@ -52,27 +52,22 @@ const Navbar = () => {
           >
             About Us
           </Link>
-
-          <Link
+          
+          {user && (<Link
             to="/notifications"
             className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
           >
             Notifications
-          </Link>
+          </Link>)}
   
 
-          <Link
-            to="/leave"
-            className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
-          >
-            Apply Leave
-          </Link>
-          <Link
+         
+          {/* <Link
             to="/leaveApproval"
             className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
           >
             Approve Leave
-          </Link>
+          </Link> */}
 
            <Link
             to="/dashboard"
@@ -81,7 +76,12 @@ const Navbar = () => {
             Dashboard
           </Link>
 
-         
+         {user && ( <Link
+            to="/leave"
+            className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          >
+            Apply Leave
+          </Link>)}
 
           {/* Dark Mode Toggle */}
           <button

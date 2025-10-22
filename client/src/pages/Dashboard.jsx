@@ -1,15 +1,13 @@
 // src/pages/DashboardPage.jsx
 import React, { useState, lazy, Suspense } from "react";
 import Documents from "./Documents";
-import OfferLetterTabPage from './OfferLetterTabPage';
+import OfferLetterTabPage from "./OfferLetterTabPage";
 import ReportsPage from "./ReportsPage";
 import NotificationsAdmin from "./NotificationsAdmin";
+import AdminLeavePage from "./AdminLeavesApproval";
 // import CandidatesPage from "./CandidatesPage"; // <-- your real page
 const CandidatesPage = lazy(() => import("./CandidatesPage"));
 const VerificationPage = lazy(() => import("./VerificationPage"));
-
-
-
 
 const Reports = () => (
   <div className="p-4 bg-white dark:bg-gray-800 rounded shadow">
@@ -35,8 +33,8 @@ const TABS = [
   { key: "offerLetter", label: "Offer Letter" },
   { key: "verification", label: "Verification" },
   { key: "documents", label: "Documents" },
-    { key: "notification", label: "Notification" },
-  
+  { key: "notification", label: "Notification" },
+  { key: "leavesApproval", label: "Leaves Approval" },
 ];
 
 export default function DashboardPage({ initialTab = "candidates" }) {
@@ -51,19 +49,45 @@ export default function DashboardPage({ initialTab = "candidates" }) {
           </Suspense>
         );
       case "reports":
-        return <ReportsPage />;
-      case "offerLetter":
-        return < OfferLetterTabPage/>;
-         case "verification":
-            return (
-                 <Suspense fallback={<div>Loading...</div>}>
-           <VerificationPage/>
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <ReportsPage />;
           </Suspense>
-            );
-            case "documents" :
-              return <Documents/>
-               case "notification" :
-              return <NotificationsAdmin/>
+        );
+      case "offerLetter":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            {" "}
+            <OfferLetterTabPage />;
+          </Suspense>
+        );
+      case "verification":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <VerificationPage />
+          </Suspense>
+        );
+      case "documents":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <Documents />
+          </Suspense>
+        );
+      case "notification":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <NotificationsAdmin />{" "}
+          </Suspense>
+        );
+
+      case "leavesApproval":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <AdminLeavePage />
+          </Suspense>
+        );
+
+        leavesApproval;
       default:
         return <div>Not found</div>;
     }

@@ -63,20 +63,71 @@ const getLeaves = async (req, res) => {
   }
 };
 
-// Update leave
+// Update leave   OLD without reviewdBy 
+// const updateLeave = async (req, res) => {
+//   try {
+//     const leaveId = req.params.id;
+//     const updateData = req.body;
+//     const leave = await Leave.findByIdAndUpdate(leaveId, updateData, { new: true })
+//       .populate('appliedBy', 'firstName lastName email')
+//       .populate('reviewedBy', 'firstName lastName email');
+
+//     console.log("✏️ Leave updated:", leave);
+//     res.status(200).json({ status: 'success', data: leave });
+//   } catch (err) {
+//     console.error("❌ Error updating leave:", err);
+//     res.status(500).json({ status: 'error', message: err.message });
+//   }
+// };
+
+// Update leave (improved) - put in your controller file
 const updateLeave = async (req, res) => {
   try {
     const leaveId = req.params.id;
-    const updateData = req.body;
-    const leave = await Leave.findByIdAndUpdate(leaveId, updateData, { new: true })
-      .populate('appliedBy', 'firstName lastName email')
-      .populate('reviewedBy', 'firstName lastName email');
+    const { status, comment, startDate, endDate, reason } = req.body;
+
+    // Build update object carefully to avoid overwriting fields unintentionally
+    const updateObj = { updatedAt: new Date() };
+
+    // allow editing of dates/reason by requester (if authorized) — include only if provided
+    if (typeof startDate !== "undefined") updateObj.startDate = startDate;
+    if (typeof endDate !== "undefined") updateObj.endDate = endDate;
+    if (typeof reason !== "undefined") updateObj.reason = reason;
+    if (typeof comment !== "undefined") updateObj.comment = comment;
+
+    // If status provided, validate and set it; when approving/rejecting, set reviewedBy
+    if (typeof status !== "undefined") {
+      const allowed = ["pending", "approved", "rejected"];
+      if (!allowed.includes(status)) {
+        return res.status(400).json({ status: "error", message: "Invalid status value" });
+      }
+      updateObj.status = status;
+
+      // If changing to approved/rejected, set reviewedBy from req.user.candidateId (if present)
+      if (status === "approved" || status === "rejected") {
+        if (req.user && req.user.candidateId) {
+          updateObj.reviewedBy = req.user.candidateId;
+        } else {
+          // If authenticated user does not have candidateId, we still allow the update but log warning
+          console.warn(`Authenticated user ${req.user?._id} has no candidateId — reviewedBy not set automatically.`);
+        }
+      }
+    }
+
+    // Apply update and return populated document
+    const leave = await Leave.findByIdAndUpdate(leaveId, updateObj, { new: true })
+      .populate("appliedBy", "firstName lastName email")
+      .populate("reviewedBy", "firstName lastName email");
+
+    if (!leave) {
+      return res.status(404).json({ status: "error", message: "Leave not found" });
+    }
 
     console.log("✏️ Leave updated:", leave);
-    res.status(200).json({ status: 'success', data: leave });
+    res.status(200).json({ status: "success", data: leave });
   } catch (err) {
     console.error("❌ Error updating leave:", err);
-    res.status(500).json({ status: 'error', message: err.message });
+    res.status(500).json({ status: "error", message: err.message });
   }
 };
 
