@@ -1,4 +1,3 @@
-
 const express = require('express');
 const upload = require('../utils/multer'); 
 const { protect } = require('../middlewares/auth.middleware');
@@ -10,9 +9,13 @@ const {
   deleteCandidate,
   listCandidates,
   uploadProfilePhoto,
+  me
 } = require('../controllers/candidate.controller');
 
 const router = express.Router();
+
+// Get logged-in candidate
+router.get("/me", protect, me);
 
 // List/create
 router.get('/', protect, requireRole(['hr','admin']), listCandidates);

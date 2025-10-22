@@ -144,6 +144,29 @@ const createCandidate = asyncHandler(async (req, res) => {
   }
 });
 
+// Get logged-in candidate details
+const me = asyncHandler(async (req, res) => {
+  try {
+    const candidateId = req.user?.candidateId; // must come from auth middleware
+    console.log("DEBUGGED entered atleast and also ,candidateId->",candidateId)
+    if (!candidateId) {
+      return res.status(404).json({ status: 'error', message: 'Candidate not found for logged-in user' });
+    }
+
+    // Fetch candidate and populate user/documents if needed
+    const candidate = await Candidate.findById(candidateId)
+      .populate('userId', 'name email role')  // optional: populate user info
+      .populate('documents');
+
+    console.log("🧑 Logged-in candidate details:", candidate);
+
+    res.status(200).json({ status: 'success', data: candidate });
+  } catch (err) {
+    console.error("❌ Error fetching logged-in candidate:", err);
+    res.status(500).json({ status: 'error', message: err.message });
+  }
+});
+
 // ======================================================
 // UPDATE, DELETE, LIST remain same except small improve
 // ======================================================
@@ -289,4 +312,4 @@ const listCandidates = asyncHandler(async (req, res) => {
   res.json(candidates);
 });
 
-module.exports = { createCandidate, getCandidate, updateCandidate, deleteCandidate, listCandidates, uploadProfilePhoto };
+module.exports = { createCandidate, getCandidate, updateCandidate, deleteCandidate, listCandidates, uploadProfilePhoto ,me};

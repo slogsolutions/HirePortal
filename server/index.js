@@ -19,6 +19,7 @@ const fcmRoutes = require('./routes/fcm.routes');
 const rulesDocumentRoutes = require('./routes/documentRules.routes');
 const verificationRoutes = require('./routes/verification.routes');
 const interviewRoutes = require('./routes/interview.routes');
+const leaveRoutes = require("./routes/leaves.routes")
 
 const app = express();
 
@@ -44,10 +45,12 @@ app.use('/api/auth', authRoutes);
 app.use('/api/candidates', candidateRoutes);
 app.use('/api/scores', scoreRoutes);
 app.use('/api', offerRoutes);
+
 app.use('/api/docs', rulesDocumentRoutes);
 app.use('/api/candidates', verificationRoutes);
 app.use('/api/candidates', interviewRoutes);
 app.use('/api', fcmRoutes);
+app.use('/api/leaves', leaveRoutes);
 
 // ====== SERVE HTML TEMPLATE ======
 app.get('/offerletter', (req, res) => {

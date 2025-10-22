@@ -24,6 +24,8 @@ import { useContext } from "react";
 import { AuthContext } from "./context/AuthContext";
 // ✅ Sonner Toaster
 import { Toaster } from "sonner";
+import EmployeeLeave from './pages/LeaveRequestPage';
+import AdminLeaveApproval from './pages/AdminLeavesApproval';
 
 function App() {
   const [count, setCount] = useState(0);
@@ -63,6 +65,8 @@ function App() {
           <Route path="/offerletter" element={<OfferLetterTabPage />} />
           <Route path="/notifications" element={<NotificationsAdmin />} />
 
+          <Route path="/leave" element={<EmployeeLeave />} />
+          <Route path="/leaveApproval" element={<AdminLeaveApproval />} />
           {/* catch-all -> redirect to home */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
