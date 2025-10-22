@@ -59,6 +59,20 @@ const Navbar = () => {
           >
             Notifications
           </Link>
+  
+
+          <Link
+            to="/leave"
+            className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          >
+            Apply Leave
+          </Link>
+          <Link
+            to="/leaveApproval"
+            className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          >
+            Approve Leave
+          </Link>
 
            <Link
             to="/dashboard"
@@ -66,6 +80,7 @@ const Navbar = () => {
           >
             Dashboard
           </Link>
+
          
 
           {/* Dark Mode Toggle */}
