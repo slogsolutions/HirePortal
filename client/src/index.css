@@ -1,22 +1,33 @@
-/* Fix html2canvas color parsing */
-* {
+/* ====================================================
+   Scoped html2canvas fix (recommended)
+   Usage:
+     // before capturing
+     document.body.classList.add('html2canvas-fix');
+     // call html2canvas(...)
+     // after capturing
+     document.body.classList.remove('html2canvas-fix');
+   ==================================================== */
+
+.html2canvas-fix * {
   color-scheme: light !important;
 }
-html, body {
-  background-color: rgb(243, 244, 246) !important; /* replaces bg-gray-100 */
+.html2canvas-fix, .html2canvas-fix html, .html2canvas-fix body {
+  background-color: rgb(243, 244, 246) !important;
 }
+
+/* Animations (consolidated) */
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
 }
 @keyframes scaleUp {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  from { transform: translateY(6px) scale(0.98); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
 
 .animate-fadeIn {
-  animation: fadeIn 0.2s ease-out forwards;
+  animation: fadeIn 180ms ease-out forwards;
 }
 .animate-scaleUp {
-  animation: scaleUp 0.25s ease-out forwards;
+  animation: scaleUp 220ms cubic-bezier(.2,.9,.2,1) forwards;
 }

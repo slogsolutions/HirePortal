@@ -2,10 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import api from "../api/axios";
 
 /**
- * Modern Employee Leave page
- * - Displays "Reviewed by" info (name + email)
- * - Blur modal for delete
- * - Auto day calculation, edit/delete
+ * Modern Employee Leave page with stylish animated modal
  */
 
 function StatusBadge({ status }) {
@@ -327,34 +324,30 @@ export default function EmployeeLeavePage() {
         </section>
       </div>
 
-      {/* Delete Confirmation Modal (blur) */}
+      {/* Replace modal with the stylish blurred animated modal */}
       {confirm.open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-25"
-          style={{
-            backdropFilter: "blur(6px)",
-            WebkitBackdropFilter: "blur(6px)",
-          }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 backdrop-blur-md animate-fadeIn"
+          style={{ backdropFilter: "blur(8px)", WebkitBackdropFilter: "blur(8px)" }}
+          role="dialog"
+          aria-modal="true"
         >
-          <div className="bg-white/95 backdrop-saturate-110 rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all">
-            <h3 className="text-lg font-semibold text-gray-800">
-              Confirm Delete
-            </h3>
-            <p className="text-sm text-gray-600 mt-2">
-              Are you sure you want to delete this leave? This action cannot be
-              undone.
+          <div className="bg-white/90 backdrop-saturate-150 rounded-2xl shadow-2xl max-w-md w-full p-6 transform transition-all duration-300 animate-scaleUp">
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">Confirm Delete</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to delete this leave? This action cannot be undone.
             </p>
 
-            <div className="mt-6 flex justify-end gap-3">
+            <div className="flex justify-end gap-3">
               <button
                 onClick={cancelDelete}
-                className="px-4 py-2 border rounded-lg"
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition"
               >
                 Cancel
               </button>
               <button
                 onClick={doDelete}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+                className="px-4 py-2 rounded-lg shadow text-white bg-red-600 hover:bg-red-700"
               >
                 Delete
               </button>
