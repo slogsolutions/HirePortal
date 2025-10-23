@@ -20,6 +20,8 @@ const rulesDocumentRoutes = require('./routes/documentRules.routes');
 const verificationRoutes = require('./routes/verification.routes');
 const interviewRoutes = require('./routes/interview.routes');
 const leaveRoutes = require("./routes/leaves.routes")
+const salaryRoutes = require('./routes/salary.routes');
+
 
 const app = express();
 
@@ -52,6 +54,7 @@ app.use('/api/candidates', interviewRoutes);
 app.use('/api', fcmRoutes);
 app.use('/api/leaves', leaveRoutes);
 
+app.use('/api/salaries', salaryRoutes);
 // ====== SERVE HTML TEMPLATE ======
 app.get('/offerletter', (req, res) => {
   res.sendFile(path.join(__dirname, 'template', 'offerletter.html'));
@@ -82,15 +85,15 @@ async function ensureSuperAdmin() {
         role: 'superadmin'
       });
 
-      console.log('✅ Super Admin created:', {
+      console.log(' Super Admin created:', {
         email: admin.email,
         password: process.env.SUPERADMIN_PASSWORD || 'Super@123'
       });
     } else {
-      console.log('✅ Super Admin already exists');
+      console.log(' Super Admin already exists');
     }
   } catch (err) {
-    console.error('❌ Error ensuring Super Admin:', err);
+    console.error(' Error ensuring Super Admin:', err);
   }
 }
 
@@ -99,10 +102,10 @@ const port = process.env.PORT || 5000;
 
 // Wait for DB connection before starting
 mongoose.connection.once('open', async () => {
-  console.log('✅ Database connected');
+  console.log(' Database connected');
   await ensureSuperAdmin();
 
-  app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+  app.listen(port, () => console.log(` Server running on port ${port}`));
 });
 
 module.exports = app;

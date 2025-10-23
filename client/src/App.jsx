@@ -26,6 +26,7 @@ import { AuthContext } from "./context/AuthContext";
 import { Toaster } from "sonner";
 import EmployeeLeave from "./pages/LeaveRequestPage";
 import AdminLeaveApproval from "./pages/AdminLeavesApproval";
+import SalaryEditor from "./pages/SalaryPageAdmin";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -72,6 +73,7 @@ function App() {
 
             <Route path="/leave" element={<EmployeeLeave />} />
             <Route path="/leaveApproval" element={<AdminLeaveApproval />} />
+             <Route path="/salaryAdmin" element={<SalaryEditor />} />
             
           </Route>
 
