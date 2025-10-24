@@ -31,4 +31,6 @@ router.delete('/:id', protect, requireRole(['hr', 'admin', 'superadmin']), (req,
   next();
 }, salaryController.deleteSalary);
 
+router.get("/user/:userId", protect, requireRole(['hr', 'admin', 'superadmin']),salaryController.getSalaryById);
+
 module.exports = router;

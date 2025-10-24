@@ -6,6 +6,7 @@ import ReportsPage from "./ReportsPage";
 import NotificationsAdmin from "./NotificationsAdmin";
 import AdminLeavePage from "./AdminLeavesApproval";
 import SalaryEditorModern from "./SalaryPageAdmin";
+import MassSalaryEditor from "./MassSalaryPageAdmin";
 // import CandidatesPage from "./CandidatesPage"; // <-- your real page
 const CandidatesPage = lazy(() => import("./CandidatesPage"));
 const VerificationPage = lazy(() => import("./VerificationPage"));
@@ -37,6 +38,8 @@ const TABS = [
   { key: "notification", label: "Notification" },
   { key: "leavesApproval", label: "Leaves Approval" },
    {key :"salary", label : "Salary Slip"},
+   {key :"massSalary", label : "Generate Salary"},
+   
 ];
 
 export default function DashboardPage({ initialTab = "candidates" }) {
@@ -93,6 +96,12 @@ export default function DashboardPage({ initialTab = "candidates" }) {
         return (
           <Suspense fallback={<div>Loading...</div>}>
             <SalaryEditorModern/>
+          </Suspense>
+        );
+         case "massSalary":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <MassSalaryEditor/>
           </Suspense>
         );
 
