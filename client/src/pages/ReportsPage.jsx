@@ -83,7 +83,7 @@ export default function CandidateScores() {
             <div key={r._id} className="border rounded-xl p-4 shadow-sm hover:shadow-md transition bg-white">
               <div className="flex justify-between items-center mb-3">
                 <div className="font-medium text-gray-800">
-                  {r.type} by {r.interviewerName}
+                  {r.type} by {r.interviewer}
                 </div>
                 <div className="text-sm text-gray-500">{new Date(r.date).toLocaleDateString()}</div>
               </div>

@@ -21,6 +21,7 @@ const verificationRoutes = require('./routes/verification.routes');
 const interviewRoutes = require('./routes/interview.routes');
 const leaveRoutes = require("./routes/leaves.routes")
 const salaryRoutes = require('./routes/salary.routes');
+const performaceRoutes = require('./routes/performace.route');
 
 
 const app = express();
@@ -55,6 +56,8 @@ app.use('/api', fcmRoutes);
 app.use('/api/leaves', leaveRoutes);
 
 app.use('/api/salaries', salaryRoutes);
+app.use('/api/performance', performaceRoutes);
+
 // ====== SERVE HTML TEMPLATE ======
 app.get('/offerletter', (req, res) => {
   res.sendFile(path.join(__dirname, 'template', 'offerletter.html'));
