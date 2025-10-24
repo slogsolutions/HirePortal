@@ -395,6 +395,51 @@ export default function MassSalaryEditorDynamic() {
   return (
     <div className="p-6 max-w-full overflow-x-auto">
       <h1 className="text-2xl font-bold mb-4">Mass Salary Editor</h1>
+         
+     {/*  Salary Formula Section */}
+<div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 text-sm text-gray-800">
+  <details>
+    <summary className="cursor-pointer font-semibold text-blue-700">
+       View Salary Calculation Formula
+    </summary>
+    <div className="mt-2 leading-relaxed">
+      <p>
+        <b>Per Day Salary:</b> <code>baseSalary / workingDaysInMonth</code>
+      </p>
+      <p>
+        <b>Per Hour Salary:</b> <code>Per Day / hoursPerDay</code>
+      </p>
+      <p>
+        <b>Overtime (Days):</b> <code>overtimeDays × Per Day × 1.5</code>
+      </p>
+      <p>
+        <b>Overtime (Hours):</b> <code>overtimeHours × Per Hour × 1.5</code>
+      </p>
+      <p>
+        <b>Late Deduction:</b> <code>(Per Hour / 60) × lateMinutes</code>
+      </p>
+      <p>
+        <b>Leave Deduction:</b> <code>leavesTaken × Per Day</code>
+      </p>
+      <p>
+        <b>Gross Pay:</b>{" "}
+        <code>baseSalary + bonus + expense + overtimeFromDays + overtimeFromHours + dynamicAdditions</code>
+      </p>
+      <p>
+        <b>Total Deductions:</b>{" "}
+        <code>advance + epf + leaveDeduction + lateDeduction + dynamicNegativeAdjustments</code>
+      </p>
+      <p>
+        <b>Net Pay:</b> <code>Gross Pay - Total Deductions</code>
+      </p>
+      <p className="mt-2 italic text-gray-600">
+        * Additional custom fields are automatically included in the calculation.
+      </p>
+    </div>
+  </details>
+</div>
+
+
 
       <div className="flex flex-wrap gap-3 items-center mb-4">
         <label className="text-sm mr-2">Period</label>

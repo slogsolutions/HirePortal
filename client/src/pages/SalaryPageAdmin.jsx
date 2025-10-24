@@ -10,6 +10,7 @@ export default function SalaryEditorModern() {
   const [candidate, setCandidate] = useState(null);
   const [saving, setSaving] = useState(false);
   const [salaryHistory, setSalaryHistory] = useState([]);
+  const [showFormula, setShowFormula] = useState(false);
   const slipRef = useRef();
 
   const [fields, setFields] = useState({
@@ -70,7 +71,9 @@ export default function SalaryEditorModern() {
       }
     })();
 
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [selectedId]);
 
   const calc = useMemo(() => {
@@ -143,12 +146,13 @@ export default function SalaryEditorModern() {
       bonus: slip.bonus || 0,
       expense: slip.expense || 0,
       lateMinutes: slip.lateMinutes || 0,
-      adjustments: slip.adjustments?.map(a => ({
-        id: a._id || Math.random().toString(36).slice(2, 9),
-        reason: a.reason || "",
-        amount: a.amount || 0
-      })) || [],
-      month: `${slip.period?.year || new Date().getFullYear()}-${String(slip.period?.month || (new Date().getMonth()+1)).padStart(2,'0')}`
+      adjustments:
+        slip.adjustments?.map((a) => ({
+          id: a._id || Math.random().toString(36).slice(2, 9),
+          reason: a.reason || "",
+          amount: a.amount || 0,
+        })) || [],
+      month: `${slip.period?.year || new Date().getFullYear()}-${String(slip.period?.month || new Date().getMonth() + 1).padStart(2, "0")}`,
     });
   };
 
@@ -165,18 +169,14 @@ export default function SalaryEditorModern() {
   // ---------------------- PDF Export ----------------------
   const exportPDF = () => {
     const doc = new jsPDF();
-    const logo = ""; // Replace with your logo URL if needed
     const companyName = "My Company Pvt Ltd";
 
-    // Header
     doc.setFontSize(16);
     doc.text(companyName, 105, 15, { align: "center" });
-    if (logo) doc.addImage(logo, "PNG", 10, 10, 30, 30);
     doc.setFontSize(12);
     doc.text(`Payslip for: ${candidate?.firstName || ""} ${candidate?.lastName || ""}`, 105, 30, { align: "center" });
     doc.text(`Month: ${fields.month}`, 105, 37, { align: "center" });
 
-    // Table content
     const tableData = [
       ["Field", "Amount (₹)"],
       ["Base Salary", fmt(fields.baseSalary)],
@@ -188,7 +188,7 @@ export default function SalaryEditorModern() {
       ["Advance", fmt(fields.advance)],
       ["EPF", fmt(fields.epf)],
       ["Late Minutes", fmt(fields.lateMinutes)],
-      ...fields.adjustments.map(a => [a.reason, fmt(a.amount)]),
+      ...fields.adjustments.map((a) => [a.reason, fmt(a.amount)]),
       ["Gross Pay", fmt(calc.grossPay)],
       ["Total Deductions", fmt(calc.totalDeductions)],
       ["Net Pay", fmt(calc.netPay)],
@@ -217,7 +217,7 @@ export default function SalaryEditorModern() {
       ["Advance", fields.advance],
       ["EPF", fields.epf],
       ["Late Minutes", fields.lateMinutes],
-      ...fields.adjustments.map(a => [a.reason, a.amount]),
+      ...fields.adjustments.map((a) => [a.reason, a.amount]),
       ["Gross Pay", calc.grossPay],
       ["Total Deductions", calc.totalDeductions],
       ["Net Pay", calc.netPay],
@@ -228,9 +228,6 @@ export default function SalaryEditorModern() {
     XLSX.utils.book_append_sheet(wb, ws, "Payslip");
     XLSX.writeFile(wb, `Payslip_${candidate?.firstName || ""}_${fields.month}.xlsx`);
   };
-
-  // ---------------------- Remainder of component unchanged ----------------------
-  // ... Keep all your JSX as-is, no other changes needed
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
@@ -260,8 +257,8 @@ export default function SalaryEditorModern() {
         </div>
       </div>
 
-      {/* Main content... keep JSX as-is */}
-<div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main content */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Controls */}
         <div className="space-y-4 col-span-1">
           <div className="bg-white rounded-lg shadow p-4 space-y-3">
@@ -321,7 +318,9 @@ export default function SalaryEditorModern() {
                   <span className="cursor-pointer text-blue-600" onClick={() => loadHistorySlip(s)}>
                     {`${s.period?.year || ""}-${String(s.period?.month || "").padStart(2, "0")}`} — ₹ {fmt(s.netPay)}
                   </span>
-                  <button onClick={() => deleteSlip(s._id)} className="text-red-600 text-sm">Delete</button>
+                  <button onClick={() => deleteSlip(s._id)} className="text-red-600 text-sm">
+                    Delete
+                  </button>
                 </div>
               ))}
               {salaryHistory.length === 0 && <div className="text-xs text-gray-400">No salary slips yet</div>}
@@ -384,6 +383,67 @@ export default function SalaryEditorModern() {
               ))}
             </div>
           </div>
+
+          {/* Formula Toggle Button */}
+          <div className="mt-6">
+            <button
+              onClick={() => setShowFormula(!showFormula)}
+              className="bg-blue-600 text-white rounded px-4 py-2 text-sm shadow hover:opacity-90"
+            >
+              {showFormula ? "Hide Formula" : "Show Formula"}
+            </button>
+          </div>
+
+          {/* Formula Explanation */}
+          {showFormula && (
+            <div className="mt-4 bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm leading-relaxed text-gray-700">
+              <h3 className="text-lg font-semibold mb-2 text-blue-800">Salary Calculation Formula</h3>
+
+              <p className="mb-2">
+                <strong>Per Day Salary</strong> = Base Salary ÷ Working Days in Month
+              </p>
+              <p className="mb-2">
+                <strong>Per Hour Salary</strong> = Per Day Salary ÷ Hours Per Day
+              </p>
+
+              <h4 className="font-semibold mt-3 mb-1 text-green-700">Earnings (Additions)</h4>
+              <ul className="list-disc pl-5 mb-2">
+                <li>Bonus</li>
+                <li>Expense reimbursements</li>
+                <li>Overtime (Days) = OvertimeDays × PerDay × 1.5</li>
+                <li>Overtime (Hours) = OvertimeHours × PerHour × 1.5</li>
+                <li>Positive Adjustments</li>
+              </ul>
+
+              <p className="mb-3">
+                <strong>Total Additions</strong> = Bonus + Expense + (OvertimeDays × PerDay × 1.5) + (OvertimeHours × PerHour × 1.5) + PositiveAdjustments
+              </p>
+
+              <h4 className="font-semibold mt-3 mb-1 text-red-700">Deductions</h4>
+              <ul className="list-disc pl-5 mb-2">
+                <li>Advance</li>
+                <li>EPF</li>
+                <li>Leave Deduction = LeavesTaken × PerDay</li>
+                <li>Late Deduction = (PerHour ÷ 60) × LateMinutes</li>
+                <li>Negative Adjustments</li>
+              </ul>
+
+              <p className="mb-3">
+                <strong>Total Deductions</strong> = Advance + EPF + (LeavesTaken × PerDay) + (PerHour ÷ 60 × LateMinutes) + |NegativeAdjustments|
+              </p>
+
+              <h4 className="font-semibold mt-3 mb-1 text-gray-800">Final Calculation</h4>
+              <p>
+                <strong>Gross Pay</strong> = Base Salary + Additions
+                <br />
+                <strong>Net Pay</strong> = Gross Pay − Deductions
+              </p>
+
+              <div className="mt-3 italic text-xs text-gray-500">
+                (Overtime is paid at 1.5× rate. Negative adjustments are treated as deductions.)
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
