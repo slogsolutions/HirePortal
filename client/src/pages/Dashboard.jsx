@@ -8,6 +8,8 @@ import AdminLeavePage from "./AdminLeavesApproval";
 import SalaryEditorModern from "./SalaryPageAdmin";
 import MassSalaryEditor from "./MassSalaryPageAdmin";
 import AdminReviewPage from "./PerformancePageAdmin";
+import AdminUsersWithDetail from "./EmployeeReportingAdminPage";
+import AdminHolidays from "./AdminHolidaysPage";
 // import CandidatesPage from "./CandidatesPage"; // <-- your real page
 const CandidatesPage = lazy(() => import("./CandidatesPage"));
 const VerificationPage = lazy(() => import("./VerificationPage"));
@@ -38,11 +40,12 @@ const TABS = [
   { key: "documents", label: "Documents" },
   { key: "notification", label: "Notification" },
   { key: "leavesApproval", label: "Leaves Approval" },
-   {key :"salary", label : "Salary Slip"},
-   {key :"massSalary", label : "Generate Salary"},
-     {key :"performanceReview", label : "Employee Performance"},
-   
-   
+  { key: "salary", label: "Salary Slip" },
+  { key: "massSalary", label: "Generate Salary" },
+  { key: "reportingAdmin", label: "Employee Daily Reporting" },
+   { key: "holidaysAdmin", label: "Add Holidays" },
+  { key: "performanceReview", label: "Employee Performance" },
+  
 ];
 
 export default function DashboardPage({ initialTab = "candidates" }) {
@@ -95,27 +98,39 @@ export default function DashboardPage({ initialTab = "candidates" }) {
           </Suspense>
         );
 
-          case "salary":
+      case "salary":
         return (
           <Suspense fallback={<div>Loading...</div>}>
-            <SalaryEditorModern/>
+            <SalaryEditorModern />
           </Suspense>
         );
-         case "massSalary":
+      case "massSalary":
         return (
           <Suspense fallback={<div>Loading...</div>}>
-            <MassSalaryEditor/>
+            <MassSalaryEditor />
           </Suspense>
         );
-         case "performanceReview":
+      case "performanceReview":
         return (
           <Suspense fallback={<div>Loading...</div>}>
-            <AdminReviewPage/>
+            <AdminReviewPage />
           </Suspense>
         );
+      case "reportingAdmin":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <AdminUsersWithDetail />
+          </Suspense>
+        );
+        case "holidaysAdmin":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <AdminHolidays />
+          </Suspense>
+        );
+
         
 
-       
       default:
         return <div>Not found</div>;
     }

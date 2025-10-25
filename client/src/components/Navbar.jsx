@@ -59,6 +59,13 @@ const Navbar = () => {
           >
             Notifications
           </Link>)}
+
+            {user && (<Link
+            to="/attendance"
+            className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
+          >
+            Daily Reporting
+          </Link>)}
   
 
          

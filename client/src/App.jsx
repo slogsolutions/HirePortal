@@ -83,6 +83,7 @@ function App() {
              <Route path="/salaryAdmin" element={<SalaryEditor />} />
               <Route path="/generate-salary" element={<MassSalaryEditor />} />
                <Route path="/performance-review" element={<AdminReviewPage />} />
+               
                 <Route path="/attendance" element={<EmployeeAttendancePage />} />
                    <Route path="/attendance/admin" element={<AdminAttendancePage />} />
                       <Route path="/holidays/admin" element={<AdminHolidays />} />
