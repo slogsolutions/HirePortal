@@ -31,6 +31,9 @@ import MassSalaryEditor from "./pages/MassSalaryPageAdmin";
 import AdminReviewPage from "./pages/PerformancePageAdmin";
 import EmployeeAttendancePage from "./pages/EmployeeAttendancePage";
 import AdminAttendancePage from "./pages/AdminAttendancePage";
+import AdminHolidays from "./pages/AdminHolidaysPage";
+import EmployeeCalendarModern from "./pages/EmployeeAttendancePage";
+import AdminUsersWithDetail from "./pages/EmployeeReportingAdminPage";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -82,6 +85,8 @@ function App() {
                <Route path="/performance-review" element={<AdminReviewPage />} />
                 <Route path="/attendance" element={<EmployeeAttendancePage />} />
                    <Route path="/attendance/admin" element={<AdminAttendancePage />} />
+                      <Route path="/holidays/admin" element={<AdminHolidays />} />
+                           <Route path="/reporting/admin" element={<AdminUsersWithDetail />} />
           </Route>
 
           {/* catch-all -> redirect to home */}

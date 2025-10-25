@@ -74,6 +74,7 @@ const getMyMonth = asyncHandler(async (req, res) => {
 */
 const saveMyEntriesBatch = asyncHandler(async (req, res) => {
   const userId = req.user._id;
+  console.log("enerted", )
   const incoming = req.body.entries || [];
   const forceEdit = req.body.forceEdit || false; // <-- NEW
   if (!Array.isArray(incoming) || incoming.length === 0) {
@@ -186,11 +187,142 @@ const adminRemoveHoliday = asyncHandler(async (req, res) => {
   res.json({ message: 'Holiday removed' });
 });
 
+// Add to attendance.controller.js (below existing exports)
+
+//
+// Admin: list users (id, name, email, role)
+//
+const adminListUsers = asyncHandler(async (req, res) => {
+  // minimal projection, add any fields you want
+  const users = await User.find({}, '_id name email role').lean();
+  res.json(users);
+});
+
+//
+// Admin: get month for a specific user
+// GET /attendance/admin/user/:userId?year=YYYY&month=MM
+//
+const adminGetUserMonth = asyncHandler(async (req, res) => {
+  const userId = req.params.userId;
+  // reuse same logic as getMyMonth but for given userId
+  const today = new Date();
+  const year = parseInt(req.query.year, 10) || today.getUTCFullYear();
+  const month = parseInt(req.query.month, 10) || (today.getUTCMonth() + 1);
+
+  const start = new Date(Date.UTC(year, month - 1, 1));
+  const end = new Date(Date.UTC(year, month, 0));
+  const daysInMonth = end.getUTCDate();
+
+  const entries = await DailyEntry.find({
+    userId,
+    date: { $gte: start, $lte: end }
+  }).lean();
+
+  const holidays = await Holiday.find({
+    date: { $gte: start, $lte: end }
+  }).lean();
+
+  const entriesMap = {};
+  entries.forEach(e => entriesMap[e.date.toISOString().slice(0,10)] = e);
+  const holidaysSet = new Set(holidays.map(h => h.date.toISOString().slice(0,10)));
+
+  const days = [];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dt = new Date(Date.UTC(year, month - 1, d));
+    const key = dt.toISOString().slice(0,10);
+    const weekday = dt.getUTCDay();
+    const isSunday = weekday === 0;
+    const holiday = holidaysSet.has(key);
+    const entry = entriesMap[key] || null;
+
+    let tag = 'Working';
+    if (isSunday || holiday) tag = 'Holiday';
+    else if (!entry && dt < today) tag = 'Missed';
+    else if (entry) tag = entry.tag;
+
+    const isEditable = !isSunday && !holiday && dt <= today;
+    days.push({
+      date: key,
+      day: d,
+      weekday,
+      isSunday,
+      isHoliday: holiday,
+      tag,
+      note: entry?.note || '',
+      locked: !isEditable || tag === 'Holiday'
+    });
+  }
+
+  res.json({ year, month, days });
+});
+
+//
+// Admin: upsert entries for any user (single-batch for admin)
+// POST /attendance/admin/entries
+// body: { userId, entries: [{date, tag, note}], forceEdit }
+const adminSaveEntriesBatch = asyncHandler(async (req, res) => {
+  const actingUser = req.user._id;
+  const userId = req.body.userId;
+  const incoming = req.body.entries || [];
+  const forceEdit = !!req.body.forceEdit;
+
+  if (!userId) return res.status(400).json({ message: 'userId required' });
+  if (!Array.isArray(incoming) || incoming.length === 0) {
+    return res.status(400).json({ message: 'entries array required' });
+  }
+
+  const session = await mongoose.startSession();
+  session.startTransaction();
+  try {
+    const results = [];
+    for (const item of incoming) {
+      if (!item.date || !item.tag) {
+        results.push({ date: item.date || null, ok: false, message: 'date and tag required' });
+        continue;
+      }
+      if (!['Working','On Leave','Holiday','Missed','Absent'].includes(item.tag)) {
+        results.push({ date: item.date, ok: false, message: 'Invalid tag' });
+        continue;
+      }
+
+      const date = normalizeDateToUTCStart(item.date);
+      const weekday = date.getUTCDay();
+
+      // Admin may force edit; if not and weekend => block
+      if (!forceEdit) {
+        if (weekday === 0) {
+          results.push({ date: date.toISOString().slice(0,10), ok: false, message: 'Sunday cannot be edited' });
+          continue;
+        }
+      }
+
+      const upsert = await DailyEntry.findOneAndUpdate(
+        { userId, date },
+        { $set: { tag: item.tag, note: item.note || '', autoMarked: false, createdBy: actingUser } },
+        { upsert: true, new: true, setDefaultsOnInsert: true, session }
+      );
+      results.push({ date: date.toISOString().slice(0,10), ok: true, entry: upsert });
+    }
+
+    await session.commitTransaction();
+    session.endSession();
+    res.json({ message: 'admin batch save completed', results });
+  } catch (err) {
+    await session.abortTransaction();
+    session.endSession();
+    throw err;
+  }
+});
+
+
 module.exports = {
   getMyMonth,
   saveMyEntriesBatch,
   adminListReport,
   adminAddHoliday,
   adminListHolidays,
-  adminRemoveHoliday
+  adminRemoveHoliday,
+  adminListUsers,
+  adminGetUserMonth,
+  adminSaveEntriesBatch
 };

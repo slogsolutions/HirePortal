@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from "react";
 import api from "../api/axios";
 import { getDaysInMonth, startOfMonth } from "date-fns";
 import { PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 // Background colors for fields based on tag
 const STATUS_COLORS = {
@@ -11,6 +12,15 @@ const STATUS_COLORS = {
   Missed: "bg-red-200 text-black",
   Future: "bg-white text-gray-700",
   Sunday: "bg-orange-200 text-black",
+  // fallback
+  Default: "bg-white text-black",
+};
+
+// Colors for pie chart
+const PIE_COLORS = {
+  Working: "#68D391", // green
+  "On Leave": "#63B3ED", // blue
+  Missed: "#FC8181", // red
 };
 
 const STATUS_OPTIONS = ["Working", "On Leave"];
@@ -23,44 +33,67 @@ export default function EmployeeCalendarModern() {
   const [hoveredDay, setHoveredDay] = useState(null);
   const [editingDay, setEditingDay] = useState(null);
   const [forceEditMode, setForceEditMode] = useState(false);
+  const [summary, setSummary] = useState({ total: 0, working: 0, missed: 0, leave: 0 });
 
   const keySequence = useRef([]);
   const SECRET_KEYS = ["ArrowLeft", "ArrowRight", "ArrowLeft", "k"];
 
+  // FETCH month and use backend-provided tag/note (don't rely on d.entry)
   const fetchMonth = async () => {
     try {
       const { data } = await api.get(`/attendance/me?year=${year}&month=${month}`);
+      console.log('[fetchMonth] api returned days count:', data.days?.length);
+
       const daysData = data.days.map(d => {
         const dayDate = new Date(d.date + "T00:00:00Z");
-        const isPast = dayDate < today;
         const isFuture = dayDate > today;
-        const isToday = dayDate.toDateString() === today.toDateString();
-        const editable = isToday;
+        const editable = !d.isSunday && !d.isHoliday && (dayDate <= today || forceEditMode);
 
-        let fullNote = d.note || "";
+        const fullNote = d.note || "";
         let displayNote = fullNote.split(" ").slice(0, 15).join(" ");
         if (fullNote.split(" ").length > 15) displayNote += "...";
 
-        let tag = d.tag;
-        if (!d.entry && isPast) tag = "Missed";
-        if (isFuture) tag = "Future";
+        // Trust backend tag. Backend already sets tag = 'Working'|'On Leave'|'Holiday'|'Missed' etc.
+        let tag = d.tag || "Working";
+
+        // Normalize special tags for display
         if (d.isSunday) tag = "Sunday";
+        else if (isFuture) tag = "Future";
+
+        // Friendly message overrides
+        if (tag === "On Leave") {
+          displayNote = fullNote || "You are on leave";
+        } else if (tag === "Missed") {
+          displayNote = fullNote || "No reporting";
+        } else if (tag === "Holiday") {
+          displayNote = fullNote || "Holiday";
+        } else if (tag === "Future") {
+          displayNote = "Coming Soon...";
+        }
 
         return {
           ...d,
           editable,
           fullNote,
-          displayNote: displayNote || (isFuture ? "Coming Soon..." : ""),
+          displayNote,
           tag,
         };
       });
+
       setDays(daysData);
+
+      // Summary: exclude Sundays & holidays & future
+      const totalDays = daysData.filter(d => !d.isSunday && !d.isHoliday && d.tag !== "Future").length;
+      const working = daysData.filter(d => d.tag === "Working").length;
+      const missed = daysData.filter(d => d.tag === "Missed").length;
+      const leave = daysData.filter(d => d.tag === "On Leave").length;
+      setSummary({ total: totalDays, working, missed, leave });
     } catch (err) {
-      console.error(err);
+      console.error('[fetchMonth] error:', err);
     }
   };
 
-  useEffect(() => { fetchMonth(); }, [year, month]);
+  useEffect(() => { fetchMonth(); }, [year, month, forceEditMode]);
 
   const handleKeyDown = useCallback((e) => {
     keySequence.current.push(e.key);
@@ -77,15 +110,98 @@ export default function EmployeeCalendarModern() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  // Prepare day for editing: ensure tag is one of editable options so select shows valid value
+  const startEdit = (date) => {
+    setDays(prev =>
+      prev.map(d => {
+        if (d.date === date) {
+          const validTag = STATUS_OPTIONS.includes(d.tag) ? d.tag : "Working";
+          return { ...d, tag: validTag };
+        }
+        return d;
+      })
+    );
+    setEditingDay(date);
+  };
+
+  // Update day state when user edits tag or note
+  const handleDayChange = (date, field, value) => {
+    setDays(prev =>
+      prev.map(d => {
+        if (d.date === date) {
+          const updated = { ...d, [field]: value };
+
+          if (field === "fullNote") {
+            const truncated = value.split(" ").slice(0, 15).join(" ");
+            updated.displayNote = value.split(" ").length > 15 ? truncated + "..." : truncated;
+          }
+          if (field === "tag") {
+            updated.tag = String(value).trim();
+          }
+          return updated;
+        }
+        return d;
+      })
+    );
+  };
+
+  // Save — uses freshest state, logs payload & server response, sends note as "note" key
   const handleSaveDay = async (day) => {
     try {
-      await api.post("/attendance/me/entries", {
-        entries: [{ date: day.date, tag: day.tag, note: day.fullNote }],
+      const cur = days.find(d => d.date === day.date) || day;
+
+      // Only allow these tags for user edits
+      const allowedForUser = STATUS_OPTIONS;
+      let sendTag = cur.tag ? String(cur.tag).trim() : null;
+      if (!allowedForUser.includes(sendTag)) {
+        console.warn('[frontend] tag not allowed for user edits, forcing "Working":', sendTag);
+        sendTag = 'Working';
+      }
+
+      const payloadEntry = {
+        date: cur.date,
+        tag: sendTag,
+        note: cur.fullNote || ""
+      };
+
+      console.log('[frontend] will send payloadEntry:', payloadEntry);
+
+      if (!payloadEntry.date || !payloadEntry.tag) {
+        console.warn('[frontend] missing date or tag - abort save', payloadEntry);
+        return;
+      }
+
+      // optimistic update
+      setDays(prev => prev.map(d => d.date === cur.date ? {
+        ...d,
+        tag: payloadEntry.tag,
+        fullNote: payloadEntry.note,
+        displayNote: (payloadEntry.note || "").split(" ").slice(0,15).join(" ")
+      } : d));
+
+      const res = await api.post("/attendance/me/entries", {
+        entries: [payloadEntry],
         forceEdit: forceEditMode,
       });
+
+      console.log('[frontend] server response:', res?.data);
+
+      // If backend rejected, refetch authoritative data
+      if (res?.data?.results && Array.isArray(res.data.results)) {
+        const r = res.data.results[0];
+        if (!r.ok) {
+          console.error('[frontend] server rejected save for', r.date, r.message);
+          await fetchMonth();
+          return;
+        }
+      }
+
       setEditingDay(null);
-      fetchMonth();
-    } catch (err) { console.error(err); }
+      await fetchMonth();
+    } catch (err) {
+      console.error('[frontend] save error:', err);
+      await fetchMonth();
+    }
   };
 
   const handleResetDay = (date) => {
@@ -95,22 +211,7 @@ export default function EmployeeCalendarModern() {
     setEditingDay(null);
   };
 
-  const handleDayChange = (date, field, value) => {
-    setDays(prev =>
-      prev.map(d => {
-        if (d.date === date) {
-          const updated = { ...d, [field]: value };
-          if (field === "fullNote") {
-            const truncated = value.split(" ").slice(0, 15).join(" ");
-            updated.displayNote = value.split(" ").length > 15 ? truncated + "..." : truncated;
-          }
-          return updated;
-        }
-        return d;
-      })
-    );
-  };
-
+  // Build weeks for calendar
   const daysInMonth = getDaysInMonth(new Date(year, month - 1));
   const startDay = startOfMonth(new Date(year, month - 1)).getDay();
   const weeks = [];
@@ -129,11 +230,42 @@ export default function EmployeeCalendarModern() {
     weeks.push(week);
   }
 
+  // Pie chart data
+  const pieData = [
+    { name: "Working", value: summary.working },
+    { name: "On Leave", value: summary.leave },
+    { name: "Missed", value: summary.missed },
+  ];
+
   return (
     <div className="p-6 font-sans">
       <h1 className="text-2xl font-bold mb-4">
         Employee Calendar {forceEditMode && "(Force Edit ON)"}
       </h1>
+
+      {/* Performance Summary */}
+      <div className="mb-4 flex flex-col md:flex-row gap-4 items-center">
+        <div className="bg-gray-100 p-4 rounded shadow w-full md:w-1/2">
+          <h2 className="text-lg font-semibold mb-2">Performance Summary</h2>
+          <p>Total Working Days (excl. holidays & Sundays): {summary.total}</p>
+          <p>Reported: {summary.working}</p>
+          <p>On Leave: {summary.leave}</p>
+          <p>Missed: {summary.missed}</p>
+        </div>
+        <div className="w-full md:w-1/2 h-40">
+          <ResponsiveContainer width="100%" height="100%">
+            <PieChart>
+              <Pie data={pieData} dataKey="value" nameKey="name" outerRadius={60} label>
+                {pieData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name]} />
+                ))}
+              </Pie>
+              <Tooltip />
+              <Legend verticalAlign="bottom" height={36}/>
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
 
       <div className="flex gap-4 mb-4 items-center">
         <input
@@ -163,7 +295,7 @@ export default function EmployeeCalendarModern() {
                 {w.map((d, idx) => (
                   <td
                     key={idx}
-                    className={`border p-1 align-top min-w-[120px] h-[120px] relative transition-all duration-300 ${d ? STATUS_COLORS[d.tag] : "bg-gray-50 text-black"}`}
+                    className={`border p-1 align-top min-w-[120px] h-[120px] relative transition-all duration-300 ${d ? (STATUS_COLORS[d.tag] || STATUS_COLORS.Default) : "bg-gray-50 text-black"}`}
                     onMouseEnter={() => d && setHoveredDay(d.date)}
                     onMouseLeave={() => setHoveredDay(null)}
                   >
@@ -171,7 +303,7 @@ export default function EmployeeCalendarModern() {
                       <>
                         <div className="flex justify-between items-center mb-1 px-1">
                           <span className="font-bold text-base">{d.day}</span>
-                          <span className={`text-sm font-semibold px-1 py-0.5 rounded ${STATUS_COLORS[d.tag]}`}>
+                          <span className={`text-sm font-semibold px-1 py-0.5 rounded`}>
                             {d.tag}
                           </span>
                         </div>
@@ -189,10 +321,10 @@ export default function EmployeeCalendarModern() {
 
                         {/* Pencil icon */}
                         {hoveredDay === d.date && d.editable && editingDay !== d.date && (
-                          <div className="absolute top-1 right-1">
+                          <div className="absolute bottom-1 right-1">
                             <PencilIcon
                               className="h-5 w-5 cursor-pointer text-gray-800"
-                              onClick={() => setEditingDay(d.date)}
+                              onClick={() => startEdit(d.date)}
                             />
                           </div>
                         )}
