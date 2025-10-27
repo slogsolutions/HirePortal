@@ -6,6 +6,8 @@ const User = require('../models/User.model');
 const Document = require('../models/Document.model');
 const AuditLog = require('../models/AuditLog.model');
 const fs = require('fs');
+// const User = require("../models/User.model");
+const Offer = require("../models/Offer.model");
 const path = require('path');
 
 const { uploadBuffer } = require('../utils/cloudinary.utils');
@@ -145,25 +147,95 @@ const createCandidate = asyncHandler(async (req, res) => {
 });
 
 // Get logged-in candidate details
+// const me = asyncHandler(async (req, res) => {
+//   try {
+//     const candidateId = req.user?.candidateId; // must come from auth middleware
+//     console.log("DEBUGGED entered atleast and also ,candidateId->",candidateId)
+//     if (!candidateId) {
+//       return res.status(404).json({ status: 'error', message: 'Candidate not found for logged-in user' });
+//     }
+
+//     // Fetch candidate and populate user/documents if needed
+//     const candidate = await Candidate.findById(candidateId)
+//       .populate('userId', 'name email role')  // optional: populate user info
+//       .populate('documents');
+
+//     console.log("🧑 Logged-in candidate details:", candidate);
+
+//     res.status(200).json({ status: 'success', data: candidate });
+//   } catch (err) {
+//     console.error("❌ Error fetching logged-in candidate:", err);
+//     res.status(500).json({ status: 'error', message: err.message });
+//   }
+// });  
+// OLD 
+
+//NEW ME
 const me = asyncHandler(async (req, res) => {
   try {
-    const candidateId = req.user?.candidateId; // must come from auth middleware
-    console.log("DEBUGGED entered atleast and also ,candidateId->",candidateId)
+    const candidateId = req.user?.candidateId;
+    console.log("📍 Entered /api/candidates/me → candidateId:", candidateId);
+
     if (!candidateId) {
-      return res.status(404).json({ status: 'error', message: 'Candidate not found for logged-in user' });
+      return res
+        .status(404)
+        .json({ status: "error", message: "Candidate not found for logged-in user" });
     }
 
-    // Fetch candidate and populate user/documents if needed
+    // ✅ Fetch Candidate, User, and Offer — no Company populate
     const candidate = await Candidate.findById(candidateId)
-      .populate('userId', 'name email role')  // optional: populate user info
-      .populate('documents');
+      .populate({
+        path: "userId",
+        model: "User",
+        select: "name email role createdAt",
+      })
+      .populate({
+        path: "lastOffer",
+        model: "Offer",
+        select: "designation ctc joiningDate status offerLetterUrl createdAt notes createdBy",
+        populate: { path: "createdBy", select: "name email role" },
+      })
+      .populate("documents")
+      .lean();
 
-    console.log("🧑 Logged-in candidate details:", candidate);
+    if (!candidate) {
+      return res.status(404).json({
+        status: "error",
+        message: "Candidate profile not found",
+      });
+    }
 
-    res.status(200).json({ status: 'success', data: candidate });
+    const fullName = `${candidate.firstName || ""} ${candidate.lastName || ""}`.trim();
+    const lastOfferStatus = candidate?.lastOffer?.status || "N/A";
+
+    const profile = {
+      ...candidate,
+      fullName,
+      summary: {
+        emailVerified: candidate.emailVerified,
+        mobileVerified: candidate.mobileVerified,
+        aadhaarVerified: candidate.aadhaarVerified,
+        offerStatus: lastOfferStatus,
+        candidateStatus: candidate.status,
+      },
+    };
+
+    console.log("✅ Candidate profile fetched successfully:", {
+      id: candidate._id,
+      name: fullName,
+      offer: lastOfferStatus,
+    });
+
+    res.status(200).json({
+      status: "success",
+      data: profile,
+    });
   } catch (err) {
-    console.error("❌ Error fetching logged-in candidate:", err);
-    res.status(500).json({ status: 'error', message: err.message });
+    console.error("❌ Error in /api/candidates/me:", err);
+    res.status(500).json({
+      status: "error",
+      message: err.message || "Internal server error",
+    });
   }
 });
 

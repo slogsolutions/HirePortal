@@ -34,6 +34,7 @@ import AdminAttendancePage from "./pages/AdminAttendancePage";
 import AdminHolidays from "./pages/AdminHolidaysPage";
 import EmployeeCalendarModern from "./pages/EmployeeAttendancePage";
 import AdminUsersWithDetail from "./pages/EmployeeReportingAdminPage";
+import ProfilePage from "./pages/MyProfilePage";
 
 function App() {
   const [count, setCount] = useState(0);
@@ -88,6 +89,7 @@ function App() {
                    <Route path="/attendance/admin" element={<AdminAttendancePage />} />
                       <Route path="/holidays/admin" element={<AdminHolidays />} />
                            <Route path="/reporting/admin" element={<AdminUsersWithDetail />} />
+                             <Route path="/my-profile" element={<ProfilePage />} />
           </Route>
 
           {/* catch-all -> redirect to home */}
