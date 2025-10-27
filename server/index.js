@@ -26,6 +26,7 @@ const leaveRoutes = require('./routes/leaves.routes');
 const salaryRoutes = require('./routes/salary.routes');
 const performanceRoutes = require('./routes/performace.route');
 const attendanceRoutes = require("./routes/attendance.routes")
+const sendRoutes = require("./routes/docs.routes")
 
 const app = express();
 // ====== CORS ======
@@ -63,6 +64,8 @@ app.use('/api/leaves', leaveRoutes);
 app.use('/api/salaries', salaryRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/attendance', attendanceRoutes);
+app.use('/api/docs', sendRoutes);
+
 
 
 // ====== SERVE HTML TEMPLATE ======

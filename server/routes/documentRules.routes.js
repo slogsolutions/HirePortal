@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const { protect } = require('../middlewares/auth.middleware');
 const { requireRole } = require('../middlewares/roles.middleware');
+const { sendDocument } = require("../controllers/sendDocument.controller");
 const upload = require("../utils/multer"); // must export multer instance
 const {
   uploadDocument,
@@ -16,7 +17,7 @@ router.post("/upload", upload.single("file"), uploadDocument);
 
 // GET /api/docs/list
 router.get("/list", listDocuments);
-
+router.post("/send", sendDocument);
 // GET /api/docs/:id/download
 router.get("/:id/download", downloadDocument);
 router.delete("/:id", deleteDocument);
