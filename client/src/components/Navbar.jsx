@@ -152,18 +152,18 @@ export default function Navbar({ brand = "Slog Solutions" }) {
               >
                 Notifications
               </Link>
-              <Link
+              {/* <Link
                 to="/attendance"
                 className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
               >
                 Daily Reporting
-              </Link>
-              <Link
+              </Link> */}
+              {/* <Link
                 to="/leave"
                 className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
               >
                 Apply Leave
-              </Link>
+              </Link> */}
               <Link
                 to="/dashboard"
                 className="text-gray-800 dark:text-gray-200 hover:text-blue-500"
