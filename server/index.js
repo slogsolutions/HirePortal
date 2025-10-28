@@ -64,7 +64,7 @@ app.use('/api/leaves', leaveRoutes);
 app.use('/api/salaries', salaryRoutes);
 app.use('/api/performance', performanceRoutes);
 app.use('/api/attendance', attendanceRoutes);
-app.use('/api/docs', sendRoutes);
+// app.use('/api/docs', sendRoutes);
 
 
 
@@ -83,6 +83,13 @@ app.use((err, req, res, next) => {
     .status(err.status || 500)
     .json({ message: err.message || 'Server error' });
 });
+
+// Debug route map AFTER registering
+app._router.stack
+  .filter(r => r.route)
+  .forEach(r => console.log(r.route.path, Object.keys(r.route.methods)));
+
+
 
 // ====== AUTO-CREATE SUPER ADMIN ======
 async function ensureSuperAdmin() {
@@ -173,6 +180,7 @@ const port = process.env.PORT || 5000;
 mongoose.connection.once('open', async () => {
   console.log('💾 Database connected');
   await ensureSuperAdmin();
+
 
   startCron();
   app.listen(port, () => console.log(`🚀 Server running on port ${port}`));

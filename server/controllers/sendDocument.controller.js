@@ -1,7 +1,10 @@
 const nodemailer = require("nodemailer");
 const axios = require("axios");
+const fs = require("fs");
+const path = require("path");
 const User = require("../models/User.model");
-const Document = require("../models/Document.model");
+// const Document = require("../models/Document.model");
+const Document = require("../models/RulesDocument.model")
 
 // helper: split array into chunks
 const chunkArray = (arr, size) => {
@@ -20,6 +23,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+/**
+ * Supports:
+ * - doc.cloudinaryUrl
+ * - local file path in public/docs/
+ */
 const sendDocument = async (req, res) => {
   try {
     const { docId, recipients, subject, text, html } = req.body;
@@ -42,35 +50,42 @@ const sendDocument = async (req, res) => {
 
     if (emails.length === 0) return res.status(400).json({ error: "no recipient emails found" });
 
-    // Fetch document
-    let docsToSend = [];
-    if (docId === "all") {
-      docsToSend = await Document.find().sort({ createdAt: -1 });
-      if (!docsToSend.length) return res.status(400).json({ error: "no documents to send" });
-    } else {
+    // Fetch document (DB or local)
+    let fileBuffer, filename;
+    if (docId && docId !== "all") {
       const doc = await Document.findById(docId);
-      if (!doc) return res.status(404).json({ error: "document not found" });
-      docsToSend = [doc];
+      if (doc && doc.cloudinaryUrl) {
+        // Download from cloudinary
+        const fileResp = await axios.get(doc.cloudinaryUrl, { responseType: "arraybuffer" });
+        fileBuffer = Buffer.from(fileResp.data, "binary");
+        filename = doc.filename || "document.pdf";
+      } else {
+        // Try local file in /public/docs/
+        const localPath = path.join(__dirname, `../public/offers/${docId}.pdf`);
+        if (fs.existsSync(localPath)) {
+          fileBuffer = fs.readFileSync(localPath);
+          filename = `${docId}.pdf`;
+        } else {
+          return res.status(404).json({ error: "document not found (no DB or local file)" });
+        }
+      }
+    } else {
+      return res.status(400).json({ error: "docId required" });
     }
 
-    const firstDoc = docsToSend[0];
-    if (!firstDoc.cloudinaryUrl) return res.status(400).json({ error: "document has no cloudinaryUrl" });
-
-    // download file buffer
-    const fileResp = await axios.get(firstDoc.cloudinaryUrl, { responseType: "arraybuffer" });
-    const fileBuffer = Buffer.from(fileResp.data, "binary");
-
     const attachment = {
-      filename: firstDoc.filename || "document.pdf",
+      filename,
       content: fileBuffer,
       contentType: "application/pdf",
     };
 
+    // Email sending with batch logging
     const BATCH_SIZE = Number(process.env.MAIL_BATCH_SIZE) || 20;
     const PAUSE_MS = Number(process.env.MAIL_PAUSE_MS) || 1500;
 
     const batches = chunkArray(emails, BATCH_SIZE);
-    let sent = 0, failed = 0;
+    let sent = 0,
+      failed = 0;
     const errors = [];
     const logs = [];
 
@@ -78,7 +93,7 @@ const sendDocument = async (req, res) => {
 
     for (let i = 0; i < batches.length; i++) {
       const batch = batches[i];
-      console.log(`\n🚀 Sending batch ${i + 1}/${batches.length} (${batch.length} recipients)...`);
+      console.log(`🚀 Sending batch ${i + 1}/${batches.length} (${batch.length} recipients)...`);
       logs.push(`Batch ${i + 1}/${batches.length} started: ${batch.length} recipients`);
 
       const results = await Promise.all(
@@ -106,20 +121,16 @@ const sendDocument = async (req, res) => {
         })
       );
 
-      logs.push(`Batch ${i + 1} finished: ${results.filter(r => r.ok).length} sent, ${results.filter(r => !r.ok).length} failed`);
+      logs.push(
+        `Batch ${i + 1} finished: ${results.filter((r) => r.ok).length} sent, ${results.filter((r) => !r.ok).length} failed`
+      );
 
-      // If not last batch, pause
       if (i < batches.length - 1) {
         console.log(`⏸ Waiting ${PAUSE_MS}ms before next batch...`);
         logs.push(`Waiting ${PAUSE_MS}ms before next batch...`);
-        await new Promise(resolve => setTimeout(resolve, PAUSE_MS));
+        await new Promise((resolve) => setTimeout(resolve, PAUSE_MS));
       }
     }
-
-    console.log("\n🎯 Summary:");
-    console.log(`Total recipients: ${emails.length}`);
-    console.log(`✅ Sent: ${sent}`);
-    console.log(`❌ Failed: ${failed}`);
 
     logs.push(`Summary: Sent=${sent}, Failed=${failed}, Total=${emails.length}`);
 
@@ -132,7 +143,6 @@ const sendDocument = async (req, res) => {
       logs,
       sampleErrors: errors.slice(0, 10),
     });
-
   } catch (err) {
     console.error("💥 sendDocument fatal error:", err);
     return res.status(500).json({ error: "Failed to send document", detail: err.message });

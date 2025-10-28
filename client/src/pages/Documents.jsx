@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import axios from "../api/axios";
+import { Toaster, toast } from "sonner";
 
 export default function DocumentManager() {
   const [docs, setDocs] = useState([]);
@@ -9,12 +10,15 @@ export default function DocumentManager() {
   const [users, setUsers] = useState([]);
   const [selectedEmails, setSelectedEmails] = useState([]);
   const [showSendModal, setShowSendModal] = useState(false);
+  const [forAllMode, setForAllMode] = useState(false);
   const [sendDocId, setSendDocId] = useState(null);
-  const [subject, setSubject] = useState("");
-  const [message, setMessage] = useState("");
+  const [subject, setSubject] = useState("Company Document");
+  const [message, setMessage] = useState("Please find the attached document.");
   const [error, setError] = useState(null);
   const [query, setQuery] = useState("");
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [sendStatus, setSendStatus] = useState(null);
+  const [progress, setProgress] = useState(0);
   const fileRef = useRef(null);
   const dropRef = useRef(null);
 
@@ -22,7 +26,6 @@ export default function DocumentManager() {
     fetchDocs();
   }, []);
 
-  // 📂 Fetch documents
   async function fetchDocs() {
     setLoading(true);
     setError(null);
@@ -37,20 +40,17 @@ export default function DocumentManager() {
     }
   }
 
-  // 📥 Upload file
   async function uploadFile(file) {
     if (!file) return;
     if (file.type !== "application/pdf") {
       setError("Only PDF files are allowed.");
       return;
     }
-
     setUploading(true);
     setError(null);
     const form = new FormData();
     form.append("file", file);
     form.append("title", file.name);
-
     try {
       const res = await axios.post("/docs/upload", form, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -71,7 +71,6 @@ export default function DocumentManager() {
     e.target.value = "";
   }
 
-  // 🖱️ Drag & Drop
   useEffect(() => {
     const el = dropRef.current;
     if (!el) return;
@@ -97,7 +96,6 @@ export default function DocumentManager() {
     };
   }, []);
 
-  // 📄 Download
   const downloadDoc = async (doc) => {
     if (!doc?.cloudinaryUrl) return setError("No file URL found.");
     try {
@@ -120,7 +118,6 @@ export default function DocumentManager() {
   const previewDoc = (doc) => setPreviewUrl(doc.cloudinaryUrl);
   const closePreview = () => setPreviewUrl(null);
 
-  // 🗑️ Delete
   const deleteDoc = async (id) => {
     if (!window.confirm("Are you sure you want to delete this document?")) return;
     try {
@@ -132,42 +129,69 @@ export default function DocumentManager() {
     }
   };
 
-  // 🔎 Filter
   const filtered = docs.filter((d) =>
     (d.title || "").toLowerCase().includes(query.toLowerCase())
   );
 
-  // ✉️ Send document
   async function sendDoc(docId, recipients) {
+    setSending(true);
+    setError(null);
+    setSendStatus(null);
+    setProgress(0);
+    toast.loading("Sending emails...");
+
     try {
-      setSending(true);
       const payload = {
         docId,
         recipients,
         subject: subject || "Company Document",
         text: message || "Please find the attached document.",
       };
-      const res = await axios.post("/docs/send", payload);
-      alert(`✅ Sent: ${res.data.sent} / ${res.data.total}`);
+
+      // Simulated progressive send tracking
+      let res = await axios.post("/docs/send", payload, {
+        onUploadProgress: (evt) => {
+          const pct = Math.round((evt.loaded / evt.total) * 100);
+          setProgress(pct);
+        },
+      });
+
+      toast.dismiss();
+      toast.success("Emails sent successfully!");
+      setSendStatus({
+        total: res.data.total,
+        sent: res.data.sent,
+        failed: res.data.failed,
+        logs: res.data.logs,
+        sampleErrors: res.data.sampleErrors || [],
+      });
     } catch (err) {
-      console.error("send error:", err);
-      alert("Failed to send document");
+      toast.dismiss();
+      toast.error("Sending failed!");
+      setSendStatus({
+        total: 0,
+        sent: 0,
+        failed: 0,
+        logs: ["❌ Failed to send document."],
+        sampleErrors: [{ error: err.message }],
+      });
     } finally {
       setSending(false);
-      setShowSendModal(false);
-      setSelectedEmails([]);
+      setProgress(100);
     }
   }
 
-  // 🧑‍💼 Fetch users for selection
-  async function openSendModal(docId) {
+  async function openSendModal(docId, forAll = false) {
     try {
       setShowSendModal(true);
       setSendDocId(docId);
+      setSendStatus(null);
+      setForAllMode(forAll);
       if (users.length === 0) {
         const res = await axios.get("/candidates/");
         setUsers(res.data || []);
       }
+      if (forAll) setSelectedEmails([]);
     } catch (err) {
       console.error("fetch users:", err);
       setError("Failed to fetch users");
@@ -181,7 +205,19 @@ export default function DocumentManager() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
+    <div className="min-h-screen bg-gray-50 p-6 relative">
+      <Toaster position="top-center" />
+
+      {/* Progress Bar */}
+      {sending && (
+        <div className="fixed top-0 left-0 w-full h-1 bg-gray-200 z-50">
+          <div
+            className="h-1 bg-indigo-600 transition-all duration-300"
+            style={{ width: `${progress}%` }}
+          ></div>
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
@@ -256,27 +292,20 @@ export default function DocumentManager() {
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => previewDoc(doc)}
-                  className="px-3 py-2 border rounded-md text-sm"
-                >
+                <button onClick={() => previewDoc(doc)} className="px-3 py-2 border rounded-md text-sm">
                   Preview
                 </button>
-                <button
-                  onClick={() => downloadDoc(doc)}
-                  className="px-3 py-2 border rounded-md text-sm"
-                >
+                <button onClick={() => downloadDoc(doc)} className="px-3 py-2 border rounded-md text-sm">
                   Download
                 </button>
                 <button
-                  onClick={() => sendDoc(doc._id, "all")}
-                  disabled={sending}
+                  onClick={() => openSendModal(doc._id, true)}
                   className="px-3 py-2 rounded-md text-sm text-white bg-green-600 hover:bg-green-700"
                 >
-                  {sending ? "Sending..." : "Send to All"}
+                  Send to All
                 </button>
                 <button
-                  onClick={() => openSendModal(doc._id)}
+                  onClick={() => openSendModal(doc._id, false)}
                   className="px-3 py-2 rounded-md text-sm bg-indigo-500 text-white"
                 >
                   Send to Selected
@@ -299,10 +328,7 @@ export default function DocumentManager() {
           <div className="bg-white w-full max-w-5xl h-[85vh] rounded-2xl overflow-hidden shadow-lg flex flex-col">
             <div className="flex items-center justify-between p-3 border-b">
               <div className="text-sm text-gray-700 font-medium">Preview</div>
-              <button
-                onClick={closePreview}
-                className="px-3 py-1 rounded-md bg-red-50 text-sm"
-              >
+              <button onClick={closePreview} className="px-3 py-1 rounded-md bg-red-50 text-sm">
                 Close
               </button>
             </div>
@@ -314,10 +340,11 @@ export default function DocumentManager() {
       {/* Send Modal */}
       {showSendModal && (
         <div className="fixed inset-0 z-50 bg-black/40 grid place-items-center p-4">
-          <div className="bg-white rounded-2xl shadow-lg w-full max-w-lg p-6 space-y-4">
+          <div className="bg-white rounded-2xl shadow-lg w-full max-w-2xl p-6 space-y-4">
             <h2 className="text-lg font-semibold text-gray-800">
-              Send Document to Selected Emails
+              {forAllMode ? "Send Document to All" : "Send Document to Selected Users"}
             </h2>
+
             <input
               value={subject}
               onChange={(e) => setSubject(e.target.value)}
@@ -332,36 +359,59 @@ export default function DocumentManager() {
               className="w-full border rounded p-2 text-sm"
             ></textarea>
 
-            <div className="max-h-48 overflow-y-auto border rounded p-2">
-              {users.map((u) => (
-                <label
-                  key={u._id}
-                  className="flex items-center gap-2 text-sm py-1"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedEmails.includes(u.email)}
-                    onChange={() => toggleEmail(u.email)}
-                  />
-                  {u.email}
-                </label>
-              ))}
-            </div>
+            {!forAllMode && users.length > 0 && (
+              <div className="max-h-48 overflow-y-auto border rounded p-2">
+                {users.map((u) => (
+                  <label key={u._id} className="flex items-center gap-2 text-sm py-1">
+                    <input
+                      type="checkbox"
+                      checked={selectedEmails.includes(u.email)}
+                      onChange={() => toggleEmail(u.email)}
+                    />
+                    {u.email}
+                  </label>
+                ))}
+              </div>
+            )}
+
+            {sendStatus && (
+              <div className="border rounded-lg p-3 bg-gray-50 text-sm">
+                <p className="font-semibold text-gray-700">
+                  ✅ Sent: {sendStatus.sent} / {sendStatus.total} — ❌ Failed:{" "}
+                  {sendStatus.failed}
+                </p>
+                <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
+                  {sendStatus.logs?.map((log, idx) => (
+                    <p key={idx} className="text-xs text-gray-600">
+                      • {log}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2">
               <button
-                onClick={() => setShowSendModal(false)}
+                onClick={() => {
+                  setShowSendModal(false);
+                  setSendStatus(null);
+                }}
                 className="px-3 py-2 text-sm border rounded-md"
+                disabled={sending}
               >
-                Cancel
+                Close
               </button>
-              <button
-                onClick={() => sendDoc(sendDocId, selectedEmails)}
-                disabled={sending || selectedEmails.length === 0}
-                className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-md"
-              >
-                {sending ? "Sending..." : "Send Selected"}
-              </button>
+              {!sendStatus && (
+                <button
+                  onClick={() =>
+                    sendDoc(sendDocId, forAllMode ? "all" : selectedEmails)
+                  }
+                  disabled={sending}
+                  className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-md"
+                >
+                  {sending ? "Sending..." : "Send Now"}
+                </button>
+              )}
             </div>
           </div>
         </div>
