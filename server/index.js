@@ -57,7 +57,7 @@ app.use('/api/candidates', candidateRoutes);
 app.use('/api/scores', scoreRoutes);
 app.use('/api', offerRoutes);
 app.use('/api/docs', rulesDocumentRoutes);
-app.use('/api/candidates', verificationRoutes);
+app.use('/api/candidates', verificationRoutes); // this
 app.use('/api/candidates', interviewRoutes);
 app.use('/api', fcmRoutes);
 app.use('/api/leaves', leaveRoutes);

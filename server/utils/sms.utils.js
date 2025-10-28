@@ -1,7 +1,13 @@
-// stub - replace with Twilio/MSG91 integration
-async function sendSmsPlain(mobile, text) {
-  console.log(`SMS to ${mobile}: ${text}`);
-  return true;
+// utils/sms.utils.js (Twilio)
+const Twilio = require("twilio");
+const client = new Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+
+async function sendSms(to, body) {
+  return client.messages.create({
+    from: process.env.TWILIO_FROM,
+    to,
+    body
+  });
 }
 
-module.exports = { sendSmsPlain };
+module.exports = { sendSms };

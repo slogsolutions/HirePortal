@@ -10,6 +10,7 @@ export default function VerifyCandidatePage() {
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
+  const [otpType, setOtpType] = useState(null); // NEW: track which OTP is active (mobile/email)
   const [otp, setOtp] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -31,17 +32,19 @@ export default function VerifyCandidatePage() {
   if (loading) return <div className="p-6">Loading...</div>;
   if (!candidate) return <div className="p-6">Candidate not found</div>;
 
-  const sendOtp = async () => {
-    if (!candidate.mobile) return alert("No mobile to send OTP");
+  // === MOBILE + EMAIL OTP shared functions ===
+  const sendOtp = async (type) => {
+    const contact = type === "mobile" ? candidate.mobile : candidate.email;
+    if (!contact) return alert(`No ${type} to send OTP`);
     setProcessing(true);
     try {
-      // backend: POST /candidates/:id/verify/send-otp { type: 'mobile' }
-      await api.post(`/candidates/${id}/verify/send-otp`, { type: "mobile" });
+      await api.post(`/candidates/${id}/verify/send-otp`, { type });
       setOtpSent(true);
-      setMsg("OTP sent to candidate mobile.");
+      setOtpType(type); // NEW
+      setMsg(`OTP sent to candidate ${type}.`);
     } catch (err) {
       console.error(err);
-      setMsg(err?.response?.data?.message || "Failed to send OTP");
+      setMsg(err?.response?.data?.message || `Failed to send ${type} OTP`);
     } finally {
       setProcessing(false);
     }
@@ -49,14 +52,16 @@ export default function VerifyCandidatePage() {
 
   const verifyOtp = async () => {
     if (!otp) return alert("Enter OTP");
+    if (!otpType) return alert("No OTP type selected");
     setProcessing(true);
     try {
-      // backend: POST /candidates/:id/verify/confirm-otp { type:'mobile', otp }
-      await api.post(`/candidates/${id}/verify/confirm-otp`, { type: "mobile", otp });
-      // refresh candidate
+      await api.post(`/candidates/${id}/verify/confirm-otp`, { type: otpType, otp });
       const { data } = await api.get(`/candidates/${id}`);
       setCandidate(data);
-      setMsg("Mobile verified!");
+      setMsg(`${otpType} verified!`);
+      setOtp("");
+      setOtpSent(false);
+      setOtpType(null);
     } catch (err) {
       console.error(err);
       setMsg(err?.response?.data?.message || "OTP verification failed");
@@ -66,17 +71,14 @@ export default function VerifyCandidatePage() {
   };
 
   const manualVerify = async (field) => {
-    // e.g. field: 'mobile' or 'email' or 'aadhaar'
     if (!window.confirm(`Mark ${field} as verified manually?`)) return;
     setProcessing(true);
     try {
-      // backend supports mark verify endpoint: PUT /candidates/:id { mobileVerified: true } etc
       const payload = {};
       if (field === "mobile") payload.mobileVerified = true;
       if (field === "email") payload.emailVerified = true;
       if (field === "aadhaar") payload.aadhaarVerified = true;
       await api.put(`/candidates/${id}`, payload);
-
       const { data } = await api.get(`/candidates/${id}`);
       setCandidate(data);
       setMsg(`${field} marked verified`);
@@ -89,8 +91,6 @@ export default function VerifyCandidatePage() {
   };
 
   const finishVerifications = async () => {
-    // decide condition: all verifications required? here we check mobile+email+aadhaar
-    // You can change rules as needed (maybe only mobile/email required)
     const needMobile = !!candidate.mobile && !candidate.mobileVerified;
     const needEmail = !!candidate.email && !candidate.emailVerified;
     const needAadhaar = !!candidate.aadhaarNumber && !candidate.aadhaarVerified;
@@ -101,9 +101,7 @@ export default function VerifyCandidatePage() {
 
     setProcessing(true);
     try {
-      // Update status to interviewing
       await api.put(`/candidates/${id}`, { status: "interviewing" });
-      // reload and navigate back to profile or to interview page
       navigate(`/candidates/${id}`);
     } catch (err) {
       console.error(err);
@@ -115,52 +113,108 @@ export default function VerifyCandidatePage() {
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow">
-      <h2 className="text-xl font-semibold mb-4">Verify Candidate — {candidate.firstName} {candidate.lastName}</h2>
+      <h2 className="text-xl font-semibold mb-4">
+        Verify Candidate — {candidate.firstName} {candidate.lastName}
+      </h2>
       <div className="space-y-3">
+        {/* MOBILE SECTION */}
         <div>
           <div className="text-xs text-gray-500">Mobile</div>
           <div className="flex items-center gap-2">
             <div>{candidate.mobile || "-"}</div>
-            <div className="text-sm text-gray-500">Verified: {candidate.mobileVerified ? "Yes" : "No"}</div>
-            <button onClick={() => manualVerify("mobile")} className="px-2 py-1 bg-gray-100 rounded text-sm">Manual Verify</button>
-            <button onClick={sendOtp} disabled={processing || candidate.mobileVerified} className="px-2 py-1 bg-indigo-600 text-white rounded text-sm">
+            <div className="text-sm text-gray-500">
+              Verified: {candidate.mobileVerified ? "Yes" : "No"}
+            </div>
+            <button
+              onClick={() => manualVerify("mobile")}
+              className="px-2 py-1 bg-gray-100 rounded text-sm"
+            >
+              Manual Verify
+            </button>
+            <button
+              onClick={() => sendOtp("mobile")}
+              disabled={processing || candidate.mobileVerified}
+              className="px-2 py-1 bg-indigo-600 text-white rounded text-sm"
+            >
               Send OTP
             </button>
           </div>
-          {otpSent && (
-            <div className="mt-2 flex gap-2">
-              <input placeholder="OTP" value={otp} onChange={(e) => setOtp(e.target.value)} className="border rounded px-2 py-1" />
-              <button onClick={verifyOtp} disabled={processing} className="px-2 py-1 bg-indigo-600 text-white rounded text-sm">Verify OTP</button>
-            </div>
-          )}
         </div>
 
+        {/* EMAIL SECTION (added email OTP flow) */}
         <div>
           <div className="text-xs text-gray-500">Email</div>
           <div className="flex items-center gap-2">
             <div>{candidate.email || "-"}</div>
-            <div className="text-sm text-gray-500">Verified: {candidate.emailVerified ? "Yes" : "No"}</div>
-            <button onClick={() => manualVerify("email")} className="px-2 py-1 bg-gray-100 rounded text-sm">Manual Verify</button>
-            {/* add an email-otp flow similarly if you have backend support */}
+            <div className="text-sm text-gray-500">
+              Verified: {candidate.emailVerified ? "Yes" : "No"}
+            </div>
+            <button
+              onClick={() => manualVerify("email")}
+              className="px-2 py-1 bg-gray-100 rounded text-sm"
+            >
+              Manual Verify
+            </button>
+            <button
+              onClick={() => sendOtp("email")}
+              disabled={processing || candidate.emailVerified}
+              className="px-2 py-1 bg-indigo-600 text-white rounded text-sm"
+            >
+              Send Email OTP
+            </button>
           </div>
         </div>
 
+        {/* AADHAAR SECTION */}
         <div>
           <div className="text-xs text-gray-500">Aadhaar</div>
           <div className="flex items-center gap-2">
             <div>{candidate.aadhaarNumber || "-"}</div>
-            <div className="text-sm text-gray-500">Verified: {candidate.aadhaarVerified ? "Yes" : "No"}</div>
-            <button onClick={() => manualVerify("aadhaar")} className="px-2 py-1 bg-gray-100 rounded text-sm">Manual Verify</button>
+            <div className="text-sm text-gray-500">
+              Verified: {candidate.aadhaarVerified ? "Yes" : "No"}
+            </div>
+            <button
+              onClick={() => manualVerify("aadhaar")}
+              className="px-2 py-1 bg-gray-100 rounded text-sm"
+            >
+              Manual Verify
+            </button>
           </div>
         </div>
+
+        {/* OTP BOX (shared for both mobile/email) */}
+        {otpSent && (
+          <div className="mt-2 flex gap-2">
+            <input
+              placeholder={`Enter ${otpType} OTP`}
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              className="border rounded px-2 py-1"
+            />
+            <button
+              onClick={verifyOtp}
+              disabled={processing}
+              className="px-2 py-1 bg-indigo-600 text-white rounded text-sm"
+            >
+              Verify OTP
+            </button>
+          </div>
+        )}
 
         {msg && <div className="text-sm text-indigo-600">{msg}</div>}
 
         <div className="flex gap-2 mt-4">
-          <button onClick={finishVerifications} disabled={processing} className="px-3 py-2 bg-indigo-600 text-white rounded">
+          <button
+            onClick={finishVerifications}
+            disabled={processing}
+            className="px-3 py-2 bg-indigo-600 text-white rounded"
+          >
             {processing ? "Processing..." : "Finish & Set Interviewing"}
           </button>
-          <button onClick={() => navigate(`/candidates/${id}`)} className="px-3 py-2 border rounded">
+          <button
+            onClick={() => navigate(`/candidates/${id}`)}
+            className="px-3 py-2 border rounded"
+          >
             Back
           </button>
         </div>

@@ -1,96 +1,127 @@
-// controllers/verificationController.js
-const Candidate = require('../models/Candidate.model');
-const VerificationToken = require('../models/VerificationToken.model');
-const crypto = require('crypto');
+// controllers/verification.controller.js
+const Candidate = require("../models/Candidate.model");
+const { generateNumericOtp, hashOtp } = require("../utils/otp.utils");
+const { sendSms } = require("../utils/sms.utils");
+const { sendEmail } = require("../utils/email.utils");
 
-const OTP_TTL_MINUTES = 10;
+const OTP_LENGTH = Number(process.env.OTP_LENGTH) || 6;
+const OTP_TTL_SECONDS = Number(process.env.OTP_TTL_SECONDS) || 300;
+const OTP_MAX_ATTEMPTS = Number(process.env.OTP_MAX_ATTEMPTS) || 5;
+const OTP_RATE_LIMIT_WINDOW = Number(process.env.OTP_RATE_LIMIT_WINDOW) || 60;
 
-function genOtp() {
-  // 6-digit numeric OTP
-  return String(Math.floor(100000 + Math.random() * 900000));
-}
+function nowPlusSeconds(s) { return new Date(Date.now() + s * 1000); }
 
-exports.sendOtp = async (req, res) => {
+async function sendOtp(req, res) {
   try {
     const { id } = req.params;
-    const { type } = req.body; // 'mobile' or 'email' or 'aadhaar'
-    if (!['mobile','email','aadhaar'].includes(type)) return res.status(400).json({ message: 'Invalid type' });
+    const { type } = req.body; // 'mobile' or 'email'
+    if (!["mobile", "email"].includes(type)) {
+      return res.status(400).json({ message: "type must be 'mobile' or 'email'" });
+    }
 
     const candidate = await Candidate.findById(id);
-    if (!candidate) return res.status(404).json({ message: 'Candidate not found' });
+    if (!candidate) return res.status(404).json({ message: "Candidate not found" });
 
-    const contact = type === 'mobile' ? candidate.mobile : type === 'email' ? candidate.email : candidate.aadhaarNumber;
-    if (!contact) return res.status(400).json({ message: `No ${type} available on candidate` });
+    // pick contact
+    const contact = type === "mobile" ? candidate.mobile : candidate.email;
+    if (!contact) return res.status(400).json({ message: `${type} not present for candidate` });
 
-    // create token
-    const code = genOtp();
-    const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+    // choose otp subdocument
+    const otpField = type === "mobile" ? "mobileOtp" : "emailOtp";
+    const current = candidate[otpField] || {};
 
-    await VerificationToken.create({ candidate: candidate._id, type, code, expiresAt });
+    // rate-limit: not sending more than once per window
+    if (current.lastSentAt && (Date.now() - new Date(current.lastSentAt).getTime()) < OTP_RATE_LIMIT_WINDOW * 1000) {
+      return res.status(429).json({ message: `OTP recently sent. Try again later.` });
+    }
 
-    // TODO: integrate SMS/Email provider; here we just log for development
-    console.log(`SEND OTP ${code} to candidate(${id}) ${type}: ${contact}`);
+    // generate OTP and hash
+    const otp = generateNumericOtp(OTP_LENGTH);
+    const otpHash = hashOtp(otp);
+    const expiresAt = nowPlusSeconds(OTP_TTL_SECONDS);
 
-    res.json({ message: 'OTP sent (simulated)' });
+    // store hash & meta
+    candidate[otpField] = {
+      hash: otpHash,
+      expiresAt,
+      attempts: 0,
+      lastSentAt: new Date()
+    };
+    await candidate.save();
+
+    // send via SMS or email
+    if (type === "mobile") {
+      // ideally format the number correctly; your Twilio setup must match country codes
+      const smsBody = `Your verification code is: ${otp}. It expires in ${Math.floor(OTP_TTL_SECONDS / 60)} minutes.`;
+      await sendSms(contact, smsBody);
+    } else {
+      const subject = "Your verification code";
+      const text = `Your verification code is: ${otp}. It expires in ${Math.floor(OTP_TTL_SECONDS / 60)} minutes.`;
+      const html = `<p>Your verification code is: <strong>${otp}</strong></p><p>Expires in ${Math.floor(OTP_TTL_SECONDS / 60)} minutes.</p>`;
+      await sendEmail(contact, subject, text, html);
+    }
+
+    return res.json({ ok: true, message: "OTP sent" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to send OTP' });
+    console.error("sendOtp error", err);
+    return res.status(500).json({ message: "Failed to send OTP", detail: err.message });
   }
-};
+}
 
-exports.confirmOtp = async (req, res) => {
+async function confirmOtp(req, res) {
   try {
     const { id } = req.params;
     const { type, otp } = req.body;
-    if (!otp || !type) return res.status(400).json({ message: 'Missing otp/type' });
+    if (!otp || !["mobile", "email"].includes(type)) {
+      return res.status(400).json({ message: "type and otp required" });
+    }
 
-    const token = await VerificationToken.findOne({
-      candidate: id,
-      type,
-      code: String(otp),
-      used: false,
-      expiresAt: { $gt: new Date() }
-    });
+    const candidate = await Candidate.findById(id);
+    if (!candidate) return res.status(404).json({ message: "Candidate not found" });
 
-    if (!token) return res.status(400).json({ message: 'Invalid or expired OTP' });
+    const otpField = type === "mobile" ? "mobileOtp" : "emailOtp";
+    const otpDoc = candidate[otpField];
+    if (!otpDoc || !otpDoc.hash || !otpDoc.expiresAt) {
+      return res.status(400).json({ message: "No OTP requested for this contact" });
+    }
 
-    token.used = true;
-    await token.save();
+    // check expiry
+    if (new Date() > new Date(otpDoc.expiresAt)) {
+      // clear OTP to force re-request
+      candidate[otpField] = undefined;
+      await candidate.save();
+      return res.status(400).json({ message: "OTP expired — request a new one" });
+    }
 
-    // update candidate field
-    const update = {};
-    if (type === 'mobile') update.mobileVerified = true;
-    else if (type === 'email') update.emailVerified = true;
-    else if (type === 'aadhaar') update.aadhaarVerified = true;
+    // check attempt count
+    if ((otpDoc.attempts || 0) >= OTP_MAX_ATTEMPTS) {
+      candidate[otpField] = undefined;
+      await candidate.save();
+      return res.status(429).json({ message: "Too many attempts — request a new OTP" });
+    }
 
-    await Candidate.findByIdAndUpdate(id, update, { new: true });
+    // verify
+    const { hashOtp } = require("../utils/otp.utils"); // local function
+    const providedHash = hashOtp(String(otp).trim());
+    if (providedHash !== otpDoc.hash) {
+      // increment attempts
+      candidate[otpField].attempts = (candidate[otpField].attempts || 0) + 1;
+      await candidate.save();
+      return res.status(400).json({ message: "Invalid OTP" });
+    }
 
-    res.json({ message: `${type} verified` });
+    // success → mark verified, clear OTP doc
+    if (type === "mobile") candidate.mobileVerified = true;
+    else candidate.emailVerified = true;
+
+    candidate[otpField] = undefined;
+    await candidate.save();
+
+    return res.json({ ok: true, message: `${type} verified` });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'OTP confirmation failed' });
+    console.error("confirmOtp error", err);
+    return res.status(500).json({ message: "Failed to confirm OTP", detail: err.message });
   }
-};
+}
 
-// manual verify route - simply mark fields verified (used when verifying physically)
-exports.manualVerify = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { field } = req.body; // 'mobile'|'email'|'aadhaar'
-    if (!['mobile','email','aadhaar','fatherMobile'].includes(field)) return res.status(400).json({ message: 'Invalid field' });
-
-    const update = {};
-    if (field === 'mobile') update.mobileVerified = true;
-    if (field === 'email') update.emailVerified = true;
-    if (field === 'aadhaar') update.aadhaarVerified = true;
-    if (field === 'fatherMobile') update.fatherMobileVerified = true;
-
-    const candidate = await Candidate.findByIdAndUpdate(id, update, { new: true });
-    if (!candidate) return res.status(404).json({ message: 'Candidate not found' });
-
-    res.json({ message: `${field} marked verified`, candidate });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Manual verify failed' });
-  }
-};
+module.exports = { sendOtp, confirmOtp };

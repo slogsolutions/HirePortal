@@ -1,17 +1,11 @@
-// routes/verificationRoutes.js
-const express = require('express');
-const { protect } = require('../middlewares/auth.middleware');
-const { requireRole } = require('../middlewares/roles.middleware');
-const router = express.Router({ mergeParams: true });
-const verification = require('../controllers/verification.controller');
+// routes/verification.routes.js
+const express = require("express");
+const router = express.Router();
+const { sendOtp, confirmOtp } = require("../controllers/verification.controller");
+const { protect } = require("../middlewares/auth.middleware"); // if you want to require auth
 
-// POST /candidates/:id/verify/send-otp
-router.post('/:id/verify/send-otp', verification.sendOtp);
-
-// POST /candidates/:id/verify/confirm-otp
-router.post('/:id/verify/confirm-otp', verification.confirmOtp);
-
-// POST /candidates/:id/verify/manual
-router.post('/:id/verify/manual', verification.manualVerify);
+// optionally protect routes — e.g., only HR or interviewer can trigger
+router.post("/:id/verify/send-otp", protect, sendOtp);
+router.post("/:id/verify/confirm-otp", protect, confirmOtp);
 
 module.exports = router;
