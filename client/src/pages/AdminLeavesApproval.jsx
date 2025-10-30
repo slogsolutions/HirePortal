@@ -5,12 +5,7 @@ import api from "../api/axios";
 /**
  * AdminLeavePage (client-side search & filters)
  * - Fetches all candidates and leaves once
- * - Performs search/filter locally:
- *    - globalSearch (name or email)
- *    - candidate select
- *    - date range (overlap)
- *    - status (pending/approved/rejected)
- * - Approve/Reject modal (comment)
+ * - Performs search/filter locally
  */
 
 function StatusPill({ status }) {
@@ -34,6 +29,18 @@ function IconSearch() {
   );
 }
 
+function computeDays(startDate, endDate) {
+  try {
+    const s = new Date(startDate);
+    const e = new Date(endDate);
+    s.setHours(0, 0, 0, 0);
+    e.setHours(0, 0, 0, 0);
+    return Math.round((e - s) / (1000 * 60 * 60 * 24)) + 1;
+  } catch {
+    return 0;
+  }
+}
+
 export default function AdminLeavePage() {
   const [candidates, setCandidates] = useState([]);
   const [leaves, setLeaves] = useState([]);
@@ -41,12 +48,12 @@ export default function AdminLeavePage() {
   const [loadingCandidates, setLoadingCandidates] = useState(false);
 
   // Filters / UI state
-  const [globalSearch, setGlobalSearch] = useState(""); // name or email
-  const [candidateQuery, setCandidateQuery] = useState(""); // for candidate dropdown search
+  const [globalSearch, setGlobalSearch] = useState("");
+  const [candidateQuery, setCandidateQuery] = useState("");
   const [selectedCandidate, setSelectedCandidate] = useState("");
-  const [dateFrom, setDateFrom] = useState(""); // yyyy-mm-dd
+  const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
-  const [statusFilter, setStatusFilter] = useState(""); // "", "pending", "approved", "rejected"
+  const [statusFilter, setStatusFilter] = useState("");
 
   // modal state
   const [modal, setModal] = useState({ open: false, id: null, action: null, comment: "" });
@@ -66,13 +73,16 @@ export default function AdminLeavePage() {
     }
   };
 
-  // fetch leaves (fetch all; we'll filter client-side)
+  // fetch leaves (admin should get all leaves)
   const fetchLeaves = async () => {
     setLoadingLeaves(true);
     try {
-      // fetch future leaves only to keep dataset small (remove ?future=true if you want all)
-      const res = await api.get("/leaves?future=true");
-      setLeaves(res.data?.data || []);
+      // request all leaves; controller supports limit/skip — passing limit=0 means "no limit" in our controller
+      const res = await api.get("/leaves?limit=0");
+      const raw = res.data?.data || [];
+      // normalize days
+      const normalized = raw.map((l) => ({ ...l, days: typeof l.days === "number" ? l.days : computeDays(l.startDate, l.endDate) }));
+      setLeaves(normalized);
     } catch (err) {
       console.error("Could not fetch leaves", err);
       setLeaves([]);
@@ -107,8 +117,7 @@ export default function AdminLeavePage() {
 
     return leaves.filter((l) => {
       // appliedBy might be populated (object) — check name/email
-      const name = (l.appliedBy?.firstName ? `${l.appliedBy.firstName} ${l.appliedBy.lastName || ""}` : l.appliedBy?.name || "")
-        .toLowerCase();
+      const name = (l.appliedBy?.firstName ? `${l.appliedBy.firstName} ${l.appliedBy.lastName || ""}` : l.appliedBy?.name || "").toLowerCase();
       const email = (l.appliedBy?.email || "").toLowerCase();
 
       // 1) global search (name or email)
@@ -118,7 +127,6 @@ export default function AdminLeavePage() {
 
       // 2) candidate filter
       if (selectedCandidate) {
-        // l.appliedBy can be object or id — compare IDs if object present or string
         const appliedId = (l.appliedBy && typeof l.appliedBy === "object") ? (l.appliedBy._id || l.appliedBy.id) : l.appliedBy;
         if (!appliedId) return false;
         if (String(appliedId) !== String(selectedCandidate)) return false;
@@ -130,8 +138,6 @@ export default function AdminLeavePage() {
       }
 
       // 4) date range filter — include leaves that overlap the selected range
-      // If both parsedFrom and parsedTo are present, ensure overlap:
-      // overlap exists unless (leave.endDate < from) OR (leave.startDate > to)
       if (parsedFrom || parsedTo) {
         const leaveStart = new Date(l.startDate);
         const leaveEnd = new Date(l.endDate);
@@ -151,7 +157,6 @@ export default function AdminLeavePage() {
   // submit decision
   async function submitDecision() {
     const { id, action, comment } = modal;
-    console.log("id is ->",id)
     if (!id) return;
     setSubmittingDecision(true);
     try {
@@ -160,13 +165,12 @@ export default function AdminLeavePage() {
       await fetchLeaves();
     } catch (err) {
       console.error("Decision error", err);
-      alert("Could not update status — see console");
+      alert(err?.response?.data?.message || "Could not update status — see console");
     } finally {
       setSubmittingDecision(false);
     }
   }
 
-  // reset all filters
   const resetFilters = () => {
     setGlobalSearch("");
     setCandidateQuery("");
@@ -199,8 +203,6 @@ export default function AdminLeavePage() {
             </div>
           </div>
 
-        
-
           <div>
             <label className="text-sm text-gray-700 mb-1 block">Status</label>
             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className="w-full border p-2 rounded-md">
@@ -224,7 +226,7 @@ export default function AdminLeavePage() {
 
           <div className="md:col-span-4 flex gap-3 justify-end">
             <button onClick={resetFilters} className="px-3 py-2 border rounded-md">Reset filters</button>
-            <button onClick={() => fetchLeaves(selectedCandidate)} className="px-3 py-2 bg-indigo-600 text-white rounded-md">Refresh</button>
+            <button onClick={() => fetchLeaves()} className="px-3 py-2 bg-indigo-600 text-white rounded-md">Refresh</button>
           </div>
         </div>
 
@@ -254,7 +256,7 @@ export default function AdminLeavePage() {
 
                           <div className="text-right">
                             <StatusPill status={l.status} />
-                            <div className="mt-2 text-sm text-gray-600">Days: <span className="font-medium">{l.days}</span></div>
+                            <div className="mt-2 text-sm text-gray-600">Days: <span className="font-medium">{l.days ?? computeDays(l.startDate, l.endDate)}</span></div>
                           </div>
                         </div>
 
@@ -269,7 +271,7 @@ export default function AdminLeavePage() {
                         {l.status === "pending" ? (
                           <>
                             <button onClick={() => openDecisionModal(l._id, "approve")} className="px-4 py-2 bg-green-600 text-white rounded-md shadow">Approve</button>
-                            <button onClick={() => openDecisionModal(l._id, "reject")} className="px-4 py-2 bg-red-600 text-white rounded-md">Reject</button>
+                            <button onClick={() => openDecisionModal(l._1d, "reject")} className="px-4 py-2 bg-red-600 text-white rounded-md">Reject</button>
                           </>
                         ) : (
                           <div className="text-sm text-gray-500 italic">{l.status === 'approved' ? 'Approved' : 'Rejected'}</div>
@@ -283,56 +285,38 @@ export default function AdminLeavePage() {
           )}
         </main>
 
-       {/* Decision modal */}
-{modal.open && (
-  <div
-    className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 backdrop-blur-md animate-fadeIn"
-    style={{
-      backdropFilter: "blur(8px)",
-      WebkitBackdropFilter: "blur(8px)",
-    }}
-  >
-    <div
-      className="bg-white/90 backdrop-saturate-150 rounded-2xl shadow-2xl max-w-lg w-full p-6 transform transition-all duration-300 scale-100 animate-scaleUp"
-    >
-      <h3 className="text-xl font-semibold text-gray-800 mb-2">
-        {modal.action === "approve" ? "Approve" : "Reject"} Leave
-      </h3>
-      <p className="text-sm text-gray-600 mb-4">
-        Add an optional comment for the user (will be visible on their leave details).
-      </p>
+        {/* Decision modal */}
+        {modal.open && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/30 backdrop-blur-md animate-fadeIn"
+            style={{
+              backdropFilter: "blur(8px)",
+              WebkitBackdropFilter: "blur(8px)",
+            }}
+          >
+            <div className="bg-white/90 backdrop-saturate-150 rounded-2xl shadow-2xl max-w-lg w-full p-6 transform transition-all duration-300 scale-100 animate-scaleUp">
+              <h3 className="text-xl font-semibold text-gray-800 mb-2">
+                {modal.action === "approve" ? "Approve" : "Reject"} Leave
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">Add an optional comment for the user (will be visible on their leave details).</p>
 
-      <textarea
-        rows={4}
-        value={modal.comment}
-        onChange={(e) => setModal({ ...modal, comment: e.target.value })}
-        className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-300 outline-none resize-none mb-4 bg-white/60"
-        placeholder="Type a comment (optional)..."
-      ></textarea>
+              <textarea
+                rows={4}
+                value={modal.comment}
+                onChange={(e) => setModal({ ...modal, comment: e.target.value })}
+                className="w-full border border-gray-300 rounded-lg p-3 text-sm focus:ring-2 focus:ring-indigo-300 outline-none resize-none mb-4 bg-white/60"
+                placeholder="Type a comment (optional)..."
+              ></textarea>
 
-      <div className="flex justify-end gap-3">
-        <button
-          onClick={() => setModal({ open: false, id: null, action: null, comment: "" })}
-          className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={submitDecision}
-          disabled={submittingDecision}
-          className={`px-4 py-2 rounded-lg shadow text-white transition ${
-            modal.action === "approve"
-              ? "bg-green-600 hover:bg-green-700"
-              : "bg-red-600 hover:bg-red-700"
-          } ${submittingDecision ? "opacity-70 cursor-not-allowed" : ""}`}
-        >
-          {submittingDecision ? "Processing..." : modal.action === "approve" ? "Approve" : "Reject"}
-        </button>
-      </div>
-    </div>
-  </div>
-)}
-
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setModal({ open: false, id: null, action: null, comment: "" })} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition">Cancel</button>
+                <button onClick={submitDecision} disabled={submittingDecision} className={`px-4 py-2 rounded-lg shadow text-white transition ${modal.action === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} ${submittingDecision ? "opacity-70 cursor-not-allowed" : ""}`}>
+                  {submittingDecision ? "Processing..." : modal.action === "approve" ? "Approve" : "Reject"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
