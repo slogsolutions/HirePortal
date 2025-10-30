@@ -64,7 +64,8 @@ export default function AdminLeavePage() {
     setLoadingCandidates(true);
     try {
       const res = await api.get("/candidates"); // protected route (hr/admin)
-      setCandidates(res.data?.data || []);
+      // tolerate controllers that return array directly or { data: [...] }
+      setCandidates(Array.isArray(res.data) ? res.data : (res.data?.data || []));
     } catch (err) {
       console.error("Could not fetch candidates", err);
       setCandidates([]);
@@ -79,7 +80,7 @@ export default function AdminLeavePage() {
     try {
       // request all leaves; controller supports limit/skip — passing limit=0 means "no limit" in our controller
       const res = await api.get("/leaves?limit=0");
-      const raw = res.data?.data || [];
+      const raw = res.data?.data || res.data || [];
       // normalize days
       const normalized = raw.map((l) => ({ ...l, days: typeof l.days === "number" ? l.days : computeDays(l.startDate, l.endDate) }));
       setLeaves(normalized);
@@ -151,13 +152,19 @@ export default function AdminLeavePage() {
 
   // open modal for approve/reject
   function openDecisionModal(id, action) {
+    // defensive: only open if id present
+    if (!id) {
+      console.warn("openDecisionModal called without id", id, action);
+      alert("Unable to take action: missing leave id. Please refresh and try again.");
+      return;
+    }
     setModal({ open: true, id, action, comment: "" });
   }
 
   // submit decision
   async function submitDecision() {
     const { id, action, comment } = modal;
-    if (!id) return;
+    if (!id) return alert("Missing leave id — cannot submit decision.");
     setSubmittingDecision(true);
     try {
       await api.patch(`/leaves/${id}`, { status: action === "approve" ? "approved" : "rejected", comment });
@@ -242,43 +249,58 @@ export default function AdminLeavePage() {
                 <div className="text-gray-500">No leaves match the current filters</div>
               ) : (
                 <div className="grid gap-4">
-                  {filteredLeaves.map((l) => (
-                    <div key={l._id} className="bg-white p-4 rounded-xl shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-start justify-between gap-4">
-                          <div>
-                            <div className="text-sm text-gray-500">{new Date(l.createdAt).toLocaleString()}</div>
-                            <div className="mt-1 text-lg font-semibold text-gray-800">
-                              {l.appliedBy?.firstName ? `${l.appliedBy.firstName} ${l.appliedBy.lastName || ""}` : (l.appliedBy?.name || "Unknown")}
+                  {filteredLeaves.map((l) => {
+                    const lid = l._id || l.id;
+                    return (
+                      <div key={lid || Math.random()} className="bg-white p-4 rounded-xl shadow flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <div className="text-sm text-gray-500">{new Date(l.createdAt).toLocaleString()}</div>
+                              <div className="mt-1 text-lg font-semibold text-gray-800">
+                                {l.appliedBy?.firstName ? `${l.appliedBy.firstName} ${l.appliedBy.lastName || ""}` : (l.appliedBy?.name || "Unknown")}
+                              </div>
+                              <div className="text-sm text-gray-600">{l.appliedBy?.email}</div>
                             </div>
-                            <div className="text-sm text-gray-600">{l.appliedBy?.email}</div>
+
+                            <div className="text-right">
+                              <StatusPill status={l.status} />
+                              <div className="mt-2 text-sm text-gray-600">Days: <span className="font-medium">{l.days ?? computeDays(l.startDate, l.endDate)}</span></div>
+                            </div>
                           </div>
 
-                          <div className="text-right">
-                            <StatusPill status={l.status} />
-                            <div className="mt-2 text-sm text-gray-600">Days: <span className="font-medium">{l.days ?? computeDays(l.startDate, l.endDate)}</span></div>
+                          <div className="mt-3 text-gray-700">
+                            <div className="text-sm"><strong>Dates:</strong> {new Date(l.startDate).toLocaleDateString()} — {new Date(l.endDate).toLocaleDateString()}</div>
+                            <div className="mt-2"><strong>Reason:</strong> {l.reason || <span className="text-gray-400">No reason provided</span>}</div>
+                            {l.comment && <div className="mt-2 text-sm text-gray-600"><strong>Comment:</strong> {l.comment}</div>}
                           </div>
                         </div>
 
-                        <div className="mt-3 text-gray-700">
-                          <div className="text-sm"><strong>Dates:</strong> {new Date(l.startDate).toLocaleDateString()} — {new Date(l.endDate).toLocaleDateString()}</div>
-                          <div className="mt-2"><strong>Reason:</strong> {l.reason || <span className="text-gray-400">No reason provided</span>}</div>
-                          {l.comment && <div className="mt-2 text-sm text-gray-600"><strong>Comment:</strong> {l.comment}</div>}
+                        <div className="flex-shrink-0 flex flex-col gap-2 items-end">
+                          {l.status === "pending" ? (
+                            <>
+                              <button
+                                onClick={() => openDecisionModal(lid, "approve")}
+                                disabled={submittingDecision}
+                                className="px-4 py-2 bg-green-600 text-white rounded-md shadow disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => openDecisionModal(lid, "reject")}
+                                disabled={submittingDecision}
+                                className="px-4 py-2 bg-red-600 text-white rounded-md disabled:opacity-60 disabled:cursor-not-allowed"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : (
+                            <div className="text-sm text-gray-500 italic">{l.status === 'approved' ? 'Approved' : 'Rejected'}</div>
+                          )}
                         </div>
                       </div>
-
-                      <div className="flex-shrink-0 flex flex-col gap-2 items-end">
-                        {l.status === "pending" ? (
-                          <>
-                            <button onClick={() => openDecisionModal(l._id, "approve")} className="px-4 py-2 bg-green-600 text-white rounded-md shadow">Approve</button>
-                            <button onClick={() => openDecisionModal(l._1d, "reject")} className="px-4 py-2 bg-red-600 text-white rounded-md">Reject</button>
-                          </>
-                        ) : (
-                          <div className="text-sm text-gray-500 italic">{l.status === 'approved' ? 'Approved' : 'Rejected'}</div>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </>
@@ -310,7 +332,11 @@ export default function AdminLeavePage() {
 
               <div className="flex justify-end gap-3">
                 <button onClick={() => setModal({ open: false, id: null, action: null, comment: "" })} className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition">Cancel</button>
-                <button onClick={submitDecision} disabled={submittingDecision} className={`px-4 py-2 rounded-lg shadow text-white transition ${modal.action === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} ${submittingDecision ? "opacity-70 cursor-not-allowed" : ""}`}>
+                <button
+                  onClick={submitDecision}
+                  disabled={submittingDecision}
+                  className={`px-4 py-2 rounded-lg shadow text-white transition ${modal.action === "approve" ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"} ${submittingDecision ? "opacity-70 cursor-not-allowed" : ""}`}
+                >
                   {submittingDecision ? "Processing..." : modal.action === "approve" ? "Approve" : "Reject"}
                 </button>
               </div>
