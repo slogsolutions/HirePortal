@@ -9,13 +9,21 @@ const {
   deleteCandidate,
   listCandidates,
   uploadProfilePhoto,
-  me
+  me,
+  changePassword   // <- ensure your controller exports this
 } = require('../controllers/candidate.controller');
 
 const router = express.Router();
 
 // Get logged-in candidate
 router.get("/me", protect, me);
+
+// Change password (logged-in user)
+router.post('/me/change-password', protect, changePassword);
+
+// Change password for a specific candidate (admin/HR may use this)
+// If you want to restrict this route to hr/admin, uncomment the requireRole middleware below.
+router.post('/:id/change-password', protect /*, requireRole(['hr','admin'])*/, changePassword);
 
 // List/create
 router.get('/', protect, requireRole(['hr','admin']), listCandidates);

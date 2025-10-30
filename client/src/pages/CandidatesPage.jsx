@@ -275,8 +275,7 @@ export default function CandidatesPage() {
       "Gender",
       "BloodGroup",
       "department",
-      // new required fields
-      "password",
+      // removed "password" from here so password is NOT required on edit
       "role",
     ];
 
@@ -291,6 +290,15 @@ export default function CandidatesPage() {
         }
         newErrors[f] = validateField(f, form[f]);
       });
+
+      // Password is only required when creating a new candidate (form._id is falsy)
+      if (!form._id) {
+        // creating -> password required
+        newErrors.password = validateField("password", form.password);
+      } else {
+        // editing -> only validate password if provided (validateField already handles min length)
+        if (form.password) newErrors.password = validateField("password", form.password);
+      }
 
       // confirmPassword check (client-side only)
       if (form.password || form.confirmPassword) {
@@ -362,6 +370,11 @@ export default function CandidatesPage() {
 
       // Only send password (omit confirmPassword)
       if (payload.confirmPassword !== undefined) delete payload.confirmPassword;
+
+      // IMPORTANT: Do not send an empty password field on edit. If password is empty or falsy, remove it.
+      if (!payload.password) {
+        delete payload.password;
+      }
 
       // Make sure role is present (it is part of payload by default)
       // payload.role is already set from form.role
