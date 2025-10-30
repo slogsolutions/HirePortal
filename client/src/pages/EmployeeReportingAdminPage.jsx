@@ -3,15 +3,29 @@ import React, { useEffect, useState } from 'react';
 import api from '../api/axios';
 import { getDaysInMonth, startOfMonth } from 'date-fns';
 import { PencilIcon, CheckIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, BarChart, Bar } from 'recharts';
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line
+} from 'recharts';
 
 /*
-  Combined Admin page:
-  - Left: users + summary (uses /attendance/admin/users and /attendance/admin/report)
-  - Right: detail calendar for selected user (uses /attendance/admin/user/:userId and POST /attendance/admin/entries)
+  AdminUsersWithDetail.jsx
+  - Left: users + monthly summary
+  - Right: detail calendar for selected user + headline + charts
 */
 
-// Color mapping
+// Color mapping for small badges (tailwind classes)
 const STATUS_COLORS = {
   Working: "bg-green-200 text-black",
   "On Leave": "bg-blue-200 text-black",
@@ -22,85 +36,142 @@ const STATUS_COLORS = {
   Default: "bg-white text-black",
 };
 
+// Status dropdown options
 const STATUS_OPTIONS = ["Working","On Leave","Holiday","Missed","Absent"];
+
+// Chart colors
+const COLORS = {
+  working: "#48BB78", // green
+  onleave: "#4299E1", // blue
+  missed: "#F56565",  // red
+  holiday: "#F6E05E"
+};
+
+const pad = (n) => String(n).padStart(2, '0');
 
 export default function AdminUsersWithDetail() {
   const today = new Date();
 
-  // Users/list state
+  // Users/report state
   const [users, setUsers] = useState([]);
   const [report, setReport] = useState([]); // aggregated counts from server
   const [loadingUsers, setLoadingUsers] = useState(false);
 
   // Selected user & calendar state
-  const [selectedUser, setSelectedUser] = useState(null); // { _id, name, email, role }
+  const [selectedUser, setSelectedUser] = useState(null);
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
   const [days, setDays] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-  const [hoveredDay, setHoveredDay] = useState(null);
 
-  // Performance summary
-  const [userSummary, setUserSummary] = useState({});
-  const [allUsersSummary, setAllUsersSummary] = useState([]);
+  // Per-user summary derived for chart and left panel
+  const [allUsersSummary, setAllUsersSummary] = useState([]); // [{ userId, name, Working, OnLeave, Missed, totalDays, pctWorking, pctOnLeave, pctMissed }]
+  const [stackedChartData, setStackedChartData] = useState([]); // for recharts
 
-  // Fetch users & aggregated report
-  const fetchUsersAndReport = async () => {
+  // small map for quick lookup
+  const summaryMap = {};
+  allUsersSummary.forEach(s => { summaryMap[s.userId] = s; });
+
+  // Fetch users & aggregated report for selected month
+  const fetchUsersAndReport = async (y = year, m = month) => {
     setLoadingUsers(true);
     try {
-      const [uRes, rRes] = await Promise.all([
-        api.get('/attendance/admin/users'),
-        api.get('/attendance/admin/report')
-      ]);
-      setUsers(uRes.data || []);
-      setReport(rRes.data?.data || []);
+      // fetch users
+      const uRes = await api.get('/attendance/admin/users');
+      const usersData = uRes.data?.data || uRes.data || [];
+      setUsers(usersData);
+
+      // compute start/end ISO for the month (UTC)
+      const daysInMonth = getDaysInMonth(new Date(y, m - 1));
+      const start = `${y}-${pad(m)}-01`;
+      const end = `${y}-${pad(m)}-${pad(daysInMonth)}`;
+
+      // fetch aggregated report limited to this month
+      const rRes = await api.get('/attendance/admin/report', { params: { start, end } });
+      const agg = rRes.data?.data || rRes.data || [];
+
+      setReport(agg);
+
+      // Build quick map from aggregation: userId -> tagCounts
+      const reportMap = {};
+      agg.forEach(item => {
+        reportMap[item.userId] = item.tagCounts || {};
+      });
+
+      // Build per-user summary (counts and percentages)
+      const summaries = usersData.map(u => {
+        const tagCounts = reportMap[u._id] || {};
+        const workingCount = Number(tagCounts.Working || 0) + Number(tagCounts.Holiday || 0); // holiday as working
+        const onLeaveCount = Number(tagCounts['On Leave'] || 0);
+        const reported = workingCount + onLeaveCount; // days with entry counted as reported
+        const missedCount = Math.max(0, daysInMonth - reported); // days with no entry => missed
+        const pctWorking = daysInMonth > 0 ? (workingCount / daysInMonth) * 100 : 0;
+        const pctOnLeave = daysInMonth > 0 ? (onLeaveCount / daysInMonth) * 100 : 0;
+        const pctMissed = daysInMonth > 0 ? (missedCount / daysInMonth) * 100 : 0;
+
+        return {
+          userId: u._id,
+          name: u.name || u.email,
+          email: u.email,
+          role: u.role,
+          Working: workingCount,
+          OnLeave: onLeaveCount,
+          Missed: missedCount,
+          totalDays: daysInMonth,
+          pctWorking: Number(pctWorking.toFixed(2)),
+          pctOnLeave: Number(pctOnLeave.toFixed(2)),
+          pctMissed: Number(pctMissed.toFixed(2))
+        };
+      });
+
+      setAllUsersSummary(summaries);
+
+      // Build stacked chart data (each bar fills to 100% via percentage values)
+      const chartData = summaries.map(s => ({
+        name: s.name,
+        WorkingPct: s.pctWorking,
+        OnLeavePct: s.pctOnLeave,
+        MissedPct: s.pctMissed,
+        WorkingCount: s.Working,
+        OnLeaveCount: s.OnLeave,
+        MissedCount: s.Missed,
+        totalDays: s.totalDays
+      }));
+      setStackedChartData(chartData);
+
     } catch (err) {
       console.error('[admin] fetch users/report error', err);
+      setUsers([]);
+      setReport([]);
+      setAllUsersSummary([]);
+      setStackedChartData([]);
     } finally {
       setLoadingUsers(false);
     }
   };
 
-  useEffect(() => { fetchUsersAndReport(); }, []);
+  useEffect(() => {
+    fetchUsersAndReport();
+  }, [year, month]);
 
-  // Helper: map userId => tagCounts
+  // Build a quick reportMap for left-hand display if needed
   const reportMap = {};
   (report || []).forEach(r => { reportMap[r.userId] = r.tagCounts || {}; });
 
-  // Calculate user performance for charts
-  const calculateUserPerformance = (days) => {
-    let total = 0, working = 0, leave = 0, holiday = 0, missed = 0;
-
-    days.forEach(d => {
-      const isSunday = new Date(d.date).getDay() === 0;
-      if (!isSunday) {
-        total++;
-        if (d.tag === 'Working') working++;
-        else if (d.tag === 'On Leave') leave++;
-        else if (d.tag === 'Holiday') { holiday++; working++; }
-        else if (d.tag === 'Missed' || !d.tag) missed++;
-      }
-    });
-
-    const performance = total > 0 ? ((working + holiday) / total * 100).toFixed(2) : 0;
-
-    return { total, working, leave, holiday, missed, performance };
-  };
-
-  // Fetch month for selected user
+  // Fetch month for selected user (adminGetUserMonth)
   const fetchUserMonth = async (userId, y = year, m = month) => {
     if (!userId) return;
     setLoadingDetail(true);
     try {
-      const { data } = await api.get(`/attendance/admin/user/${userId}?year=${y}&month=${m}`);
-      const daysData = data.days.map(d => {
+      const { data } = await api.get(`/attendance/admin/user/${userId}`, { params: { year: y, month: m } });
+      const daysData = (data?.days || []).map(d => {
         const fullNote = d.note || '';
         let displayNote = fullNote.split(' ').slice(0, 15).join(' ');
         if (fullNote.split(' ').length > 15) displayNote += '...';
         let tag = d.tag || 'Working';
         if (d.isSunday) tag = 'Sunday';
-        const isFuture = new Date(d.date + 'T00:00:00Z') > today;
+        const isFuture = new Date(d.date + 'T00:00:00Z') > new Date();
         if (isFuture) tag = 'Future';
         if (tag === 'On Leave') displayNote = fullNote || 'You are on leave';
         if (tag === 'Missed') displayNote = fullNote || 'No reporting';
@@ -110,9 +181,23 @@ export default function AdminUsersWithDetail() {
       });
       setDays(daysData);
 
-      // User summary
-      const perf = calculateUserPerformance(daysData);
-      setUserSummary(perf);
+      // derive per-user summary from daysData and enforce missed recalculation
+      const daysInMonth = getDaysInMonth(new Date(y, m - 1));
+      const totalWorking = daysData.reduce((acc, d) => acc + ((d.tag === 'Working' || d.tag === 'Holiday') ? 1 : 0), 0);
+      const totalLeave = daysData.reduce((acc, d) => acc + (d.tag === 'On Leave' ? 1 : 0), 0);
+      const totalHoliday = daysData.reduce((acc, d) => acc + (d.tag === 'Holiday' ? 1 : 0), 0);
+      const reported = totalWorking + totalLeave;
+      const recalculatedMissed = Math.max(0, daysInMonth - reported);
+      const perf = daysInMonth > 0 ? (((totalWorking + totalHoliday) / daysInMonth) * 100).toFixed(2) : "0.00";
+
+      setUserSummary({
+        total: daysInMonth,
+        working: totalWorking + totalHoliday,
+        leave: totalLeave,
+        holiday: totalHoliday,
+        missed: recalculatedMissed,
+        performance: Number(perf)
+      });
 
     } catch (err) {
       console.error('[admin] fetchUserMonth error', err);
@@ -123,16 +208,19 @@ export default function AdminUsersWithDetail() {
     }
   };
 
-  // When selectedUser changes, load their month
+  // local userSummary for right panel (separate state)
+  const [userSummary, setUserSummary] = useState({});
+
   useEffect(() => {
     if (selectedUser) fetchUserMonth(selectedUser._id, year, month);
     else {
       setDays([]);
       setUserSummary({});
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser, year, month]);
 
-  // Start editing
+  // Edit helpers (same as before)
   const startEdit = (date) => {
     setDays(prev => prev.map(d => d.date === date ? { ...d, tag: STATUS_OPTIONS.includes(d.tag) ? d.tag : "Working" } : d));
     setEditingDay(date);
@@ -161,20 +249,20 @@ export default function AdminUsersWithDetail() {
         entries: [{ date: d.date, tag: d.tag, note: d.fullNote || '' }],
         forceEdit: true
       };
-      const res = await api.post('/attendance/admin/entries', payload);
+      await api.post('/attendance/admin/entries', payload);
       setEditingDay(null);
       await fetchUserMonth(selectedUser._id, year, month);
-      fetchUsersAndReport();
+      fetchUsersAndReport(year, month);
     } catch (err) {
       console.error('[admin] saveDay error', err);
       await fetchUserMonth(selectedUser._id, year, month);
-      fetchUsersAndReport();
+      fetchUsersAndReport(year, month);
     }
   };
 
   const cancelEdit = () => setEditingDay(null);
 
-  // Calendar building helper
+  // Calendar helper (same as before)
   const buildWeeks = (y, m) => {
     const daysInMonth = getDaysInMonth(new Date(y, m - 1));
     const startDay = startOfMonth(new Date(y, m - 1)).getDay();
@@ -204,39 +292,70 @@ export default function AdminUsersWithDetail() {
 
   const weeks = buildWeeks(year, month);
 
-  // Overall users performance
-  useEffect(() => {
-    const summary = users.map(u => {
-      const t = reportMap[u._id] || {};
-      const totalReported = (t.Working || 0) + (t.Holiday || 0);
-      const totalDays = 30; // adjust if needed dynamically
-      const performance = ((totalReported / totalDays) * 100).toFixed(2);
-      return { name: u.name || u.email, performance: Number(performance) };
-    });
-    setAllUsersSummary(summary);
-  }, [users, report]);
+  // Custom tooltip for stacked percent chart: show counts + percents
+  const ChartTooltip = ({ active, payload, label }) => {
+    if (!active || !payload || payload.length === 0) return null;
+    // payload contains series entries; we also have corresponding *_Count in payload[0].payload
+    const p = payload[0].payload;
+    return (
+      <div className="bg-white p-2 rounded border text-sm shadow">
+        <div className="font-semibold mb-1">{p.name}</div>
+        <div>Working: {p.WorkingCount} ({p.WorkingPct}%)</div>
+        <div>On Leave: {p.OnLeaveCount} ({p.OnLeavePct}%)</div>
+        <div>Missed: {p.MissedCount} ({p.MissedPct}%)</div>
+        <div className="text-xs text-gray-500 mt-1">Total days: {p.totalDays}</div>
+      </div>
+    );
+  };
+
+  // Build chart data with both pct and count fields
+  const pctChartData = stackedChartData.map(d => ({
+    name: d.name,
+    WorkingPct: d.WorkingPct,
+    OnLeavePct: d.OnLeavePct,
+    MissedPct: d.MissedPct,
+    WorkingCount: d.WorkingCount,
+    OnLeaveCount: d.OnLeaveCount,
+    MissedCount: d.MissedCount,
+    totalDays: d.totalDays
+  }));
 
   return (
     <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Admin — Users & Detail</h1>
+      <h1 className="text-2xl font-bold mb-2">Admin — Users & Detail</h1>
+      <div className="mb-2 text-sm text-gray-600">Note: Holidays count as <strong>Working</strong> days in the report.</div>
+
+      <div className="flex items-center gap-4 mb-4">
+        <label className="text-sm text-gray-600">Report month:</label>
+        <input
+          type="month"
+          value={`${year}-${String(month).padStart(2, '0')}`}
+          onChange={e => {
+            const [y,m] = e.target.value.split('-');
+            setYear(Number(y)); setMonth(Number(m));
+          }}
+          className="border rounded px-2 py-1 text-sm"
+        />
+        <button className="px-3 py-1 bg-indigo-600 text-white rounded" onClick={() => fetchUsersAndReport(year, month)}>Refresh Report</button>
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Left: Users list */}
+        {/* Left: users list */}
         <div className="lg:w-1/3 space-y-4">
           <div className="p-3 bg-white rounded shadow-sm">
             <div className="flex items-center justify-between">
               <h2 className="font-semibold">Users</h2>
-              <button className="text-sm text-indigo-600" onClick={() => fetchUsersAndReport()}>Refresh</button>
+              <button className="text-sm text-indigo-600" onClick={() => fetchUsersAndReport(year, month)}>Refresh</button>
             </div>
             {loadingUsers ? (
               <div className="text-sm text-gray-500 mt-2">Loading users...</div>
             ) : (
               <div className="mt-3 space-y-3 max-h-[60vh] overflow-auto">
                 {users.map(u => {
-                  const t = reportMap[u._id] || {};
-                  const working = t.Working || 0;
-                  const leave = t["On Leave"] || 0;
-                  const missed = t.Missed || 0;
+                  const s = summaryMap[u._id] || allUsersSummary.find(x => x.userId === u._id) || {};
+                  const working = s.Working ?? 0;
+                  const leave = s.OnLeave ?? 0;
+                  const missed = s.Missed ?? 0;
                   return (
                     <div
                       key={u._id}
@@ -260,6 +379,27 @@ export default function AdminUsersWithDetail() {
                 })}
               </div>
             )}
+          </div>
+
+          {/* Stacked percentage bar chart (all employees) */}
+          <div className="p-3 bg-white rounded shadow-sm">
+            <h3 className="text-sm font-semibold mb-2">All Employees — {year}-{pad(month)}</h3>
+            <div className="w-full h-60">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={pctChartData} margin={{ left: 10, right: 10 }}>
+                  <CartesianGrid stroke="#eee" />
+                  <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                  <YAxis unit="%" domain={[0,100]} />
+                  <Tooltip content={<ChartTooltip />} />
+                  <Legend />
+                  {/* stacked percentage bars; order from bottom to top */}
+                  <Bar dataKey="WorkingPct" stackId="a" fill={COLORS.working} />
+                  <Bar dataKey="OnLeavePct" stackId="a" fill={COLORS.onleave} />
+                  <Bar dataKey="MissedPct" stackId="a" fill={COLORS.missed} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="mt-3 text-xs text-gray-500">Bars show percentages of the month per employee (Working / On Leave / Missed).</div>
           </div>
         </div>
 
@@ -285,11 +425,40 @@ export default function AdminUsersWithDetail() {
                 </div>
               </div>
 
+              {/* Headline + user quick stats */}
+              <div className="mb-4 p-3 rounded bg-gradient-to-r from-green-50 to-blue-50 border">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-600">Selected Employee report for this month</div>
+                    <div className="text-xl font-semibold">{selectedUser.name || selectedUser.email} • {year}-{pad(month)}</div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm text-gray-500">Total days</div>
+                    <div className="text-2xl font-bold">{userSummary.total ?? getDaysInMonth(new Date(year, month-1))}</div>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-3 gap-3">
+                  <div className="p-3 rounded bg-white shadow-sm text-center">
+                    <div className="text-sm text-gray-500">Working</div>
+                    <div className="text-xl font-semibold text-green-700">{userSummary.working ?? 0}</div>
+                  </div>
+                  <div className="p-3 rounded bg-white shadow-sm text-center">
+                    <div className="text-sm text-gray-500">On Leave</div>
+                    <div className="text-xl font-semibold text-blue-600">{userSummary.leave ?? 0}</div>
+                  </div>
+                  <div className="p-3 rounded bg-white shadow-sm text-center">
+                    <div className="text-sm text-gray-500">Missed</div>
+                    <div className="text-xl font-semibold text-red-600">{userSummary.missed ?? 0}</div>
+                  </div>
+                </div>
+              </div>
+
               {loadingDetail ? (
                 <div className="text-sm text-gray-500">Loading month...</div>
               ) : (
                 <>
-                  {/* User calendar */}
+                  {/* Calendar */}
                   <div className="overflow-x-auto">
                     <table className="table-auto w-full border-collapse text-center">
                       <thead>
@@ -304,8 +473,6 @@ export default function AdminUsersWithDetail() {
                                 <td
                                   key={ci}
                                   className={`border p-2 align-top min-w-[120px] h-[120px] relative ${cellClass}`}
-                                  onMouseEnter={() => d && setHoveredDay(d.date)}
-                                  onMouseLeave={() => setHoveredDay(null)}
                                 >
                                   {d ? (
                                     <>
@@ -348,41 +515,38 @@ export default function AdminUsersWithDetail() {
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Pie chart */}
                     <div className="w-full h-64 bg-white p-2 rounded shadow-sm">
-                      <h3 className="text-sm font-semibold mb-2">Monthly Attendance Distribution</h3>
+                      <h3 className="text-sm font-semibold mb-2">Monthly Distribution</h3>
                       <ResponsiveContainer width="100%" height="90%">
                         <PieChart>
                           <Pie
                             data={[
-                              { name: 'Working', value: userSummary.working },
-                              { name: 'On Leave', value: userSummary.leave },
-                              { name: 'Missed', value: userSummary.missed },
-                              { name: 'Holiday', value: userSummary.holiday },
+                              { name: 'Working', value: userSummary.working ?? 0 },
+                              { name: 'On Leave', value: userSummary.leave ?? 0 },
+                              { name: 'Missed', value: userSummary.missed ?? 0 },
+                              { name: 'Holiday', value: userSummary.holiday ?? 0 }
                             ]}
                             dataKey="value"
                             nameKey="name"
-                            outerRadius={60}
+                            outerRadius={70}
                             label
                           >
-                            <Cell fill="#68D391" />
-                            <Cell fill="#63B3ED" />
-                            <Cell fill="#FC8181" />
-                            <Cell fill="#F6E05E" />
+                            <Cell fill={COLORS.working} />
+                            <Cell fill={COLORS.onleave} />
+                            <Cell fill={COLORS.missed} />
+                            <Cell fill={COLORS.holiday} />
                           </Pie>
                           <Tooltip />
                         </PieChart>
                       </ResponsiveContainer>
                     </div>
 
-                    {/* Line chart */}
+                    {/* Daily reporting line */}
                     <div className="w-full h-64 bg-white p-2 rounded shadow-sm">
                       <h3 className="text-sm font-semibold mb-2">Daily Reporting</h3>
                       <ResponsiveContainer width="100%" height="90%">
-                        <LineChart data={days.map(d => ({
-                          day: d.day,
-                          reported: (d.tag === 'Working' || d.tag === 'Holiday') ? 1 : 0
-                        }))}>
-                          <Line type="monotone" dataKey="reported" stroke="#3182CE" />
-                          <CartesianGrid stroke="#ccc" />
+                        <LineChart data={days.map(d => ({ day: d.day, reported: (d.tag === 'Working' || d.tag === 'Holiday' || d.tag === 'On Leave') ? 1 : 0 }))}>
+                          <Line type="monotone" dataKey="reported" stroke="#3182CE" strokeWidth={2} />
+                          <CartesianGrid stroke="#eee" />
                           <XAxis dataKey="day" />
                           <YAxis ticks={[0,1]} />
                           <Tooltip />
@@ -391,20 +555,24 @@ export default function AdminUsersWithDetail() {
                     </div>
                   </div>
 
-                  {/* Overall users performance bar chart */}
+                  {/* Large stacked percents again */}
                   <div className="mt-6 bg-white p-2 rounded shadow-sm">
-                    <h3 className="text-sm font-semibold mb-2">Overall Users Performance</h3>
+                    <h3 className="text-sm font-semibold mb-2">Overall Users Performance — {year}-{pad(month)}</h3>
                     <div className="w-full h-64">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={allUsersSummary}>
-                          <CartesianGrid stroke="#ccc" />
-                          <XAxis dataKey="name" />
-                          <YAxis />
-                          <Tooltip />
-                          <Bar dataKey="performance" fill="#3182CE" />
+                        <BarChart data={pctChartData} margin={{ left: 10, right: 10 }}>
+                          <CartesianGrid stroke="#eee" />
+                          <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+                          <YAxis unit="%" domain={[0,100]} />
+                          <Tooltip content={<ChartTooltip />} />
+                          <Legend />
+                          <Bar dataKey="WorkingPct" stackId="a" fill={COLORS.working} />
+                          <Bar dataKey="OnLeavePct" stackId="a" fill={COLORS.onleave} />
+                          <Bar dataKey="MissedPct" stackId="a" fill={COLORS.missed} />
                         </BarChart>
                       </ResponsiveContainer>
                     </div>
+                    <div className="mt-2 text-xs text-gray-500">Tooltip shows raw counts and percentages for each employee.</div>
                   </div>
                 </>
               )}
