@@ -5,6 +5,9 @@ const { protect } = require('../middlewares/auth.middleware');
 const { requireRole } = require("../middlewares/roles.middleware");
 
 // Public read (optional) — require auth & role
+router.get('/me', protect, salaryController.listMySalaries);
+
+
 router.get('/', protect, requireRole(['hr', 'admin', 'superadmin']), (req, res, next) => {
   console.log('[API] GET /api/salaries by', req.user?.email || req.user?.id);
   next();

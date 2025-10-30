@@ -22,6 +22,9 @@ export default function DocumentManager() {
   const fileRef = useRef(null);
   const dropRef = useRef(null);
 
+  // Debug flag: set to false in production if you don't want raw response shown.
+  const DEBUG_SEND = true;
+
   useEffect(() => {
     fetchDocs();
   }, []);
@@ -33,7 +36,7 @@ export default function DocumentManager() {
       const res = await axios.get("/docs/list");
       setDocs(res.data || []);
     } catch (err) {
-      console.error(err);
+      console.error("fetchDocs error:", err);
       setError("Failed to load documents");
     } finally {
       setLoading(false);
@@ -78,7 +81,7 @@ export default function DocumentManager() {
       e.preventDefault();
       el.classList.add("ring-4", "ring-indigo-200");
     };
-    const onDragLeave = (e) => el.classList.remove("ring-4", "ring-indigo-200");
+    const onDragLeave = () => el.classList.remove("ring-4", "ring-indigo-200");
     const onDrop = (e) => {
       e.preventDefault();
       el.classList.remove("ring-4", "ring-indigo-200");
@@ -133,47 +136,95 @@ export default function DocumentManager() {
     (d.title || "").toLowerCase().includes(query.toLowerCase())
   );
 
+  // ---------------------------
+  // Robust sendDoc implementation (with extended timeout)
+  // ---------------------------
   async function sendDoc(docId, recipients) {
     setSending(true);
     setError(null);
     setSendStatus(null);
     setProgress(0);
-    toast.loading("Sending emails...");
+    // let user know this can take some time
+    toast.loading("Sending emails... this may take a while for large recipient lists.");
+
+    const payload = {
+      docId,
+      recipients,
+      subject: subject || "Company Document",
+      text: message || "Please find the attached document.",
+    };
+
+    console.log("[sendDoc] payload ->", payload);
 
     try {
-      const payload = {
-        docId,
-        recipients,
-        subject: subject || "Company Document",
-        text: message || "Please find the attached document.",
-      };
+      // Increase timeout to allow backend to finish batching (5 minutes)
+      const res = await axios.post("/docs/send", payload, { timeout: 300000 });
 
-      // Simulated progressive send tracking
-      let res = await axios.post("/docs/send", payload, {
-        onUploadProgress: (evt) => {
-          const pct = Math.round((evt.loaded / evt.total) * 100);
-          setProgress(pct);
-        },
-      });
+      console.log("[sendDoc] raw response ->", res);
+
+      if (!res || typeof res.status !== "number" || res.status < 200 || res.status >= 300) {
+        throw new Error(`Unexpected response status ${res?.status}`);
+      }
+
+      const data = res.data || {};
+
+      const total =
+        typeof data.total === "number"
+          ? data.total
+          : recipients === "all"
+          ? users?.length ?? 0
+          : Array.isArray(recipients)
+          ? recipients.length
+          : 0;
+
+      const sent =
+        typeof data.sent === "number"
+          ? data.sent
+          : typeof data.delivered === "number"
+          ? data.delivered
+          : typeof data.successCount === "number"
+          ? data.successCount
+          : Math.max(0, total - (typeof data.failed === "number" ? data.failed : 0));
+
+      const failed =
+        typeof data.failed === "number"
+          ? data.failed
+          : typeof data.failedCount === "number"
+          ? data.failedCount
+          : Math.max(0, total - sent);
 
       toast.dismiss();
       toast.success("Emails sent successfully!");
+
       setSendStatus({
-        total: res.data.total,
-        sent: res.data.sent,
-        failed: res.data.failed,
-        logs: res.data.logs,
-        sampleErrors: res.data.sampleErrors || [],
+        raw: DEBUG_SEND ? data : undefined,
+        total,
+        sent,
+        failed,
+        logs: Array.isArray(data.logs) ? data.logs : [],
+        sampleErrors: Array.isArray(data.sampleErrors) ? data.sampleErrors : [],
       });
     } catch (err) {
+      console.error("[sendDoc] error ->", err);
+      const serverData = err?.response?.data;
+      console.error("[sendDoc] err.response.data ->", serverData);
+
       toast.dismiss();
-      toast.error("Sending failed!");
+      // If it was a timeout, give a clearer message to user
+      const isTimeout = err?.code === "ECONNABORTED" || (err?.message && err.message.includes("timeout"));
+      if (isTimeout) {
+        toast.error("Request timed out. The server is still working — check server logs or retry later.");
+      } else {
+        toast.error("Sending failed!");
+      }
+
       setSendStatus({
-        total: 0,
-        sent: 0,
-        failed: 0,
-        logs: ["❌ Failed to send document."],
-        sampleErrors: [{ error: err.message }],
+        raw: DEBUG_SEND ? serverData ?? { message: err.message } : undefined,
+        total: serverData?.total ?? 0,
+        sent: serverData?.sent ?? 0,
+        failed: serverData?.failed ?? 0,
+        logs: serverData?.logs ?? [`❌ Failed to send document: ${serverData?.error ?? err.message}`],
+        sampleErrors: serverData?.sampleErrors ?? [{ error: serverData?.error ?? err.message }],
       });
     } finally {
       setSending(false);
@@ -181,20 +232,27 @@ export default function DocumentManager() {
     }
   }
 
+  // Always fetch users when opening the modal so "Send to All" uses accurate count
   async function openSendModal(docId, forAll = false) {
     try {
       setShowSendModal(true);
       setSendDocId(docId);
       setSendStatus(null);
       setForAllMode(forAll);
-      if (users.length === 0) {
+
+      // Always try to refresh users list so UI count is accurate
+      try {
         const res = await axios.get("/candidates/");
         setUsers(res.data || []);
+      } catch (err) {
+        console.warn("Could not fetch users for modal:", err);
+        // keep whatever users we had
       }
+
       if (forAll) setSelectedEmails([]);
     } catch (err) {
-      console.error("fetch users:", err);
-      setError("Failed to fetch users");
+      console.error("openSendModal error:", err);
+      setError("Failed to open send modal");
     }
   }
 
@@ -359,26 +417,31 @@ export default function DocumentManager() {
               className="w-full border rounded p-2 text-sm"
             ></textarea>
 
-            {!forAllMode && users.length > 0 && (
-              <div className="max-h-48 overflow-y-auto border rounded p-2">
-                {users.map((u) => (
-                  <label key={u._id} className="flex items-center gap-2 text-sm py-1">
-                    <input
-                      type="checkbox"
-                      checked={selectedEmails.includes(u.email)}
-                      onChange={() => toggleEmail(u.email)}
-                    />
-                    {u.email}
-                  </label>
-                ))}
+            {forAllMode ? (
+              <div className="text-sm text-gray-600">
+                Sending to <strong>{users?.length ?? "?"}</strong> users (All).
               </div>
+            ) : (
+              users.length > 0 && (
+                <div className="max-h-48 overflow-y-auto border rounded p-2">
+                  {users.map((u) => (
+                    <label key={u._id} className="flex items-center gap-2 text-sm py-1">
+                      <input
+                        type="checkbox"
+                        checked={selectedEmails.includes(u.email)}
+                        onChange={() => toggleEmail(u.email)}
+                      />
+                      {u.email}
+                    </label>
+                  ))}
+                </div>
+              )
             )}
 
             {sendStatus && (
               <div className="border rounded-lg p-3 bg-gray-50 text-sm">
                 <p className="font-semibold text-gray-700">
-                  ✅ Sent: {sendStatus.sent} / {sendStatus.total} — ❌ Failed:{" "}
-                  {sendStatus.failed}
+                  ✅ Sent: {sendStatus.sent} / {sendStatus.total} — ❌ Failed: {sendStatus.failed}
                 </p>
                 <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
                   {sendStatus.logs?.map((log, idx) => (
@@ -387,6 +450,14 @@ export default function DocumentManager() {
                     </p>
                   ))}
                 </div>
+
+                {/* Debug: show raw backend response */}
+                {DEBUG_SEND && sendStatus.raw && (
+                  <details className="mt-3 text-xs text-gray-500">
+                    <summary className="cursor-pointer text-xs text-indigo-600">Raw backend response</summary>
+                    <pre className="whitespace-pre-wrap text-xs mt-2">{JSON.stringify(sendStatus.raw, null, 2)}</pre>
+                  </details>
+                )}
               </div>
             )}
 
@@ -401,13 +472,12 @@ export default function DocumentManager() {
               >
                 Close
               </button>
+
               {!sendStatus && (
                 <button
-                  onClick={() =>
-                    sendDoc(sendDocId, forAllMode ? "all" : selectedEmails)
-                  }
-                  disabled={sending}
-                  className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-md"
+                  onClick={() => sendDoc(sendDocId, forAllMode ? "all" : selectedEmails)}
+                  disabled={sending || (forAllMode ? users?.length === 0 : selectedEmails.length === 0)}
+                  className="px-3 py-2 text-sm bg-indigo-600 text-white rounded-md disabled:opacity-50"
                 >
                   {sending ? "Sending..." : "Send Now"}
                 </button>

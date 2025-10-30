@@ -30,6 +30,32 @@ function buildSalaryPayload(body, user) {
   return payload;
 }
 
+/** EMPLOYEE: list own salaries */
+exports.listMySalaries = async (req, res) => {
+  try {
+    const uid =
+      req.user?.candidateId ||
+      req.user?.candidate?._id ||
+      req.user?._id ||
+      req.user?.id;
+
+    if (!uid) {
+      return res.status(400).json({ message: 'User id not found in token' });
+    }
+
+    const docs = await Salary.find({
+      $or: [{ candidate: uid }, { user: uid }, { employeeId: uid }],
+    })
+      .sort({ 'period.year': -1, 'period.month': -1, createdAt: -1 })
+      .populate('candidate', 'firstName lastName email Designation')
+      .lean();
+
+    return res.json(Array.isArray(docs) ? docs : []);
+  } catch (err) {
+    console.error('listMySalaries error:', err);
+    return res.status(500).json({ message: 'Server error listing salaries' });
+  }
+};
 /**
  * Create or update salary automatically
  */
