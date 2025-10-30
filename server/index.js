@@ -76,6 +76,9 @@ app.get('/offerletter', (req, res) => {
 // ====== ROOT ======
 app.get('/', (_, res) => res.json({ message: 'HirePortal backend running' }));
 
+
+app.get('/test', (_, res) => res.json({ message: 'HirePortal backend updated testing' }));
+
 // ====== ERROR HANDLER ======
 app.use((err, req, res, next) => {
   console.error(err);
