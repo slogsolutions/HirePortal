@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react"; 
+import React, { useEffect, useState, useRef, useCallback } from "react"; 
 import { useParams, useNavigate } from "react-router-dom";
 import { PencilIcon } from "@heroicons/react/24/outline";
 import api from "../api/axios";
@@ -594,52 +594,68 @@ function PhotoModalContent({ candidate, onClose, onUploaded }) {
 }
 
 // ================= Editable Candidate Form =================
-// IMPORTANT: keep state purely local so typing doesn't lose focus
-function EditableCandidateForm({ candidate, setCandidate }) {
-  // initialize local state once on mount using candidate values
-  const init = {
-    firstName: candidate.firstName || "",
-    lastName: candidate.lastName || "",
-    email: candidate.email || "",
-    mobile: candidate.mobile || "",
-    AlternativeMobile: candidate.AlternativeMobile || "",
-    fatherName: candidate.fatherName || "",
-    MotherName: candidate.MotherName || "",
-    dob: candidate.dob?.slice(0, 10) || "",
-    Gender: candidate.Gender || "",
-    BloodGroup: candidate.BloodGroup || "",
-    company: "SLOG",
-    Designation: candidate.Designation || "",
-    Salary: candidate.Salary || "",
-    DateOfJoining: candidate.DateOfJoining?.slice(0, 10) || "",
-    NextIncreament: candidate.NextIncreament || "",
-    NextIncreamentDate: candidate.NextIncreamentDate?.slice(0, 10) || "",
+// Uncontrolled inputs + inputsRef to avoid re-renders while typing
+const EditableCandidateForm = React.memo(function EditableCandidateForm({ candidate, setCandidate }) {
+  // compute initial values from candidate (only used to set defaultValue)
+  const computeInit = (cand) => ({
+    firstName: cand.firstName || "",
+    lastName: cand.lastName || "",
+    email: cand.email || "",
+    mobile: cand.mobile || "",
+    AlternativeMobile: cand.AlternativeMobile || "",
+    fatherName: cand.fatherName || "",
+    MotherName: cand.MotherName || "",
+    dob: cand.dob?.slice(0, 10) || "",
+    Gender: cand.Gender || "",
+    BloodGroup: cand.BloodGroup || "",
+    Designation: cand.Designation || "",
+    Salary: cand.Salary || "",
+    DateOfJoining: cand.DateOfJoining?.slice(0, 10) || "",
+    NextIncreament: cand.NextIncreament || "",
+    NextIncreamentDate: cand.NextIncreamentDate?.slice(0, 10) || "",
     address: {
-      current: { ...(candidate.address?.current || {}) },
-      permanent: { ...(candidate.address?.permanent || {}) },
-      isPermanentSameAsCurrent: !!candidate.address?.isPermanentSameAsCurrent,
-      isPG: !!candidate.address?.isPG,
-      pgOwnerName: candidate.address?.pgOwnerName || "",
-      pgName: candidate.address?.pgName || "",
-      pgNumber: candidate.address?.pgNumber || "",
+      current: { ...(cand.address?.current || {}) },
+      permanent: { ...(cand.address?.permanent || {}) },
+      isPermanentSameAsCurrent: !!cand.address?.isPermanentSameAsCurrent,
+      isPG: !!cand.address?.isPG,
+      pgOwnerName: cand.address?.pgOwnerName || "",
+      pgName: cand.address?.pgName || "",
+      pgNumber: cand.address?.pgNumber || "",
     },
-    aadhaarNumber: candidate.aadhaarNumber || "",
-    panNumber: candidate.panNumber || "",
-    drivingLicenseNumber: candidate.drivingLicenseNumber || "",
-    pfNumber: candidate.pfNumber || "",
-    esicNumber: candidate.esicNumber || "",
-    medicalPolicyNumber: candidate.medicalPolicyNumber || "",
-    isMarried: !!candidate.isMarried,
-    spouseName: candidate.spouseName || "",
-    spouseNumber: candidate.spouseNumber || "",
-  };
+    aadhaarNumber: cand.aadhaarNumber || "",
+    panNumber: cand.panNumber || "",
+    drivingLicenseNumber: cand.drivingLicenseNumber || "",
+    pfNumber: cand.pfNumber || "",
+    esicNumber: cand.esicNumber || "",
+    medicalPolicyNumber: cand.medicalPolicyNumber || "",
+    isMarried: !!cand.isMarried,
+    spouseName: cand.spouseName || "",
+    spouseNumber: cand.spouseNumber || "",
+  });
 
-  const [form, setForm] = useState(init);
+  const init = computeInit(candidate);
+
+  // refs for inputs: store latest typed values here without causing re-renders
+  const inputsRef = useRef({
+    // shallow copy initial values (strings / primitives)
+    ...init,
+    address: {
+      current: { ...(init.address.current || {}) },
+      permanent: { ...(init.address.permanent || {}) },
+      isPermanentSameAsCurrent: !!init.address.isPermanentSameAsCurrent,
+      isPG: !!init.address.isPG,
+      pgOwnerName: init.address.pgOwnerName,
+      pgName: init.address.pgName,
+      pgNumber: init.address.pgNumber,
+    },
+  });
+
+  // section refs for scrolling
+  const sectionRefs = useRef({});
   const [editingSection, setEditingSection] = useState(null);
   const [feedback, setFeedback] = useState(null);
-  const sectionRefs = useRef({});
 
-  // Password panel local state (keeps typing smooth, isolated from main form)
+  // Password panel local state (controlled — safe and small)
   const [showPasswordPanel, setShowPasswordPanel] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -647,68 +663,104 @@ function EditableCandidateForm({ candidate, setCandidate }) {
   const [passwordFeedback, setPasswordFeedback] = useState(null);
   const [passwordLoading, setPasswordLoading] = useState(false);
 
-  // scroll helper
-  const scrollToSection = (k) =>
+  // If candidate identity changes, refresh inputsRef to match fresh values
+  const candidateIdRef = useRef(candidate._id || candidate.id || null);
+  useEffect(() => {
+    const cid = candidate._id || candidate.id || null;
+    if (candidateIdRef.current !== cid) {
+      candidateIdRef.current = cid;
+      const fresh = computeInit(candidate);
+      // replace the inputsRef content
+      inputsRef.current = {
+        ...fresh,
+        address: {
+          current: { ...(fresh.address.current || {}) },
+          permanent: { ...(fresh.address.permanent || {}) },
+          isPermanentSameAsCurrent: !!fresh.address.isPermanentSameAsCurrent,
+          isPG: !!fresh.address.isPG,
+          pgOwnerName: fresh.address.pgOwnerName,
+          pgName: fresh.address.pgName,
+          pgNumber: fresh.address.pgNumber,
+        },
+      };
+      // reset UI state
+      setEditingSection(null);
+      setFeedback(null);
+      setShowPasswordPanel(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+      setPasswordFeedback(null);
+    }
+  }, [candidate]);
+
+  // stable scroll helper
+  const scrollToSection = useCallback((k) => {
     sectionRefs.current[k]?.scrollIntoView({
       behavior: "smooth",
       block: "start",
     });
+  }, []);
 
-  // small save handler per section
+  // helpers: read current values from inputsRef
+  const readField = (name) => inputsRef.current[name];
+  const readAddressField = (section, key) => inputsRef.current.address?.[section]?.[key] || "";
+
+  // Save handler: reads from inputsRef and sends payload
   const handleSaveSection = async (section) => {
     let payload = {};
     switch (section) {
       case "personal":
         payload = {
-          firstName: form.firstName,
-          lastName: form.lastName,
-          dob: form.dob || undefined,
-          Gender: form.Gender,
-          BloodGroup: form.BloodGroup,
-          fatherName: form.fatherName,
-          MotherName: form.MotherName,
-          email: form.email,
-          mobile: form.mobile,
-          AlternativeMobile: form.AlternativeMobile,
+          firstName: readField("firstName"),
+          lastName: readField("lastName"),
+          dob: readField("dob") || undefined,
+          Gender: readField("Gender"),
+          BloodGroup: readField("BloodGroup"),
+          fatherName: readField("fatherName"),
+          MotherName: readField("MotherName"),
+          email: readField("email"),
+          mobile: readField("mobile"),
+          AlternativeMobile: readField("AlternativeMobile"),
         };
         break;
       case "job":
         payload = {
-          Designation: form.Designation,
-          Salary: form.Salary,
-          DateOfJoining: form.DateOfJoining || undefined,
-          NextIncreament: form.NextIncreament,
-          NextIncreamentDate: form.NextIncreamentDate || undefined,
+          Designation: readField("Designation"),
+          Salary: readField("Salary"),
+          DateOfJoining: readField("DateOfJoining") || undefined,
+          NextIncreament: readField("NextIncreament"),
+          NextIncreamentDate: readField("NextIncreamentDate") || undefined,
         };
         break;
       case "address":
         payload = {
           address: {
-            current: form.address.current,
-            permanent: form.address.permanent,
-            isPermanentSameAsCurrent: !!form.address.isPermanentSameAsCurrent,
-            isPG: !!form.address.isPG,
-            pgOwnerName: form.address.pgOwnerName,
-            pgName: form.address.pgName,
-            pgNumber: form.address.pgNumber,
+            current: { ...(inputsRef.current.address.current || {}) },
+            permanent: { ...(inputsRef.current.address.permanent || {}) },
+            isPermanentSameAsCurrent: !!inputsRef.current.address.isPermanentSameAsCurrent,
+            isPG: !!inputsRef.current.address.isPG,
+            pgOwnerName: inputsRef.current.address.pgOwnerName,
+            pgName: inputsRef.current.address.pgName,
+            pgNumber: inputsRef.current.address.pgNumber,
           },
         };
         break;
       case "ids":
         payload = {
-          aadhaarNumber: form.aadhaarNumber,
-          panNumber: form.panNumber,
-          drivingLicenseNumber: form.drivingLicenseNumber,
-          pfNumber: form.pfNumber,
-          esicNumber: form.esicNumber,
-          medicalPolicyNumber: form.medicalPolicyNumber,
+          aadhaarNumber: readField("aadhaarNumber"),
+          panNumber: readField("panNumber"),
+          drivingLicenseNumber: readField("drivingLicenseNumber"),
+          pfNumber: readField("pfNumber"),
+          esicNumber: readField("esicNumber"),
+          medicalPolicyNumber: readField("medicalPolicyNumber"),
         };
         break;
       case "marital":
         payload = {
-          isMarried: !!form.isMarried,
-          spouseName: form.spouseName,
-          spouseNumber: form.spouseNumber,
+          isMarried: !!inputsRef.current.isMarried,
+          spouseName: readField("spouseName"),
+          spouseNumber: readField("spouseNumber"),
         };
         break;
       default:
@@ -717,7 +769,6 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 
     try {
       const res = await api.put(`/candidates/${candidate._id || candidate.id}`, payload);
-      // update parent
       setCandidate(res.data);
       setFeedback({ section, type: "success", msg: "Saved!" });
       setEditingSection(null);
@@ -729,20 +780,23 @@ function EditableCandidateForm({ candidate, setCandidate }) {
     }
   };
 
-  const handleChange = (name, value) => setForm((p) => ({ ...p, [name]: value }));
-  const handleAddressChange = (section, field, value) =>
-    setForm((p) => ({ ...p, address: { ...p.address, [section]: { ...p.address[section], [field]: value } } }));
-
-  // copy current -> permanent
-  const copyPermanent = (checked) => {
-    if (!checked) {
-      setForm((p) => ({ ...p, address: { ...p.address, isPermanentSameAsCurrent: false } }));
-      return;
-    }
-    setForm((p) => ({ ...p, address: { ...p.address, permanent: { ...p.address.current }, isPermanentSameAsCurrent: true } }));
+  // Uncontrolled inputs update the inputsRef directly — these handlers do not call setState, so no re-render
+  const onInputChange = (name, value) => {
+    inputsRef.current[name] = value;
+  };
+  const onAddressChange = (section, key, value) => {
+    inputsRef.current.address = inputsRef.current.address || { current: {}, permanent: {} };
+    inputsRef.current.address[section] = inputsRef.current.address[section] || {};
+    inputsRef.current.address[section][key] = value;
+  };
+  const onCheckboxChange = (name, checked) => {
+    inputsRef.current[name] = !!checked;
+  };
+  const onAddressCheckbox = (name, checked) => {
+    inputsRef.current.address[name] = !!checked;
   };
 
-  // Password helpers
+  // password helpers (keep these controlled)
   const resetPasswordPanel = () => {
     setCurrentPassword("");
     setNewPassword("");
@@ -750,7 +804,6 @@ function EditableCandidateForm({ candidate, setCandidate }) {
     setPasswordFeedback(null);
   };
 
-  // Admin / set initial password (no current password)
   const handleSetInitialPassword = async () => {
     if (!newPassword) return setPasswordFeedback({ type: "error", msg: "Enter new password" });
     if (newPassword.length < 6) return setPasswordFeedback({ type: "error", msg: "Password must be >= 6 chars" });
@@ -759,9 +812,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
     setPasswordLoading(true);
     try {
       const id = candidate._id || candidate.id;
-      // Use existing candidate update route to set password (backend handles linking to user)
       await api.put(`/candidates/${id}`, { password: newPassword });
-      // refresh parent candidate
       const res = await api.get(`/candidates/${id}`);
       setCandidate(res.data);
       setPasswordFeedback({ type: "success", msg: "Password set successfully" });
@@ -775,7 +826,6 @@ function EditableCandidateForm({ candidate, setCandidate }) {
     }
   };
 
-  // Change password requiring current password
   const handleChangePassword = async () => {
     if (!currentPassword) return setPasswordFeedback({ type: "error", msg: "Enter current password" });
     if (!newPassword) return setPasswordFeedback({ type: "error", msg: "Enter new password" });
@@ -797,7 +847,7 @@ function EditableCandidateForm({ candidate, setCandidate }) {
     }
   };
 
-  // UI Section wrapper (not memoized to avoid weird re-render swaps)
+  // UI Section wrapper
   function SectionEditor({ title, sectionKey, children }) {
     return (
       <div ref={(el) => (sectionRefs.current[sectionKey] = el)} className="bg-white rounded-xl shadow p-4 space-y-2">
@@ -841,32 +891,68 @@ function EditableCandidateForm({ candidate, setCandidate }) {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className="text-xs text-gray-500">First name</label>
-            <input autoComplete="off" name="firstName" value={form.firstName} onChange={(e) => handleChange("firstName", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input
+              name="firstName"
+              defaultValue={init.firstName}
+              onChange={(e) => onInputChange("firstName", e.target.value)}
+              className="w-full border rounded px-2 py-1"
+              autoComplete="off"
+            />
           </div>
           <div>
             <label className="text-xs text-gray-500">Last name</label>
-            <input autoComplete="off" name="lastName" value={form.lastName} onChange={(e) => handleChange("lastName", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input
+              name="lastName"
+              defaultValue={init.lastName}
+              onChange={(e) => onInputChange("lastName", e.target.value)}
+              className="w-full border rounded px-2 py-1"
+              autoComplete="off"
+            />
           </div>
           <div>
             <label className="text-xs text-gray-500">Email</label>
-            <input autoComplete="off" name="email" value={form.email} onChange={(e) => handleChange("email", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input
+              name="email"
+              defaultValue={init.email}
+              onChange={(e) => onInputChange("email", e.target.value)}
+              className="w-full border rounded px-2 py-1"
+              autoComplete="off"
+            />
           </div>
           <div>
             <label className="text-xs text-gray-500">Mobile</label>
-            <input autoComplete="off" name="mobile" value={form.mobile} onChange={(e) => handleChange("mobile", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input
+              name="mobile"
+              defaultValue={init.mobile}
+              onChange={(e) => onInputChange("mobile", e.target.value)}
+              className="w-full border rounded px-2 py-1"
+              autoComplete="off"
+            />
           </div>
           <div>
             <label className="text-xs text-gray-500">Alternative Mobile</label>
-            <input autoComplete="off" name="AlternativeMobile" value={form.AlternativeMobile} onChange={(e) => handleChange("AlternativeMobile", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input
+              name="AlternativeMobile"
+              defaultValue={init.AlternativeMobile}
+              onChange={(e) => onInputChange("AlternativeMobile", e.target.value)}
+              className="w-full border rounded px-2 py-1"
+              autoComplete="off"
+            />
           </div>
           <div>
             <label className="text-xs text-gray-500">DOB</label>
-            <input autoComplete="off" name="dob" type="date" value={form.dob} onChange={(e) => handleChange("dob", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input
+              name="dob"
+              type="date"
+              defaultValue={init.dob}
+              onChange={(e) => onInputChange("dob", e.target.value)}
+              className="w-full border rounded px-2 py-1"
+            />
           </div>
 
           <div>
             <label className="text-xs text-gray-500">Gender</label>
-            <select name="Gender" value={form.Gender} onChange={(e) => handleChange("Gender", e.target.value)} className="w-full border rounded px-2 py-1">
+            <select name="Gender" defaultValue={init.Gender} onChange={(e) => onInputChange("Gender", e.target.value)} className="w-full border rounded px-2 py-1">
               <option value="">Select</option>
               <option value="male">Male</option>
               <option value="female">Female</option>
@@ -875,7 +961,13 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 
           <div>
             <label className="text-xs text-gray-500">Blood Group</label>
-            <input autoComplete="off" name="BloodGroup" value={form.BloodGroup} onChange={(e) => handleChange("BloodGroup", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input
+              name="BloodGroup"
+              defaultValue={init.BloodGroup}
+              onChange={(e) => onInputChange("BloodGroup", e.target.value)}
+              className="w-full border rounded px-2 py-1"
+              autoComplete="off"
+            />
           </div>
         </div>
       </SectionEditor>
@@ -883,21 +975,28 @@ function EditableCandidateForm({ candidate, setCandidate }) {
       {/* Marital */}
       <SectionEditor title="Marital" sectionKey="marital">
         <div className="flex items-center gap-2">
-          <input id="isMarried" type="checkbox" checked={form.isMarried} onChange={(e) => setForm((p) => ({ ...p, isMarried: e.target.checked }))} />
+          <input
+            id="isMarried"
+            type="checkbox"
+            defaultChecked={init.isMarried}
+            onChange={(e) => onCheckboxChange("isMarried", e.target.checked)}
+          />
           <label htmlFor="isMarried">Married</label>
         </div>
-        {form.isMarried && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-            <div>
-              <label className="text-xs text-gray-500">Spouse Name</label>
-              <input value={form.spouseName} onChange={(e) => handleChange("spouseName", e.target.value)} className="w-full border rounded px-2 py-1" />
+        <div style={{ display: editingSection === "marital" ? "block" : "none" }}>
+          { (init.isMarried || editingSection === "marital") && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+              <div>
+                <label className="text-xs text-gray-500">Spouse Name</label>
+                <input defaultValue={init.spouseName} onChange={(e) => onInputChange("spouseName", e.target.value)} className="w-full border rounded px-2 py-1" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500">Spouse Number</label>
+                <input defaultValue={init.spouseNumber} onChange={(e) => onInputChange("spouseNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
+              </div>
             </div>
-            <div>
-              <label className="text-xs text-gray-500">Spouse Number</label>
-              <input value={form.spouseNumber} onChange={(e) => handleChange("spouseNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </SectionEditor>
 
       {/* Job */}
@@ -909,26 +1008,26 @@ function EditableCandidateForm({ candidate, setCandidate }) {
           </div>
           <div>
             <label className="text-xs text-gray-500">Designation</label>
-            <input value={form.Designation} onChange={(e) => handleChange("Designation", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input defaultValue={init.Designation} onChange={(e) => onInputChange("Designation", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
           <div>
             <label className="text-xs text-gray-500">Salary</label>
-            <input value={form.Salary} onChange={(e) => handleChange("Salary", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input defaultValue={init.Salary} onChange={(e) => onInputChange("Salary", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
 
           <div>
             <label className="text-xs text-gray-500">Date of Joining</label>
-            <input type="date" value={form.DateOfJoining} onChange={(e) => handleChange("DateOfJoining", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input type="date" defaultValue={init.DateOfJoining} onChange={(e) => onInputChange("DateOfJoining", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
 
           <div>
             <label className="text-xs text-gray-500">Next Increment</label>
-            <input value={form.NextIncreament} onChange={(e) => handleChange("NextIncreament", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input defaultValue={init.NextIncreament} onChange={(e) => onInputChange("NextIncreament", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
 
           <div>
             <label className="text-xs text-gray-500">Next Increment Date</label>
-            <input type="date" value={form.NextIncreamentDate} onChange={(e) => handleChange("NextIncreamentDate", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input type="date" defaultValue={init.NextIncreamentDate} onChange={(e) => onInputChange("NextIncreamentDate", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
         </div>
       </SectionEditor>
@@ -936,28 +1035,27 @@ function EditableCandidateForm({ candidate, setCandidate }) {
       {/* Address */}
       <SectionEditor title="Addresses" sectionKey="address">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {[
-            "current",
-            "permanent",
-          ].map((section) => (
+          {["current", "permanent"].map((section) => (
             <div key={section}>
               <h3 className="text-sm font-semibold">{section === "current" ? "Current Address" : "Permanent Address"}</h3>
-              {[
-                "line1",
-                "line2",
-                "city",
-                "state",
-                "pincode",
-              ].map((f) => (
+              {["line1", "line2", "city", "state", "pincode"].map((f) => (
                 <div key={f}>
                   <label className="text-xs text-gray-500">{f}</label>
-                  <input value={form.address?.[section]?.[f] || ""} onChange={(e) => handleAddressChange(section, f, e.target.value)} className="w-full border rounded px-2 py-1" />
+                  <input
+                    defaultValue={init.address?.[section]?.[f] || ""}
+                    onChange={(e) => onAddressChange(section, f, e.target.value)}
+                    className="w-full border rounded px-2 py-1"
+                  />
                 </div>
               ))}
 
               {section === "permanent" && (
                 <div className="flex items-center gap-2 mt-2">
-                  <input type="checkbox" checked={!!form.address.isPermanentSameAsCurrent} onChange={(e) => copyPermanent(e.target.checked)} />
+                  <input
+                    type="checkbox"
+                    defaultChecked={init.address?.isPermanentSameAsCurrent}
+                    onChange={(e) => onAddressCheckbox("isPermanentSameAsCurrent", e.target.checked)}
+                  />
                   <label>Same as Current Address</label>
                 </div>
               )}
@@ -967,23 +1065,27 @@ function EditableCandidateForm({ candidate, setCandidate }) {
 
         <div className="mt-3">
           <div className="flex items-center gap-2">
-            <input type="checkbox" checked={!!form.address.isPG} onChange={(e) => setForm((p) => ({ ...p, address: { ...p.address, isPG: e.target.checked } }))} />
+            <input
+              type="checkbox"
+              defaultChecked={init.address?.isPG}
+              onChange={(e) => onAddressCheckbox("isPG", e.target.checked)}
+            />
             <label>PG / Rent</label>
           </div>
 
-          {form.address.isPG && (
+          { (init.address?.isPG || editingSection === "address") && (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-2">
               <div>
                 <label className="text-xs text-gray-500">PG Owner Name</label>
-                <input value={form.address.pgOwnerName} onChange={(e) => setForm((p) => ({ ...p, address: { ...p.address, pgOwnerName: e.target.value } }))} className="w-full border rounded px-2 py-1" />
+                <input defaultValue={init.address.pgOwnerName} onChange={(e) => { inputsRef.current.address.pgOwnerName = e.target.value; }} className="w-full border rounded px-2 py-1" />
               </div>
               <div>
                 <label className="text-xs text-gray-500">PG Name</label>
-                <input value={form.address.pgName} onChange={(e) => setForm((p) => ({ ...p, address: { ...p.address, pgName: e.target.value } }))} className="w-full border rounded px-2 py-1" />
+                <input defaultValue={init.address.pgName} onChange={(e) => { inputsRef.current.address.pgName = e.target.value; }} className="w-full border rounded px-2 py-1" />
               </div>
               <div>
                 <label className="text-xs text-gray-500">PG Number</label>
-                <input value={form.address.pgNumber} onChange={(e) => setForm((p) => ({ ...p, address: { ...p.address, pgNumber: e.target.value } }))} className="w-full border rounded px-2 py-1" />
+                <input defaultValue={init.address.pgNumber} onChange={(e) => { inputsRef.current.address.pgNumber = e.target.value; }} className="w-full border rounded px-2 py-1" />
               </div>
             </div>
           )}
@@ -995,28 +1097,28 @@ function EditableCandidateForm({ candidate, setCandidate }) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
             <label className="text-xs text-gray-500">Aadhaar</label>
-            <input value={form.aadhaarNumber} onChange={(e) => handleChange("aadhaarNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input defaultValue={init.aadhaarNumber} onChange={(e) => onInputChange("aadhaarNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
           <div>
             <label className="text-xs text-gray-500">PAN</label>
-            <input value={form.panNumber} onChange={(e) => handleChange("panNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input defaultValue={init.panNumber} onChange={(e) => onInputChange("panNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
           <div>
             <label className="text-xs text-gray-500">Driving License</label>
-            <input value={form.drivingLicenseNumber} onChange={(e) => handleChange("drivingLicenseNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input defaultValue={init.drivingLicenseNumber} onChange={(e) => onInputChange("drivingLicenseNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
 
           <div>
             <label className="text-xs text-gray-500">PF Number</label>
-            <input value={form.pfNumber} onChange={(e) => handleChange("pfNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input defaultValue={init.pfNumber} onChange={(e) => onInputChange("pfNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
           <div>
             <label className="text-xs text-gray-500">ESIC Number</label>
-            <input value={form.esicNumber} onChange={(e) => handleChange("esicNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input defaultValue={init.esicNumber} onChange={(e) => onInputChange("esicNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
           <div>
             <label className="text-xs text-gray-500">Medical Policy</label>
-            <input value={form.medicalPolicyNumber} onChange={(e) => handleChange("medicalPolicyNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
+            <input defaultValue={init.medicalPolicyNumber} onChange={(e) => onInputChange("medicalPolicyNumber", e.target.value)} className="w-full border rounded px-2 py-1" />
           </div>
         </div>
       </SectionEditor>
@@ -1036,7 +1138,6 @@ function EditableCandidateForm({ candidate, setCandidate }) {
               Use this panel to set an initial password (if the user has none) or change an existing password.
             </div>
 
-            {/* If candidate likely has a linked user, show current-password flow first */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-gray-500">Current Password (required to change)</label>
@@ -1076,13 +1177,8 @@ function EditableCandidateForm({ candidate, setCandidate }) {
             <div className="flex gap-2">
               <button
                 onClick={async () => {
-                  // If currentPassword provided -> try secure change flow
-                  if (currentPassword) {
-                    await handleChangePassword();
-                  } else {
-                    // no current password -> set initial password via update
-                    await handleSetInitialPassword();
-                  }
+                  if (currentPassword) await handleChangePassword();
+                  else await handleSetInitialPassword();
                 }}
                 disabled={passwordLoading}
                 className="px-3 py-1 bg-indigo-600 text-white rounded"
@@ -1117,4 +1213,4 @@ function EditableCandidateForm({ candidate, setCandidate }) {
       </div>
     </div>
   );
-}
+});
