@@ -1,3 +1,10 @@
+const puppeteer = require('puppeteer');
+
+// Preferred Puppeteer executable path: set via env var in PM2 ecosystem or /etc/environment.
+// Example: PUPPETEER_EXECUTABLE_PATH="/snap/bin/chromium"
+const PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || '/snap/bin/chromium';
+
+
 // const Offer = require('../models/Offer.model');
 // const Candidate = require('../models/Candidate.model');
 // const path = require('path');
@@ -255,7 +262,6 @@ const Candidate = require('../models/Candidate.model');
 const path = require('path');
 const fs = require('fs');
 const mkdirp = require('mkdirp');
-const puppeteer = require('puppeteer');
 const Handlebars = require('handlebars');
 const nodemailer = require('nodemailer');
 
@@ -292,13 +298,78 @@ if (!fs.existsSync(templatePath)) {
 const templateHtml = fs.readFileSync(templatePath, 'utf-8');
 const compileTemplate = Handlebars.compile(templateHtml);
 
-// Generate PDF using Puppeteer
 async function generatePdfFromHtml(htmlContent, filepath) {
-  const browser = await puppeteer.launch({ headless: "new", args: ['--no-sandbox', '--disable-setuid-sandbox'] });
-  const page = await browser.newPage();
-  await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-  await page.pdf({ path: filepath, format: 'A4', printBackground: true });
-  await browser.close();
+  // Ensure parent folder exists
+  mkdirp.sync(path.dirname(filepath));
+
+  // Build launch options
+  const launchOptions = {
+    executablePath: PUPPETEER_EXECUTABLE_PATH, // must exist on system or Puppeteer will attempt bundled chromium
+    headless: true,
+    args: [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--disable-gpu',
+      '--no-first-run',
+      '--no-zygote',
+      '--single-process'
+    ],
+    // Give Puppeteer more time to start on loaded servers
+    timeout: 60000
+  };
+
+  let browser;
+  try {
+    console.log('Launching browser with executablePath:', launchOptions.executablePath);
+    browser = await puppeteer.launch(launchOptions);
+
+    const page = await browser.newPage();
+
+    // Optional: set a viewport and user agent (helps with some templates)
+    await page.setViewport({ width: 1200, height: 800 });
+    await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Headless');
+
+    // Wait for network idle and a small extra settle time
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 60000 });
+    await page.waitForTimeout(300); // small buffer
+
+    await page.pdf({
+      path: filepath,
+      format: 'A4',
+      printBackground: true,
+      timeout: 120000
+    });
+
+    console.log('PDF successfully written to', filepath);
+  } catch (err) {
+    // Produce a helpful error message for debugging missing libs or permission issues
+    const extra = [];
+
+    // If known common error message parts exist, add hints
+    const msg = err && err.message ? err.message : String(err);
+    if (msg.includes('error while loading shared libraries') || msg.includes('cannot open shared object file')) {
+      extra.push('Chromium failed due to missing shared libraries on the system.');
+      extra.push('Run: ldd ' + (PUPPETEER_EXECUTABLE_PATH || '<chromium-path>') + ' | grep "not found"  to list missing .so files.');
+      extra.push('On Ubuntu/Debian you typically install libraries like libatk1.0-0, libgtk-3-0, libnss3, libx11-6, libxss1, libasound2 etc.');
+    }
+    if (msg.includes('executablePath') || msg.includes('No such file or directory')) {
+      extra.push('Ensure PUPPETEER_EXECUTABLE_PATH points to an existing chromium binary (e.g. /snap/bin/chromium).');
+    }
+
+    console.error('Failed to generate PDF — puppeteer launch error:', err);
+    if (extra.length) console.error('Hints:', extra.join(' '));
+
+    // throw the original error so upstream handler reports it
+    throw err;
+  } finally {
+    try {
+      if (browser) await browser.close();
+    } catch (closeErr) {
+      console.warn('Error while closing browser:', closeErr && closeErr.message ? closeErr.message : closeErr);
+    }
+  }
 }
 
 // ======================== CONTROLLERS ========================
