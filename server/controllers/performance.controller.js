@@ -61,6 +61,31 @@ const getPerformanceById = async (req, res) => {
   }
 };
 
+// ✅ Get performance for the logged-in user (/me)
+const getMyPerformance = async (req, res) => {
+  try {
+    const userId = req.user?._id; // assuming you have auth middleware that sets req.user
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized. User not found in request.' });
+    }
+
+    const performances = await EmployeePerformance.find({ employee: userId })
+      .populate('employee', 'firstName lastName email')
+      .populate('reviewer', 'name email')
+      .sort({ createdAt: -1 });
+
+    if (!performances || performances.length === 0) {
+      return res.status(404).json({ message: 'No performance records found for this user' });
+    }
+
+    res.json(performances);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Failed to load your performance records' });
+  }
+};
+
 // ✅ Update performance
 const updatePerformance = async (req, res) => {
   try {
@@ -97,4 +122,5 @@ module.exports = {
   getPerformanceById,
   updatePerformance,
   deletePerformance,
+  getMyPerformance,
 };
