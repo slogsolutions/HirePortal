@@ -107,12 +107,30 @@ const previewOffer = () => {
     }
   };
 
-  const proceedNextRound = () => {
-    navigate(`/candidates/${id}/next-round`);
+  const proceedNextRound = async() => {
+    // navigate(`/candidates/${id}`);
+    try {
+      await api.put(`/candidates/${id}`, { status: "accepted" });
+      alert("Candidate have being offered");
+      navigate(`/candidates/${id}`);
+    } catch (err) {
+      console.error(err);
+      alert(err?.response?.data?.message || "Final submit failed");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow">
+      <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+          <button
+            onClick={() => navigate(`/candidates/${id}`)}
+            className="text-sm text-indigo-600 hover:underline flex items-center gap-1"
+          >
+            <span className="text-lg">&larr;</span> Back
+          </button>
+        </div>
       <h2 className="text-xl font-semibold mb-4">
         Offer — {candidate.firstName} {candidate.lastName}
       </h2>

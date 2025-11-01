@@ -11,7 +11,6 @@ const STATUS_ORDER = [
   "interviewing",
   "offered",
   "accepted",
-  "rejected",
 ];
 const prettyStatus = (s) => (s ? s.charAt(0).toUpperCase() + s.slice(1) : "-");
 

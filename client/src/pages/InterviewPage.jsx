@@ -239,6 +239,14 @@ export default function InterviewPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
+      <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+          <button
+            onClick={() => navigate(`/candidates/${id}`)}
+            className="text-sm text-indigo-600 hover:underline flex items-center gap-1"
+          >
+            <span className="text-lg">&larr;</span> Back
+          </button>
+        </div>
       <h2 className="text-2xl font-semibold mb-6">Interview — {candidate.firstName} {candidate.lastName}</h2>
 
       <div className="grid md:grid-cols-2 gap-6">
