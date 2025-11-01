@@ -48,7 +48,9 @@ export default function EmpCodeListPage() {
       setPredicted(res.data?.nextEmpCodeInfo?.nextEmpCode || null);
     } catch (err) {
       console.error("fetchList error", err);
-      setFetchError(err?.response?.data?.message || err.message || "Failed to fetch");
+      setFetchError(
+        err?.response?.data?.message || err.message || "Failed to fetch"
+      );
       setRows([]);
       setNextInfo(null);
       setPredicted(null);
@@ -87,21 +89,28 @@ export default function EmpCodeListPage() {
     setSaveWarning(null);
 
     // determine empCode to send
-    const empCodeToSend = empChoice === "auto" ? (predicted || null) : (manualEmpCode || null);
+    const empCodeToSend =
+      empChoice === "auto" ? predicted || null : manualEmpCode || null;
 
     if (!empCodeToSend) {
-      setSaveError("No empCode selected (auto prediction unavailable or manual empty).");
+      setSaveError(
+        "No empCode selected (auto prediction unavailable or manual empty)."
+      );
       return;
     }
 
     if (!isValidEmpCodeFormat(empCodeToSend)) {
-      setSaveError("Invalid empCode format. Use letters followed by digits (e.g. S20813).");
+      setSaveError(
+        "Invalid empCode format. Use letters followed by digits (e.g. S20813)."
+      );
       return;
     }
 
     // If user must confirm override of sequence, require confirmOverride true
     if (saveWarning && !confirmOverride) {
-      setSaveError("Please confirm the override by clicking Confirm and Save in the warning area.");
+      setSaveError(
+        "Please confirm the override by clicking Confirm and Save in the warning area."
+      );
       return;
     }
 
@@ -124,7 +133,10 @@ export default function EmpCodeListPage() {
       // if backend returns something like { message, warning } show both:
       if (data?.warning) setSaveWarning(data.warning);
       if (data?.message) setSaveError(data.message);
-      else setSaveError(err?.response?.data?.error || err.message || "Save failed");
+      else
+        setSaveError(
+          err?.response?.data?.error || err.message || "Save failed"
+        );
     }
   }
 
@@ -134,9 +146,16 @@ export default function EmpCodeListPage() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Employees / Candidate EmpCodes</h1>
+        <h1 className="text-2xl font-semibold">
+          Employees / Candidate EmpCodes
+        </h1>
         <div className="flex gap-2">
-          <button onClick={fetchList} className="px-3 py-2 border rounded bg-white">Refresh</button>
+          <button
+            onClick={fetchList}
+            className="px-3 py-2 border rounded bg-white"
+          >
+            Refresh
+          </button>
         </div>
       </div>
 
@@ -144,6 +163,10 @@ export default function EmpCodeListPage() {
         <div className="text-sm text-gray-600">
           Next predicted empCode:&nbsp;
           <strong>{predictedLabel}</strong>
+        </div>
+        <div className="mt-3 rounded-md bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-500 italic">
+          ⚙️ You can change the employee code start number from{" "}
+          <code>.env</code>
         </div>
       </div>
 
@@ -156,13 +179,27 @@ export default function EmpCodeListPage() {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">EmpCode</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Name</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Email</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Mobile</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Designation</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">Dept</th>
-                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">Actions</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  EmpCode
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Name
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Email
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Mobile
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Designation
+                </th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
+                  Dept
+                </th>
+                <th className="px-4 py-2 text-right text-xs font-medium text-gray-500">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
@@ -172,16 +209,29 @@ export default function EmpCodeListPage() {
                     {r.empCode ? (
                       <span className="text-sm font-medium">{r.empCode}</span>
                     ) : (
-                      <span className="text-sm text-gray-400">Not assigned</span>
+                      <span className="text-sm text-gray-400">
+                        Not assigned
+                      </span>
                     )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <div className="text-sm font-medium">{(r.firstName || "") + (r.lastName ? " " + r.lastName : "")}</div>
+                    <div className="text-sm font-medium">
+                      {(r.firstName || "") +
+                        (r.lastName ? " " + r.lastName : "")}
+                    </div>
                   </td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{r.email || "-"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{r.mobile || "-"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{r.Designation || "-"}</td>
-                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">{r.department || "-"}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    {r.email || "-"}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    {r.mobile || "-"}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    {r.Designation || "-"}
+                  </td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-600">
+                    {r.department || "-"}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap text-right">
                     <button
                       onClick={() => openEdit(r)}
@@ -196,7 +246,12 @@ export default function EmpCodeListPage() {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-6 text-center text-gray-500">No candidates</td>
+                  <td
+                    colSpan={7}
+                    className="px-4 py-6 text-center text-gray-500"
+                  >
+                    No candidates
+                  </td>
                 </tr>
               )}
             </tbody>
@@ -205,11 +260,22 @@ export default function EmpCodeListPage() {
       </div>
 
       {/* Edit Modal */}
-      <Modal isOpen={modalOpen} onClose={closeModal} title={editing ? `Edit empCode — ${editing.firstName || ""} ${editing.lastName || ""}` : "Edit empCode"}>
+      <Modal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={
+          editing
+            ? `Edit empCode — ${editing.firstName || ""} ${
+                editing.lastName || ""
+              }`
+            : "Edit empCode"
+        }
+      >
         {editing && (
           <div className="space-y-4">
             <div className="text-sm text-gray-500">
-              Current empCode: <strong>{editing.empCode || "Not assigned"}</strong>
+              Current empCode:{" "}
+              <strong>{editing.empCode || "Not assigned"}</strong>
             </div>
 
             <div className="space-y-2">
@@ -251,7 +317,12 @@ export default function EmpCodeListPage() {
                 <input
                   type="text"
                   value={manualEmpCode}
-                  onChange={(e) => { setManualEmpCode(e.target.value); setSaveError(null); setSaveWarning(null); setConfirmOverride(false); }}
+                  onChange={(e) => {
+                    setManualEmpCode(e.target.value);
+                    setSaveError(null);
+                    setSaveWarning(null);
+                    setConfirmOverride(false);
+                  }}
                   disabled={empChoice !== "manual"}
                   placeholder="e.g. S20813"
                   className="ml-3 border rounded px-2 py-1 text-sm"
@@ -268,16 +339,22 @@ export default function EmpCodeListPage() {
                     >
                       Confirm override
                     </button>
-                    <div className="text-xs text-gray-600 self-center">After confirming, click Save.</div>
+                    <div className="text-xs text-gray-600 self-center">
+                      After confirming, click Save.
+                    </div>
                   </div>
                 </div>
               )}
 
-              {saveError && <div className="text-sm text-red-600">{saveError}</div>}
+              {saveError && (
+                <div className="text-sm text-red-600">{saveError}</div>
+              )}
             </div>
 
             <div className="flex justify-end gap-2">
-              <button onClick={closeModal} className="px-3 py-1 border rounded">Cancel</button>
+              <button onClick={closeModal} className="px-3 py-1 border rounded">
+                Cancel
+              </button>
               <button
                 onClick={handleSaveEmpCode}
                 disabled={saving}
