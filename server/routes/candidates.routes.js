@@ -11,7 +11,7 @@ const {
   uploadProfilePhoto,
   me,
   changePassword   // <- ensure your controller exports this
-} = require('../controllers/candidate.controller');
+  ,getNextEmpCode} = require('../controllers/candidate.controller');
 
 const router = express.Router();
 
@@ -28,6 +28,9 @@ router.post('/:id/change-password', protect /*, requireRole(['hr','admin'])*/, c
 // List/create
 router.get('/', protect, requireRole(['hr','admin']), listCandidates);
 router.post('/', protect, requireRole(['hr','admin']), createCandidate);
+// GET /candidates/next-empcode
+
+router.get('/next-empcode', protect, requireRole(['hr','admin']), getNextEmpCode);
 
 // Single
 router.get('/:id', protect, getCandidate);

@@ -153,6 +153,7 @@ export default function CandidatesPage() {
       password: "",
       confirmPassword: "",
       role: initial.role || "employee",
+      empCode: initial.empCode || "" // <-- new field included in initial state
     };
 
     const [form, setForm] = useState(canonicalInitial);
@@ -160,6 +161,14 @@ export default function CandidatesPage() {
     const [selectedFile, setSelectedFile] = useState(null);
     const [localPreview, setLocalPreview] = useState(canonicalInitial.photoUrl || null);
     const fileRef = useRef(null);
+
+    // New: empCode auto/manual toggle
+    // Default: if creating (no _id) -> auto true; if editing and empCode exists -> manual (false)
+    const [empAuto, setEmpAuto] = useState(initial._id ? !(initial.empCode) : true);
+
+    // predicted emp code state
+    const [predictedEmpCode, setPredictedEmpCode] = useState("");
+    const [predictLoading, setPredictLoading] = useState(false);
 
     // When editing prop changes, reset to canonical initial
     useEffect(() => {
@@ -173,11 +182,20 @@ export default function CandidatesPage() {
         password: "",
         confirmPassword: "",
         role: initial.role || canonicalInitial.role,
+        empCode: initial.empCode || ""
       };
       setForm(ci);
       setSelectedFile(null);
       setLocalPreview(ci.photoUrl || null);
       setErrors({});
+      // set default empAuto based on whether editing and empCode exists
+      setEmpAuto(initial._id ? !(initial.empCode) : true);
+      // fetch predicted code if auto is true
+      if (initial._id ? !(initial.empCode) : true) {
+        fetchPredictedEmpCode();
+      } else {
+        setPredictedEmpCode("");
+      }
       if (debug) console.debug("CandidateForm init:", ci);
       // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [initial]);
@@ -192,6 +210,28 @@ export default function CandidatesPage() {
         if (url) URL.revokeObjectURL(url);
       };
     }, [selectedFile]);
+
+    // fetch predicted emp code helper
+    async function fetchPredictedEmpCode() {
+      setPredictLoading(true);
+      try {
+        const res = await api.get("/candidates/next-empcode");
+        // expect res.data.nextEmpCode or similar — handle flexibly
+        const next = res?.data?.nextEmpCode ?? res?.data?.next ?? res?.data;
+        setPredictedEmpCode(next || "");
+      } catch (err) {
+        console.warn("Could not fetch predicted empCode", err);
+        setPredictedEmpCode("");
+      } finally {
+        setPredictLoading(false);
+      }
+    }
+
+    // whenever empAuto toggles ON, fetch predicted code
+    useEffect(() => {
+      if (empAuto) fetchPredictedEmpCode();
+      else setPredictedEmpCode("");
+    }, [empAuto]);
 
     // DYNAMIC PASSWORD MATCH VALIDATION:
     // whenever password or confirmPassword changes, update the errors for both fields
@@ -253,6 +293,8 @@ export default function CandidatesPage() {
       setSelectedFile(null);
       setLocalPreview(canonicalInitial.photoUrl || null);
       setErrors({});
+      setEmpAuto(initial._id ? !(initial.empCode) : true);
+      if (empAuto) fetchPredictedEmpCode();
       if (debug) console.debug("resetAll -> form:", canonicalInitial);
     };
 
@@ -332,12 +374,56 @@ export default function CandidatesPage() {
         if (val) newErrors[f] = validateField(f, val);
       });
 
+      // empCode validation: if manual and provided, basic check (allow alphanumeric with optional prefix & digits)
+      if (!empAuto && form.empCode) {
+        // basic pattern: prefix letters + digits e.g. S20813 (require at least one digit)
+        if (!/[0-9]+$/.test(String(form.empCode))) newErrors.empCode = "empCode should end with digits (e.g. S20813)";
+      }
+
       setErrors(newErrors);
       const ok = Object.keys(newErrors).every((k) => !newErrors[k]);
       if (debug) {
         console.debug("validateForm -> newErrors:", newErrors, "result:", ok);
       }
       return ok;
+    };
+
+    // helper to submit payload and handle empCode-warning flow
+    const sendPayloadWithPossibleConfirm = async (payload) => {
+      try {
+        // send first attempt
+        if (payload._id) {
+          const res = await api.put(`/candidates/${payload._id}`, payload);
+          return res.data;
+        } else {
+          const res = await api.post("/candidates", payload);
+          return res.data;
+        }
+      } catch (err) {
+        // if server returned a warning about empCode sequence, it will be in err.response.data.warning
+        const warning = err?.response?.data?.warning;
+        if (warning) {
+          // build readable message
+          let msg = `${warning.message}\n\n${warning.reason || ""}\n\n`;
+          msg += `Current max numeric: ${warning.currentMaxNumeric ?? "none"}\n`;
+          msg += `Next expected numeric: ${warning.nextExpectedNumeric}\n`;
+          msg += `Provided numeric: ${warning.providedNumeric ?? "N/A"}\n\n`;
+          msg += "Do you want to proceed and override the auto-sequence? (OK = proceed, Cancel = abort)";
+          const confirmed = window.confirm(msg);
+          if (!confirmed) throw err; // rethrow for caller to handle (user cancelled)
+          // user confirmed -> resend with confirmEmpCodeChange flag
+          const payload2 = { ...payload, confirmEmpCodeChange: true };
+          if (payload2._id) {
+            const res2 = await api.put(`/candidates/${payload2._id}`, payload2);
+            return res2.data;
+          } else {
+            const res2 = await api.post("/candidates", payload2);
+            return res2.data;
+          }
+        }
+        // otherwise rethrow
+        throw err;
+      }
     };
 
     const submit = async (e) => {
@@ -376,20 +462,31 @@ export default function CandidatesPage() {
         delete payload.password;
       }
 
+      // empCode handling:
+      // - If empAuto === true => do NOT include empCode in payload (backend will auto-generate)
+      // - If empAuto === false => include form.empCode if provided (backend validates uniqueness and sequence)
+      if (empAuto) {
+        // ensure we don't accidentally send an empty empCode on edit/create
+        if (Object.prototype.hasOwnProperty.call(payload, "empCode")) delete payload.empCode;
+      } else {
+        // manual: include empCode only if non-empty
+        if (!payload.empCode) delete payload.empCode;
+      }
+
       // Make sure role is present (it is part of payload by default)
       // payload.role is already set from form.role
 
       if (debug) console.debug("Prepared payload for API:", payload);
       try {
         console.info("Saving candidate...");
-        const saved = await saveCandidate(payload);
+        const saved = await sendPayloadWithPossibleConfirm(payload);
         console.info("Saved candidate:", saved);
         if (selectedFile) {
           try {
             const fd = new FormData();
             fd.append("photo", selectedFile);
             console.info("Uploading photo...");
-            const res = await api.post(`/candidates/${saved._id}/photo`, fd, {
+            const res = await api.post(`/candidates/${saved._1d || saved._id}/photo`, fd, {
               headers: { "Content-Type": "multipart/form-data" },
             });
             console.info("Photo uploaded:", res.data);
@@ -483,6 +580,50 @@ export default function CandidatesPage() {
             {errors.department && <div className="text-red-500 text-xs mt-1">{errors.department}</div>}
             {errors.departmentOther && <div className="text-red-500 text-xs mt-1">{errors.departmentOther}</div>}
           </div>
+        </div>
+
+        {/* empCode: Auto / Manual */}
+        <div className="bg-gray-50 border rounded p-3">
+          <div className="text-sm font-semibold mb-2">Employee Code</div>
+          <div className="flex items-center gap-4 mb-2">
+            <label className="flex items-center gap-2">
+              <input type="radio" checked={empAuto === true} onChange={() => setEmpAuto(true)} />
+              <span className="text-sm">Auto-generate (recommended)</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="radio" checked={empAuto === false} onChange={() => setEmpAuto(false)} />
+              <span className="text-sm">Provide custom empCode</span>
+            </label>
+          </div>
+
+          {!empAuto ? (
+            <div>
+              <input
+                type="text"
+                value={form.empCode || ""}
+                onChange={(e) => handleChange("empCode", e.target.value)}
+                placeholder="e.g. S20813"
+                className={`w-full border rounded px-3 py-2 text-sm ${errors.empCode ? "border-red-500" : ""}`}
+              />
+              <div className="text-xs text-gray-500 mt-1">If you provide a code that deviates from the automatic sequence, you'll be asked to confirm on save.</div>
+              {errors.empCode && <div className="text-red-500 text-xs mt-1">{errors.empCode}</div>}
+            </div>
+          ) : (
+            <div className="flex items-center gap-3">
+              <div className="text-sm text-gray-600">
+                Will assign:{" "}
+                <span className="font-medium">{predictLoading ? "Loading..." : (predictedEmpCode || "Unavailable")}</span>
+              </div>
+              <button
+                type="button"
+                onClick={fetchPredictedEmpCode}
+                title="Refresh predicted empCode"
+                className="px-2 py-1 border rounded text-sm"
+              >
+                Refresh
+              </button>
+            </div>
+          )}
         </div>
 
         {/* NEW: Password & Role */}

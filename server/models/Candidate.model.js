@@ -23,6 +23,9 @@ const candidateSchema = new mongoose.Schema({
   Gender: { type: String, enum: ['male', 'female'] },
   MotherName: String,
   mobileVerified: { type: Boolean, default: false },
+  
+empCode: { type: String, unique: true, sparse: true },
+
 
   fatherName: String,
   fatherMobile: String,
