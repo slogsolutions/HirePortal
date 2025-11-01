@@ -2,7 +2,7 @@ const puppeteer = require('puppeteer');
 
 // Preferred Puppeteer executable path: set via env var in PM2 ecosystem or /etc/environment.
 // Example: PUPPETEER_EXECUTABLE_PATH="/snap/bin/chromium"
-const PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || '/snap/bin/chromium';
+// const PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || '/snap/bin/chromium';
 
 
 // const Offer = require('../models/Offer.model');
