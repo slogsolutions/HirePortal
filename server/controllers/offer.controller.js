@@ -1,4 +1,3 @@
-const puppeteer = require('puppeteer');
 
 // Preferred Puppeteer executable path: set via env var in PM2 ecosystem or /etc/environment.
 // Example: PUPPETEER_EXECUTABLE_PATH="/snap/bin/chromium"
@@ -261,7 +260,12 @@ const puppeteer = require('puppeteer');
 
 // Preferred Puppeteer executable path: set via env var in PM2 ecosystem or /etc/environment.
 // Example: PUPPETEER_EXECUTABLE_PATH="/snap/bin/chromium"
-const PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || '/snap/bin/chromium';
+// const PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || '/snap/bin/chromium';
+
+//REPLACED
+
+// Prefer an env-provided executable path (set on your VPS). If not provided, leave undefined so Puppeteer uses its bundled Chromium.
+const PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH || undefined;
 
 const Offer = require('../models/Offer.model');
 const Candidate = require('../models/Candidate.model');
@@ -308,9 +312,8 @@ async function generatePdfFromHtml(htmlContent, filepath) {
   // Ensure parent folder exists
   mkdirp.sync(path.dirname(filepath));
 
-  // Build launch options
-  const launchOptions = {
-    executablePath: PUPPETEER_EXECUTABLE_PATH, // must exist on system or Puppeteer will attempt bundled chromium
+  // common launch options (we build the final object below)
+  const baseLaunchOptions = {
     headless: true,
     args: [
       '--no-sandbox',
@@ -322,24 +325,50 @@ async function generatePdfFromHtml(htmlContent, filepath) {
       '--no-zygote',
       '--single-process'
     ],
-    // Give Puppeteer more time to start on loaded servers
     timeout: 60000
   };
 
+  // If an executable path is provided, add it — otherwise let Puppeteer choose its bundled Chromium.
+  // We'll attempt to launch with executablePath if provided, but if that fails with ENOENT we will retry without it.
   let browser;
+  let triedWithExecutablePath = false;
+
+  // Helper to actually launch
+  const tryLaunch = async (useExecutablePath) => {
+    const launchOptions = { ...baseLaunchOptions };
+    if (useExecutablePath && PUPPETEER_EXECUTABLE_PATH) {
+      launchOptions.executablePath = PUPPETEER_EXECUTABLE_PATH;
+      triedWithExecutablePath = true;
+    }
+    console.log('Launching browser. options.executablePath =', launchOptions.executablePath || '(bundled)');
+    return await puppeteer.launch(launchOptions);
+  };
+
   try {
-    console.log('Launching browser with executablePath:', launchOptions.executablePath);
-    browser = await puppeteer.launch(launchOptions);
+    try {
+      browser = await tryLaunch(Boolean(PUPPETEER_EXECUTABLE_PATH));
+    } catch (err) {
+      // If the error looks like 'ENOENT' / missing binary, retry without executablePath.
+      const msg = err && err.message ? err.message : String(err);
+      console.warn('Initial puppeteer.launch failed:', msg);
+
+      if (triedWithExecutablePath && (msg.includes('ENOENT') || msg.includes('executablePath') || msg.includes('No such file or directory'))) {
+        console.warn('ExecutablePath appears invalid. Retrying launch without executablePath so Puppeteer can use its bundled Chromium.');
+        // Retry without executablePath
+        browser = await tryLaunch(false);
+      } else {
+        // Not a simple missing-binary error — rethrow for upstream handling.
+        throw err;
+      }
+    }
 
     const page = await browser.newPage();
-
-    // Optional: set a viewport and user agent (helps with some templates)
     await page.setViewport({ width: 1200, height: 800 });
     await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Headless');
 
     // Wait for network idle and a small extra settle time
     await page.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 60000 });
-    await page.waitForTimeout(300); // small buffer
+    await page.waitForTimeout(300);
 
     await page.pdf({
       path: filepath,
@@ -350,24 +379,22 @@ async function generatePdfFromHtml(htmlContent, filepath) {
 
     console.log('PDF successfully written to', filepath);
   } catch (err) {
-    // Produce a helpful error message for debugging missing libs or permission issues
+    // Produce helpful hints for common issues
     const extra = [];
-
-    // If known common error message parts exist, add hints
     const msg = err && err.message ? err.message : String(err);
+
     if (msg.includes('error while loading shared libraries') || msg.includes('cannot open shared object file')) {
       extra.push('Chromium failed due to missing shared libraries on the system.');
       extra.push('Run: ldd ' + (PUPPETEER_EXECUTABLE_PATH || '<chromium-path>') + ' | grep "not found"  to list missing .so files.');
-      extra.push('On Ubuntu/Debian you typically install libraries like libatk1.0-0, libgtk-3-0, libnss3, libx11-6, libxss1, libasound2 etc.');
+      extra.push('On Ubuntu/Debian you typically need: libatk1.0-0, libgtk-3-0, libnss3, libx11-6, libxss1, libasound2, fonts-liberation, etc.');
     }
-    if (msg.includes('executablePath') || msg.includes('No such file or directory')) {
-      extra.push('Ensure PUPPETEER_EXECUTABLE_PATH points to an existing chromium binary (e.g. /snap/bin/chromium).');
+    if (msg.includes('executablePath') || msg.includes('No such file or directory') || msg.includes('ENOENT')) {
+      extra.push('Ensure PUPPETEER_EXECUTABLE_PATH (if set) points to an existing chromium binary on the system.');
+      extra.push('If you are deploying to Render, do not set PUPPETEER_EXECUTABLE_PATH unless Chromium is installed there; instead allow Puppeteer to use its bundled Chromium.');
     }
 
-    console.error('Failed to generate PDF — puppeteer launch error:', err);
+    console.error('Failed to generate PDF — puppeteer launch/pdf error:', err);
     if (extra.length) console.error('Hints:', extra.join(' '));
-
-    // throw the original error so upstream handler reports it
     throw err;
   } finally {
     try {
@@ -377,6 +404,7 @@ async function generatePdfFromHtml(htmlContent, filepath) {
     }
   }
 }
+
 
 // ======================== CONTROLLERS ========================
 
