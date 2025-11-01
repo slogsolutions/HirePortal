@@ -42,7 +42,7 @@ export default function IDCardPage() {
 
   const C = candidate || DEMO;
   const fullName = `${C.firstName || ""} ${C.lastName || ""}`.trim();
-  const empCode = (C._id || DEMO._id).slice(-8);
+  const empCode = C.empCode
   const bloodGroup = C.BloodGroup || DEMO.BloodGroup;
   const qrData = "https://www.slogsolutions.com/";
 

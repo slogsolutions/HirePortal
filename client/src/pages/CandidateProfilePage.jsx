@@ -1215,6 +1215,8 @@
 //   );
 // });
 // CandidateProfilePage.jsx
+
+
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { PencilIcon } from "@heroicons/react/24/outline";
