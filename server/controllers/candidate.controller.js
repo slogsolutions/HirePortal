@@ -635,6 +635,105 @@ const changePassword = asyncHandler(async (req, res) => {
   return res.json({ message: "Password updated successfully" });
 });
 
+
+/**
+ * Parse empCode like "S20824" -> { prefix: "S", number: 20824, padding: 5 }
+ * Returns null if cannot parse.
+ */
+function parseEmpCode(code) {
+  if (!code || typeof code !== 'string') return null;
+  const m = code.match(/^([A-Za-z]*)(\d+)$/);
+  if (!m) return null;
+  const prefix = m[1] || '';
+  const numStr = m[2];
+  const number = parseInt(numStr, 10);
+  const padding = numStr.length;
+  return { prefix, number, padding };
+}
+
+/**
+ * Build empCode string from parts
+ */
+function buildEmpCode(prefix, number, padding) {
+  const numStr = String(number).padStart(padding, '0');
+  return `${prefix}${numStr}`;
+}
+
+/**
+ * GET /api/candidates/empcodes
+ * Returns:
+ *   { data: [ ...rows ], count, nextEmpCodeInfo: { nextEmpCode, currentMaxNumeric, prefix, numericPadding } }
+ *
+ * Each row: { _id, empCode (string|null), firstName, lastName, email, mobile, Designation, department, createdAt }
+ */
+const listCandidatesWithEmpCodes = asyncHandler(async (req, res) => {
+  // fetch minimal fields
+  const candidates = await Candidate.find()
+    .select('empCode firstName lastName email mobile Designation department createdAt')
+    .lean();
+
+  // prepare rows
+  const rows = (Array.isArray(candidates) ? candidates : []).map((c) => ({
+    _id: c._id,
+    empCode: c.empCode || null,
+    firstName: c.firstName || '',
+    lastName: c.lastName || '',
+    email: c.email || '',
+    mobile: c.mobile || '',
+    Designation: c.Designation || '',
+    department: c.department || '',
+    createdAt: c.createdAt || null,
+  }));
+
+  // compute next empCode:
+  // Strategy: parse all empCodes that match PREFIX + NUM pattern, pick the one with the largest numeric value.
+  let best = null; // { prefix, number, padding }
+  for (const r of rows) {
+    if (!r.empCode) continue;
+    const parsed = parseEmpCode(r.empCode);
+    if (!parsed) continue;
+    // If best is null, use this; otherwise choose the one with greater number.
+    if (!best) {
+      best = parsed;
+    } else {
+      // if different prefix, decide heuristic: prefer the one with largest numeric regardless of prefix
+      if (parsed.number > best.number) best = parsed;
+      // if equal number but larger padding, keep the larger padding to preserve formatting
+      else if (parsed.number === best.number && parsed.padding > best.padding) best.padding = parsed.padding;
+    }
+  }
+
+  let nextEmpCodeInfo = null;
+  if (best) {
+    const nextNumber = best.number + 1;
+    const nextCode = buildEmpCode(best.prefix, nextNumber, best.padding);
+    nextEmpCodeInfo = {
+      nextEmpCode: nextCode,
+      currentMaxNumeric: best.number,
+      prefix: best.prefix,
+      numericPadding: best.padding,
+    };
+  } else {
+    // If none found, we can suggest a default sequence. You can adjust the default start.
+    // e.g., default prefix "S" and start from 20700 -> next S20701 (change as you need)
+    const defaultPrefix = 'S';
+    const defaultStart = 20700;
+    nextEmpCodeInfo = {
+      nextEmpCode: buildEmpCode(defaultPrefix, defaultStart + 1, String(defaultStart).length),
+      currentMaxNumeric: defaultStart,
+      prefix: defaultPrefix,
+      numericPadding: String(defaultStart).length,
+    };
+  }
+
+  res.json({
+    data: rows,
+    count: rows.length,
+    nextEmpCodeInfo,
+  });
+});
+
+
 module.exports = {
   createCandidate,
   getCandidate,
@@ -644,5 +743,9 @@ module.exports = {
   uploadProfilePhoto,
   me,
   changePassword,
-  getNextEmpCode
+  getNextEmpCode,
+   listCandidatesWithEmpCodes,
+  // export helpers if you want to reuse elsewhere:
+  parseEmpCode,
+  buildEmpCode,
 };

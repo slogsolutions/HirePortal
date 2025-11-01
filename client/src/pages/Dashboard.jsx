@@ -10,6 +10,7 @@ import MassSalaryEditor from "./MassSalaryPageAdmin";
 import AdminReviewPage from "./PerformancePageAdmin";
 import AdminUsersWithDetail from "./EmployeeReportingAdminPage";
 import AdminHolidays from "./AdminHolidaysPage";
+import EmployeeTable from "./EmpCodeAdminPage";
 // import CandidatesPage from "./CandidatesPage"; // <-- your real page
 const CandidatesPage = lazy(() => import("./CandidatesPage"));
 const VerificationPage = lazy(() => import("./VerificationPage"));
@@ -36,7 +37,7 @@ const TABS = [
   { key: "candidates", label: "Candidates" },
   { key: "reports", label: "Reports" },
   { key: "offerLetter", label: "Offer Letter" },
-  { key: "verification", label: "Verification" },
+  { key: "EmployeeCode", label: "Employee's Codes" },
   { key: "documents", label: "Documents" },
   { key: "notification", label: "Notification" },
   { key: "leavesApproval", label: "Leaves Approval" },
@@ -45,6 +46,7 @@ const TABS = [
   { key: "reportingAdmin", label: "Employee Daily Reporting" },
    { key: "holidaysAdmin", label: "Add Holidays" },
   { key: "performanceReview", label: "Employee Performance" },
+  
   
 ];
 
@@ -72,10 +74,10 @@ export default function DashboardPage({ initialTab = "candidates" }) {
             <OfferLetterTabPage />;
           </Suspense>
         );
-      case "verification":
+      case "EmployeeCode":
         return (
           <Suspense fallback={<div>Loading...</div>}>
-            <VerificationPage />
+            <EmployeeTable/>
           </Suspense>
         );
       case "documents":
