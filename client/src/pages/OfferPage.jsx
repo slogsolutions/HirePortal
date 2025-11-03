@@ -69,19 +69,31 @@ export default function OfferPage() {
   };
 
   // Preview offer
-const previewOffer = () => {
-  if (!latestOffer) return alert("No offer to preview");
-  const url = latestOffer.url || `http://localhost:5000/offers/offer-${latestOffer._id}.pdf`;
-  console.log("Previewing offer at URL:", url);
-  window.open(url, "_blank");
-};
+  const previewOffer = () => {
+    if (!latestOffer) return alert("No offer to preview");
+
+    // Get base URL from your configured axios instance
+    const baseURL = api.defaults.baseURL?.replace(/\/+$/, "") || "";
+
+    // Build the URL dynamically based on API base, using the /offers/:id/preview endpoint
+    const url = `${baseURL}/offers/${latestOffer._id}/preview`;
+
+    console.log("Previewing offer at URL:", url);
+    window.open(url, "_blank");
+  };
 
   // Download offer
   const downloadOffer = () => {
     if (!latestOffer) return alert("No offer to download");
-    const url = `${window.location.origin}/api/offers/${latestOffer._id}/download`;
+    const url = `${api.defaults.baseURL}/offers/${latestOffer._id}/download`;
     console.log("Downloading offer from URL:", url);
-    window.open(url, "_blank");
+    // Use an anchor tag to force download
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `offer-${latestOffer._id}.pdf`); // or any desired file name
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Send offer via email
@@ -211,7 +223,6 @@ const previewOffer = () => {
     </div>
   );
 }
-
 
 
 // import React, { useEffect, useState } from "react";
