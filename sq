@@ -1,0 +1,384 @@
+[33mcommit a9bfc9e5b99b89d465ead921d1f0e33a3291bfd9[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 18:20:31 2025 +0530
+
+    fixed the flow after offered to accecpted
+
+[33mcommit eda60eddec602aba561010932ae50dbf9ac65fb5[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 17:46:05 2025 +0530
+
+    fixed the offer.controleller to work with both and also need to add .env
+
+[33mcommit 593ebab48ab0b1c5bdacd50df185d0bb3ccdbe89[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 17:39:12 2025 +0530
+
+    working all the vverification now fixed father also
+
+[33mcommit 1d863d3bef27c7118bb2d6a8328804b6a791b12e[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 17:32:08 2025 +0530
+
+    fixed the otp working now but not father
+
+[33mcommit ce584a1cb0140f265311934d809f0d1266e12ba4[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 15:10:24 2025 +0530
+
+    fixed ereror server crashing
+
+[33mcommit 6cc40b3549a79e98ca2dab69ad690a36a2e3d0fa[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 14:54:41 2025 +0530
+
+    again put the same offer.controller for linus
+
+[33mcommit 2a60bceb3dbb17de89b21c0837254909b7e6151b[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 14:46:59 2025 +0530
+
+    again put the same offer.controller for linus
+
+[33mcommit b47df6991512b5264ad70acb26ac8c0dabcf0bf8[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 13:17:45 2025 +0530
+
+    changed back button route to dahsbaord
+
+[33mcommit 0e91b4692385406c94212a247716735ea87e38a3[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 13:14:58 2025 +0530
+
+    added empCode adminPage with disclaimer
+
+[33mcommit 4f6a1f0604d4ff56c6669df38af0f1cc1319d56e[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 13:11:00 2025 +0530
+
+    added empCode adminPage
+
+[33mcommit 0fcff1c12981e6f4b36e55b27566dfe0a281dfc9[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 12:46:41 2025 +0530
+
+    added empCode in IdCard & ProfilePage
+
+[33mcommit b8b5a2e4fc9770b6409ccb6301eef79c0736c011[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Nov 1 12:34:49 2025 +0530
+
+    added empCode and just needed to add save button
+
+[33mcommit 8481a46a8db19868c580b40ce0da62e6dbe15ebc[m
+Merge: 61a280f fe0e4b7
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 31 14:37:00 2025 +0530
+
+    added /me for performance
+
+[33mcommit 61a280fb961225d4ad41e20c4d1ad5c7a0e4b799[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 31 14:35:26 2025 +0530
+
+    added /me for performance
+
+[33mcommit fe0e4b7d20f9516649a1396af88fb09d7856f5da[m
+Author: slogsolutions <slogsolutions.it@gmail.com>
+Date:   Thu Oct 30 17:35:21 2025 +0530
+
+    Update offer.controller.js
+
+[33mcommit 4e2b8331cc9a2cc66012160d693f2e0921186e98[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 30 14:28:06 2025 +0530
+
+    rolled back the FCm controllers to OLD
+
+[33mcommit c3a85b3ad6baea67f84af10d95af3fb70c0dbbf9[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 30 14:24:39 2025 +0530
+
+    added test route
+
+[33mcommit 48fb652bbb3b28fcd734a8cd97e637d4468ffce5[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 30 13:53:22 2025 +0530
+
+    fixed the reject button is not working sometimes
+
+[33mcommit c9c4eaed5d18665be9b663a58c0cf55397577474[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 30 13:13:42 2025 +0530
+
+    fixed re-rendering issue of edit candaiteDetailsPage
+
+[33mcommit bd89063fe4c4ee1606f39f61a5eed8229ed692a4[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 30 12:54:18 2025 +0530
+
+    added password change option and changed password is now not mandatory while creating candidate
+
+[33mcommit 571a16ef907b94c5f08ff6e1000fcd4278bf82ac[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 30 12:22:29 2025 +0530
+
+    updated Notificationadmin for alisting all candidates for FCM but check is the id is correct or candiate.id or User.id needed
+
+[33mcommit 21f217723974f5900b678bb955e9edff9ebd28a4[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 30 11:38:33 2025 +0530
+
+    fixed incorrect figures in Attendance page
+
+[33mcommit 031db511a8fead82a9b7e0cc2b9e6aac4bd1ee84[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 30 10:53:50 2025 +0530
+
+    fixed leaves error & showing /me , and missed missing some leaves
+
+[33mcommit 8090ee816964c56ebfd27a489ddfa14c6daccab7[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 30 10:37:26 2025 +0530
+
+    fixed send to all failed error & added salaries/me
+
+[33mcommit 8a2448b43dcd8057a31f7095740a7f60c2801f92[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Tue Oct 28 17:22:33 2025 +0530
+
+    added verification both working
+
+[33mcommit 229900352a3d1f28575b74b89de28f464390c861[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Tue Oct 28 14:34:54 2025 +0530
+
+    added working sendToAll and send to selected feature
+
+[33mcommit 55cc91594112dfebd199f834cb1f084c9373b502[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Mon Oct 27 14:00:47 2025 +0530
+
+    added send all button and routes but giving error not found
+
+[33mcommit 59ccb953016ae3fb1318c95737839e0986a115d2[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Mon Oct 27 12:36:20 2025 +0530
+
+    added DP section and removed  both section from Nav and added in panel
+
+[33mcommit fc1402821617483b69cfd09f187197cd254c696a[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Mon Oct 27 12:28:42 2025 +0530
+
+    added DP section
+
+[33mcommit 9e04a40482fcfebe44dc53378b31181bf432a2fc[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 25 18:24:29 2025 +0530
+
+    finalised the ui  and attached to Dashboard.jsx  Holiday , DailyReportingAdmin
+
+[33mcommit 5592555ca7a85293b7411881f8751d5d9e6ae5d8[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 25 17:35:11 2025 +0530
+
+    created adminPage and Holidays admin page
+
+[33mcommit 5ec6a84735cfb54193366880a4ec2829573569b9[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 25 16:26:41 2025 +0530
+
+    added the reporting feature for employee
+
+[33mcommit 3d8fa6c0a256477d9a04bf7c8c0f470a86a40363[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 24 17:06:29 2025 +0530
+
+    added bar graph in PerformancePage
+
+[33mcommit 962112e7a14a86a96c2d43f98701245ae9156eb1[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 24 15:20:54 2025 +0530
+
+    added formula in both the MassPage and SalaryPageAdmin
+
+[33mcommit 64910460a3d55f90dbd5440276a525b66fd0beef[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 24 14:09:41 2025 +0530
+
+     made line graph and  enhanced the ui
+
+[33mcommit 6a6f2f749ca5556b1874e50f6ef862c343dddda7[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 24 13:12:42 2025 +0530
+
+    added review and rating feature
+
+[33mcommit b3334f9e25483c712fa20d5faab62175295b2a46[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 24 10:44:35 2025 +0530
+
+    added import feature
+
+[33mcommit 756ffae9dba67e0be78f918b23f5285bd1236ae0[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Thu Oct 23 15:39:52 2025 +0530
+
+    added salary but needs ui changse but working
+
+[33mcommit cfbf7d09666d3ea71d11fb8a68eb8bc5664ce835[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Wed Oct 22 22:34:45 2025 +0530
+
+    removed console.log from auth controller
+
+[33mcommit e27bda81b5ffb0f0b3bb615a529a2d92c669a74d[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Wed Oct 22 22:30:36 2025 +0530
+
+    enhanced ui for Leaves
+
+[33mcommit 4c899ae732ae1fda562982c04ccf2d1edfdb05a2[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Wed Oct 22 22:23:59 2025 +0530
+
+    removed mongoURI from script
+
+[33mcommit 0883d6471ee8a12f6f3dc94cf7d649fefa303eca[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Wed Oct 22 22:23:18 2025 +0530
+
+    added and styled Leaves perfectly
+
+[33mcommit d3d990129f33dcebdaa9db320e171c1170f9cdec[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Wed Oct 22 17:11:05 2025 +0530
+
+    fixed the text feilds for comment reasons
+
+[33mcommit 371c5debfb18613a29a393ed10c36795ca13986e[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Wed Oct 22 16:48:55 2025 +0530
+
+    added leaves features
+
+[33mcommit 78a3a8a5a4c53d45c49b35a7bcf3aba30c01131c[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 17 17:51:34 2025 +0530
+
+    added notification admin
+
+[33mcommit 458ac5ea2742c8d2c969edaa18482227f2d13ada[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 17 16:44:57 2025 +0530
+
+    tried to fix for prod
+
+[33mcommit 308e202d6ad20d575664c64b9b569ff2dbaf4549[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 17 14:34:30 2025 +0530
+
+    working
+
+[33mcommit 7aca34ccb700764b337efc3ad16347f3918b75b0[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 17 13:28:55 2025 +0530
+
+    working foreground notification
+
+[33mcommit a5f6978b3f30f304373a80264aaba9a63dea2845[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 17 12:43:22 2025 +0530
+
+    wporking added userId with password , role
+
+[33mcommit b46154cadc33cdf0d941a58cb9d932db03c7393a[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Fri Oct 17 12:40:29 2025 +0530
+
+    wporking added userId with password , role
+
+[33mcommit 3bdbc18df786c6b41082acee1b34ff67ceeac48f[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Wed Oct 15 17:01:48 2025 +0530
+
+    added send email
+
+[33mcommit 6eda6fa47c23cdc264239d23a13c4412334e6717[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Wed Oct 15 11:11:09 2025 +0530
+
+    before adding new changes like routing pages
+
+[33mcommit 35c394d769461a57e7968436c9de746531de57b3[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Tue Oct 14 18:33:38 2025 +0530
+
+    added IDCard page
+
+[33mcommit f009514af62f892305b528669611633a7e1ab510[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 16:46:53 2025 +0530
+
+    fix buttons
+
+[33mcommit bb77ab491ea37f0328a2b9b6b60b0c9411b9efb5[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 16:40:48 2025 +0530
+
+    added About-us Page , HomePage
+
+[33mcommit 7c283a6145a6bf255db98b5d0090415f0cf39ae3[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 15:13:54 2025 +0530
+
+    udpated auth issues
+
+[33mcommit f796f99b4d7342ace016fe8f0c74440236845757[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 13:59:07 2025 +0530
+
+    added vercel.json
+
+[33mcommit e5b9bc1c2da1d0cbbd94cf7af04bc6d0c642632b[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 13:57:07 2025 +0530
+
+    added vercel.json
+
+[33mcommit 4d4aab6bbc00be73f68786d42d3ab886a383d643[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 13:46:11 2025 +0530
+
+    added vercel.json
+
+[33mcommit 2e2c856892d49058788b7614cfea1b4df1abfa1c[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 13:42:03 2025 +0530
+
+    changed the error message to check not authorized message
+
+[33mcommit b9808b79f9ce4b0d708d26893c623a7fe9a21201[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 13:17:10 2025 +0530
+
+    fix package.json
+
+[33mcommit 6f26b38b204a81af135d4c134043f7f229830603[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 13:05:52 2025 +0530
+
+    first commit
+
+[33mcommit 0314e77ae92fa96f611a614486f63f9dc93a409b[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Sat Oct 11 11:37:55 2025 +0530
+
+    added package-lock.json
+
+[33mcommit 10132c73fda633443a68b9ec7725562ab86eb3b2[m
+Author: lakshrajkumar26 <lakshrajkumar.791.lrk@gmail.com>
+Date:   Tue Oct 7 16:42:57 2025 +0530
+
+    first commit
