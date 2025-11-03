@@ -244,7 +244,8 @@ export default function SalaryEditorModern() {
               value={selectedId}
               onChange={(e) => setSelectedId(e.target.value)}
               className="w-full py-2 px-3 rounded-md border"
-              style={{ color: "#fff", backgroundColor: "#1e3a8a" }}
+              style={{ color: "#000000", backgroundColor: "#FFFFFF" }}   
+            
             >
               <option value="">— choose candidate —</option>
               {candidates.map((c) => (
