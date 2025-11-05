@@ -61,7 +61,7 @@ const departments = [
   "Other",
 ];
 
-const roles = ["hr", "employee", "superadmin", "manager"];
+const roles = ["hr", "employee", "admin", "manager"];
 
 export default function CandidatesPage() {
   const [candidates, setCandidates] = useState([]);
