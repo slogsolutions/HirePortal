@@ -36,11 +36,14 @@ const verifyOtp = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
 
   const { email, password } = req.body;
+  console.log("entered login",email,password)
   // console.log(email,password,"login");
   const user = await User.findOne({ email });
+  console.log(user)
   // console.log(user,"after find login");
   if (!user) return res.status(401).json({ message: 'Invalid credentials' });
   const match = await bcrypt.compare(password, user.password);
+  console.log("result",match)
   // console.log("match->",match,"password ->",password, "--- user.password->",user.password)
   if (!match) return res.status(401).json({ message: 'Invalid credentials2' });
   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });

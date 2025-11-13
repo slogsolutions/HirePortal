@@ -338,7 +338,161 @@ const me = asyncHandler(async (req, res) => {
   }
 });
 
-// ------------------- UPDATE CANDIDATE -------------------
+// ------------------- UPDATE CANDIDATE (OLD) -------------------
+// const updateCandidate = asyncHandler(async (req, res) => {
+//   const { id } = req.params;
+//   const incoming = req.body || {};
+//   const confirmEmpCodeChange = incoming.confirmEmpCodeChange;
+
+//   const candidate = await Candidate.findById(id);
+//   if (!candidate) return res.status(404).json({ message: "Candidate not found" });
+
+//   // normalize email/mobile
+//   if (incoming.email) incoming.email = String(incoming.email).trim().toLowerCase();
+//   if (incoming.mobile) incoming.mobile = String(incoming.mobile).trim();
+//   if (incoming.fatherMobile) incoming.fatherMobile = String(incoming.fatherMobile).trim();
+
+//   // unique check on email
+//   if (incoming.email && incoming.email !== candidate.email) {
+//     const exists = await Candidate.findOne({ email: incoming.email, _id: { $ne: id } });
+//     if (exists) return res.status(409).json({ message: "Another candidate with this email already exists" });
+//   }
+
+//   // EMP CODE update logic (if incoming contains empCode and it's different)
+//   if (Object.prototype.hasOwnProperty.call(incoming, 'empCode')) {
+//     const newCode = incoming.empCode;
+//     if (!newCode) {
+//       // user attempted to clear empCode: allow (if you want to forbid clearing, change this)
+//       candidate.empCode = undefined;
+//     } else if (String(candidate.empCode || '') !== String(newCode)) {
+//       // Check uniqueness
+//       const conflict = await Candidate.findOne({ empCode: newCode, _id: { $ne: id } });
+//       if (conflict) return res.status(409).json({ message: "empCode already assigned to another candidate" });
+
+//       // Sequence check: if new numeric is ahead of next expected and !confirmEmpCodeChange -> warn
+//       const seq = await computeNextEmpCode();
+//       const providedParsed = parseEmpCode(String(newCode));
+//       const providedNumeric = providedParsed.numeric;
+
+//       if (providedNumeric !== null && providedNumeric > (seq.currentMaxNumeric + 1) && !confirmEmpCodeChange) {
+//         return res.status(400).json({
+//           message: "EmpCode deviates from automatic sequence",
+//           warning: {
+//             message: "Provided empCode numeric part is ahead of the next expected sequence.",
+//             currentMaxNumeric: seq.currentMaxNumeric,
+//             nextExpectedNumeric: seq.currentMaxNumeric + 1,
+//             providedNumeric
+//           }
+//         });
+//       }
+
+//       // if passes checks (or confirmEmpCodeChange is true), set it
+//       incoming.empCode = newCode;
+//     } else {
+//       // no change to empCode
+//       delete incoming.empCode;
+//     }
+//   }
+
+//   const allowed = [
+//     "firstName", "lastName", "email", "mobile", "fatherMobile", "AlternativeMobile",
+//     "BloodGroup", "DateOfJoining", "photoUrl", "Designation", "Salary",
+//     "NextIncreament", "NextIncreamentDate", "Gender", "MotherName", "fatherName",
+//     "dob", "address", "aadhaarNumber", "panNumber", "drivingLicenseNumber",
+//     "pfNumber", "esicNumber", "medicalPolicyNumber", "status", "department",
+//     "isMarried", "spouseName", "spouseNumber", "empCode"
+//   ];
+
+//   const update = {};
+//   allowed.forEach(k => {
+//     if (Object.prototype.hasOwnProperty.call(incoming, k)) {
+//       if ((k === "dob" || k === "DateOfJoining" || k === "NextIncreamentDate") && incoming[k]) {
+//         const d = new Date(incoming[k]);
+//         update[k] = isNaN(d.getTime()) ? candidate[k] : d;
+//       } else if (k === "address" && incoming.address) {
+//         update.address = {
+//           current: { ...candidate.address?.current, ...incoming.address.current },
+//           permanent: { ...candidate.address?.permanent, ...incoming.address.permanent },
+//           isPermanentSameAsCurrent: incoming.address.isPermanentSameAsCurrent ?? candidate.address?.isPermanentSameAsCurrent,
+//           isPG: incoming.address.isPG ?? candidate.address?.isPG,
+//           pgOwnerName: incoming.address.pgOwnerName ?? candidate.address?.pgOwnerName,
+//           pgName: incoming.address.pgName ?? candidate.address?.pgName,
+//           pgNumber: incoming.address.pgNumber ?? candidate.address?.pgNumber
+//         };
+//       } else update[k] = incoming[k];
+//     }
+//   });
+
+//   // If incoming contains a password, handle it separately (update linked User)
+//   if (incoming.password) {
+//     try {
+//       // Prefer updating the linked userId
+//       let userToUpdate = null;
+//       if (candidate.userId) {
+//         userToUpdate = await User.findById(candidate.userId);
+//       }
+
+//       // If no user by userId, try finding user by candidate email
+//       if (!userToUpdate) {
+//         userToUpdate = await User.findOne({ email: candidate.email || incoming.email });
+//       }
+
+//       const hashed = await bcrypt.hash(incoming.password, 10);
+
+//       if (userToUpdate) {
+//         userToUpdate.password = hashed;
+//         await userToUpdate.save();
+
+//         await AuditLog.create({
+//           actor: req.user?._id,
+//           action: "password_changed",
+//           details: { candidateId: id, userId: userToUpdate._id }
+//         });
+//       } else {
+//         // No user exists; create one but link it.
+//         const newUser = await User.create({
+//           name: `${incoming.firstName || candidate.firstName} ${incoming.lastName || candidate.lastName}`,
+//           email: incoming.email || candidate.email,
+//           password: hashed,
+//           role: incoming.role || 'employee',
+//           candidateId: candidate._id
+//         });
+
+//         candidate.userId = newUser._id;
+//         await candidate.save();
+
+//         await AuditLog.create({
+//           actor: req.user?._id,
+//           action: "password_set_and_user_created",
+//           details: { candidateId: id, userId: newUser._id }
+//         });
+//       }
+//     } catch (err) {
+//       console.error("Error updating password for candidate", id, err);
+//       return res.status(500).json({ message: "Failed to update password", error: err.message });
+//     }
+//   }
+
+//   // If there are candidate fields to update, apply them
+//   let updatedCandidate = candidate;
+//   if (Object.keys(update).length > 0) {
+//     updatedCandidate = await Candidate.findByIdAndUpdate(id, { $set: update }, { new: true })
+//       .populate("documents")
+//       .populate("userId");
+//     await AuditLog.create({
+//       actor: req.user?._id,
+//       action: "candidate_updated",
+//       details: { candidateId: id, changed: Object.keys(update) }
+//     });
+//   } else {
+//     // still populate if password-only change
+//     updatedCandidate = await Candidate.findById(id).populate("documents").populate("userId");
+//   }
+
+//   res.json(updatedCandidate);
+// });
+
+// -----------------NEW UPDATE CANDIDATE WITH EMAIL UPDATE IN BOTH USER AND CANDIDATE 
 const updateCandidate = asyncHandler(async (req, res) => {
   const { id } = req.params;
   const incoming = req.body || {};
@@ -352,24 +506,21 @@ const updateCandidate = asyncHandler(async (req, res) => {
   if (incoming.mobile) incoming.mobile = String(incoming.mobile).trim();
   if (incoming.fatherMobile) incoming.fatherMobile = String(incoming.fatherMobile).trim();
 
-  // unique check on email
+  // unique check on email (candidate collection)
   if (incoming.email && incoming.email !== candidate.email) {
     const exists = await Candidate.findOne({ email: incoming.email, _id: { $ne: id } });
     if (exists) return res.status(409).json({ message: "Another candidate with this email already exists" });
   }
 
-  // EMP CODE update logic (if incoming contains empCode and it's different)
+  // EMP CODE logic (unchanged)
   if (Object.prototype.hasOwnProperty.call(incoming, 'empCode')) {
     const newCode = incoming.empCode;
     if (!newCode) {
-      // user attempted to clear empCode: allow (if you want to forbid clearing, change this)
       candidate.empCode = undefined;
     } else if (String(candidate.empCode || '') !== String(newCode)) {
-      // Check uniqueness
       const conflict = await Candidate.findOne({ empCode: newCode, _id: { $ne: id } });
       if (conflict) return res.status(409).json({ message: "empCode already assigned to another candidate" });
 
-      // Sequence check: if new numeric is ahead of next expected and !confirmEmpCodeChange -> warn
       const seq = await computeNextEmpCode();
       const providedParsed = parseEmpCode(String(newCode));
       const providedNumeric = providedParsed.numeric;
@@ -386,10 +537,8 @@ const updateCandidate = asyncHandler(async (req, res) => {
         });
       }
 
-      // if passes checks (or confirmEmpCodeChange is true), set it
       incoming.empCode = newCode;
     } else {
-      // no change to empCode
       delete incoming.empCode;
     }
   }
@@ -423,25 +572,84 @@ const updateCandidate = asyncHandler(async (req, res) => {
     }
   });
 
+  // ---------- Helper: robust user lookup ----------
+  const findLinkedUser = async () => {
+    // 1) try candidate.userId if present
+    if (candidate.userId) {
+      const u = await User.findById(candidate.userId);
+      if (u) return u;
+    }
+
+    // 2) try user with candidateId field (if you store candidateId on User)
+    const byCandidateId = await User.findOne({ candidateId: candidate._id });
+    if (byCandidateId) return byCandidateId;
+
+    // 3) try by candidate's current email (old email)
+    if (candidate.email) {
+      const byOldEmail = await User.findOne({ email: candidate.email });
+      if (byOldEmail) return byOldEmail;
+    }
+
+    // 4) fallback: maybe a user already exists with the incoming email (rare) — return that
+    if (incoming.email) {
+      const byIncoming = await User.findOne({ email: incoming.email });
+      if (byIncoming) return byIncoming;
+    }
+
+    return null;
+  };
+  // ---------- end helper ----------
+
+  // --- NEW/UPDATED: sync email to linked User if incoming.email differs ---
+  if (incoming.email && incoming.email !== candidate.email) {
+    try {
+      const userToUpdate = await findLinkedUser();
+
+      if (userToUpdate) {
+        // ensure no other user uses the incoming email
+        const conflictUser = await User.findOne({ email: incoming.email, _id: { $ne: userToUpdate._id } });
+        if (conflictUser) {
+          return res.status(409).json({ message: "Another user already uses this email" });
+        }
+
+        // update User email atomically
+        await User.findByIdAndUpdate(userToUpdate._id, { $set: { email: incoming.email } }, { new: true });
+
+        await AuditLog.create({
+          actor: req.user?._id,
+          action: "user_email_synced_from_candidate",
+          details: { candidateId: id, userId: userToUpdate._id, newEmail: incoming.email }
+        });
+
+        // ensure candidate.userId is linked
+        if (!candidate.userId) {
+          candidate.userId = userToUpdate._id;
+          await candidate.save();
+        }
+      } else {
+        // No linked user found — do not auto-create by default (safer).
+        // If you want auto-create behavior, create user here and link candidate.userId.
+      }
+    } catch (err) {
+      console.error("Error syncing user email for candidate", id, err);
+      return res.status(500).json({ message: "Failed to sync user email", error: err.message });
+    }
+  }
+
   // If incoming contains a password, handle it separately (update linked User)
   if (incoming.password) {
     try {
-      // Prefer updating the linked userId
-      let userToUpdate = null;
-      if (candidate.userId) {
-        userToUpdate = await User.findById(candidate.userId);
-      }
+      let userToUpdate = await findLinkedUser();
 
-      // If no user by userId, try finding user by candidate email
+      // If still not found, try to find by candidate.email or incoming.email explicitly
       if (!userToUpdate) {
-        userToUpdate = await User.findOne({ email: candidate.email || incoming.email });
+        userToUpdate = await User.findOne({ $or: [{ email: candidate.email }, { email: incoming.email }] });
       }
 
       const hashed = await bcrypt.hash(incoming.password, 10);
 
       if (userToUpdate) {
-        userToUpdate.password = hashed;
-        await userToUpdate.save();
+        await User.findByIdAndUpdate(userToUpdate._id, { $set: { password: hashed } });
 
         await AuditLog.create({
           actor: req.user?._id,
@@ -449,9 +657,9 @@ const updateCandidate = asyncHandler(async (req, res) => {
           details: { candidateId: id, userId: userToUpdate._id }
         });
       } else {
-        // No user exists; create one but link it.
+        // Create a new user and link to candidate
         const newUser = await User.create({
-          name: `${incoming.firstName || candidate.firstName} ${incoming.lastName || candidate.lastName}`,
+          name: `${incoming.firstName || candidate.firstName} ${incoming.lastName || candidate.lastName}`.trim(),
           email: incoming.email || candidate.email,
           password: hashed,
           role: incoming.role || 'employee',
@@ -491,6 +699,8 @@ const updateCandidate = asyncHandler(async (req, res) => {
 
   res.json(updatedCandidate);
 });
+
+
 
 // ------------------- UPLOAD PROFILE PHOTO -------------------
 const uploadProfilePhoto = asyncHandler(async (req, res) => {
