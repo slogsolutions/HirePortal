@@ -11,13 +11,15 @@ const quotes = [
 ];
 
 export const Hero = () => {
-  const textRef = useRef(null); // <-- Type <HTMLHeadingElement> removed
-  const cursorRef = useRef(null); // <-- Type <HTMLSpanElement> removed
+  const textRef = useRef(null);
+  const cursorRef = useRef(null);
+  const sectionRef = useRef(null);
 
   useEffect(() => {
     let currentQuoteIndex = 0;
     let currentCharIndex = 0;
     let isDeleting = false;
+    let timeoutId = null;
 
     const typeWriter = () => {
       const currentQuote = quotes[currentQuoteIndex];
@@ -30,9 +32,9 @@ export const Hero = () => {
           );
         }
         currentCharIndex++;
-        setTimeout(typeWriter, 100);
+        timeoutId = setTimeout(typeWriter, 100);
       } else if (!isDeleting && currentCharIndex > currentQuote.length) {
-        setTimeout(() => {
+        timeoutId = setTimeout(() => {
           isDeleting = true;
           typeWriter();
         }, 2000);
@@ -44,15 +46,16 @@ export const Hero = () => {
           );
         }
         currentCharIndex--;
-        setTimeout(typeWriter, 50);
+        timeoutId = setTimeout(typeWriter, 50);
       } else {
         isDeleting = false;
         currentQuoteIndex = (currentQuoteIndex + 1) % quotes.length;
         currentCharIndex = 0;
-        setTimeout(typeWriter, 500);
+        timeoutId = setTimeout(typeWriter, 500);
       }
     };
 
+    // Start typewriter
     typeWriter();
 
     // Cursor blink animation
@@ -67,34 +70,66 @@ export const Hero = () => {
     }
 
     // Animate buttons
-    gsap.from(".hero-button", {
-      y: 50,
-      opacity: 0,
-      duration: 1,
-      stagger: 0.2,
-      delay: 0.5,
-      ease: "power3.out",
-    });
+    const buttons = document.querySelectorAll(".hero-button");
+    if (buttons.length > 0) {
+      Array.from(buttons).forEach((button, index) => {
+        gsap.fromTo(
+          button,
+          {
+            y: 50,
+            opacity: 0,
+          },
+          {
+            y: 0,
+            opacity: 1,
+            duration: 1,
+            delay: 0.5 + index * 0.2,
+            ease: "power3.out",
+            immediateRender: false,
+          }
+        );
+      });
+    }
+
+    // Cleanup
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-      {/* Image Background */}
+    <section 
+      ref={sectionRef}
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background"
+    >
+      {/* Video/Image Background  Laksh*/} 
       <div className="absolute inset-0 z-0">
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          className="w-full h-full object-cover"
+        >
+          <source src="/backgroundVideo.mp4" type="video/mp4" />
+        </video>
+        {/* Fallback image if video doesn't load */}
         <img
           src="/videos/office-video.png"
           alt="Office background"
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover hidden"
         />
         <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-4 text-center">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         <div className="mb-8">
           <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold mb-6 leading-tight min-h-[1.2em]">
-            <span ref={textRef} className="gradient-text"></span>
-            <span ref={cursorRef} className="gradient-text">
+            <span ref={textRef} className="gradient-text inline-block"></span>
+            <span ref={cursorRef} className="gradient-text inline-block ml-1">
               |
             </span>
           </h1>
@@ -116,7 +151,7 @@ export const Hero = () => {
           <Button
             size="lg"
             variant="outline"
-            className="hero-button text-lg px-8 py-6"
+            className="hero-button text-lg px-8 py-6 border-2"
           >
             Learn More
           </Button>
