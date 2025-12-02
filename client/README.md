@@ -1,4 +1,4 @@
-after on the profilepage of Candidate 
+ dsg after on the profilepage of Candidate 
 
 Nice — you’re doing the right thing thinking about discrete steps. I’ll give you a short, practical plan you can follow as a beginner, plus concrete schema changes, API endpoints, routes, and small React skeletons so you can implement each piece one-by-one. Focus on the flow first, then code.
 
