@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Offer Letter - SLOG Solutions</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: #e5e5e5;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    .page {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 20mm 18mm;
+      background: #fff;
+      position: relative;
+      page-break-after: always;
+      color: #000;
+      font-size: 14px; /* Bigger base font */
+    }
+
+    .page-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .top-strip {
+      background: #c00000;
+      color: #fff;
+      padding: 6px 10px;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+    }
+
+    .header-left {
+      font-size: 15px;
+      font-weight: bold;
+      color: #c00000;
+      text-transform: uppercase;
+    }
+
+    .header-right {
+      text-align: right;
+    }
+
+    .header-right img.logo {
+      max-height: 50px;
+      display: block;
+      margin-left: auto;
+      margin-bottom: 4px;
+    }
+
+    .company-name {
+      font-size: 18px;
+      font-weight: bold;
+      color: #c00000;
+    }
+
+    .iso-text {
+      font-size: 11px;
+      font-weight: bold;
+    }
+
+    .meta {
+      font-size: 13px;
+      margin-bottom: 16px;
+    }
+
+    .meta div {
+      margin-bottom: 4px;
+    }
+
+    .to-block {
+      font-size: 14px;
+      margin-bottom: 16px;
+      line-height: 1.6;
+    }
+
+    .content p {
+      margin: 8px 0;
+      text-align: justify;
+      line-height: 1.5;
+    }
+
+    /* Section-style for both pages (label + content on same line) */
+    .section-line {
+      margin: 8px 0;
+      text-align: justify;
+      line-height: 1.5;
+    }
+
+    .section-label {
+      text-transform: uppercase;
+      text-decoration: underline;
+      font-weight: bold;
+      margin-right: 4px;
+    }
+
+    .section-text {
+      font-weight: normal;
+    }
+
+    .blank-signature-space {
+      margin-top: 40px;
+      height: 150px; /* reserved physical signature space */
+    }
+     .blank-signature-space2 {
+      margin-top: 40px;
+      height: 200px; /* reserved physical signature space */
+    }
+
+    .bottom-contact {
+      position: absolute;
+      left: 20mm;
+      right: 20mm;
+      bottom: 9mm;
+      font-size: 11px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .bottom-bar {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #c00000;
+      color: #fff;
+      text-align: center;
+      padding: 4px;
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    /* Page 2 title */
+    .page2-title {
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+      text-decoration: underline;
+      margin-bottom: 14px;
+      text-transform: uppercase;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PAGE 1 -->
+  <div class="page">
+    <div class="page-content">
+      <div class="top-strip">
+        <span>MCA Registration No: U80904UR2018PTC009058  |  MSME Reg. No: UK05D0005028</span>
+        <!-- <span>MSME Reg. No: UK05D0005028</span> -->
+      </div>
+
+      <div class="header">
+        <!-- <div class="header-left">
+          SLOG SOLUTIONS PVT. LTD.
+        </div> -->
+        <div class="meta">
+        <div>Date: {{offerDate}}</div>
+        <div>Reference No: {{referenceNo}}</div>
+      </div>
+        <div class="header-right">
+          <img class="logo" src="/offers/template-images/Slog-logo.png" alt="Slog Solutions Logo">
+          <div class="company-name">SLOG SOLUTIONS PVT. LTD.</div>
+          <div class="iso-text">ISO 9001 : 2015 CERTIFIED</div>
+        </div>
+      </div>
+
+      <!-- Date and Reference NOT in same line -->
+      
+
+      <div class="to-block">
+       <strong> To,</strong><br>
+        <strong>Mr. {{candidateName}}</strong><br>
+        <strong>S/O {{father_name}}</strong><br>
+        <strong>{{candidate_full_address}}</strong><br>
+        <br>
+       <strong>Mobile: {{candidate_mobile}}</strong> 
+      </div>
+
+      <div class="content">
+        <p>Dear {{candidateName}},</p>
+
+        <p>
+          With reference to your application and subsequent interview/personal discussion, we have pleasure
+          in offering you an appointment in the company with effect from <strong>{{joiningDate}}</strong>, in accordance with
+          the undermentioned terms and conditions.
+        </p>
+
+        <!-- SECTION LINES (same style pattern) -->
+        <p class="section-line">
+          <span class="section-label">DESIGNATION:</span>
+          <span class="section-text">
+            You will be designated as "<strong>{{position}}</strong>" at <strong>SLOG Solutions Pvt. Ltd.</strong>.
+          </span>
+        </p>
+
+        <p class="section-line">
+          <span class="section-label">REMUNERATION:</span>
+          <span class="section-text">
+            Your salary is INR <strong>{{ctc}}</strong> per month. The company may offer you an increment as per
+            your performance and company policy.
+          </span>
+        </p>
+
+        <p class="section-line">
+          <span class="section-label">INCENTIVE:</span>
+          <span class="section-text">
+            You will be eligible for 1% incentives as per the incentive policy of the company, which may be revised
+            from time to time at the discretion of the management.
+          </span>
+        </p>
+
+        <p class="section-line">
+          <span class="section-label">WORKING HOURS:</span>
+          <span class="section-text">
+            You will be expected to work from the office, except when travelling as required by the company.
+            The current office timings are <strong>10:00 AM to 7:30 PM</strong>, which may change as per the
+            requirements of the organization.
+          </span>
+        </p>
+
+        <p class="section-line">
+          <span class="section-label">BOND PERIOD:</span>
+          <span class="section-text">
+            You will be on a bond period of one year from the date of joining. The bond may be
+            extended or modified as per your work, conduct and management’s decision.
+          </span>
+        </p>
+
+        <p class="section-line">
+          <span class="section-label">RESIGNATION / TERMINATION:</span>
+          <span class="section-text">
+            If you wish to resign, a written notice of <strong>one (1) month</strong> is required. The company reserves
+            the right to terminate your services in accordance with its policies, including but not limited to
+            unsatisfactory performance or misconduct.
+          </span>
+        </p>
+
+        <p class="section-line">
+          <span class="section-label">VERIFICATION:</span>
+          <span class="section-text">
+            This appointment is based on the information provided by you. If any discrepancy, misrepresentation or
+            omission is found at any time, the management reserves the right to terminate your employment without notice.
+          </span>
+        </p>
+
+        <!-- After all section-lines, some space then signature area -->
+        <div style="height: 20px;"></div>
+      </div>
+
+      <div class="blank-signature-space"></div>
+
+      <div class="bottom-contact">
+        <div>+91-7456000240, +91-7456000241</div>
+        <div>www.slogsolutions.com | slog.doon@gmail.com</div>
+        <div>Engineers Bhawan, 1st Floor, IEI, Near ISBT Flyover, Dehradun</div>
+      </div>
+
+      <div class="bottom-bar">
+        TRAINING | EDUCATIONAL KITS | OUTBOUND ACTIVITIES | FDP | PROJECTS - 125+ CENTERS
+      </div>
+    </div>
+  </div>
+
+  <!-- PAGE 2 (RULES & REGULATIONS) -->
+  <div class="page">
+    <div class="page-content">
+
+      <div class="page2-title">RULES AND REGULATIONS &amp; OFFICE ORDERS</div>
+
+      <!-- Same section-line pattern as page 1 -->
+      <p class="section-line">
+        <span class="section-label">RULES AND REGULATION AND OFFICE ORDERS:</span>
+        <span class="section-text">
+          You will be bound by rules, regulations and office orders enforced by the management from time to time
+          in relation to conduct, discipline, leaves, or on any matters relating to the service conditions, which
+          will be deemed as rules and regulations as part of these terms of employment.
+        </span>
+      </p>
+
+      <p class="section-line">
+        <span class="section-label">CASUAL LEAVES:</span>
+        <span class="section-text">
+          Employees are eligible for <strong>12 casual leaves</strong> during the calendar year (i.e. from January
+          to December) on a pro-rata basis. CL cannot be taken for more than <strong>3 days</strong> at a stretch
+          without a prior <strong>1-month</strong> application.
+        </span>
+      </p>
+
+      <p class="section-line">
+        <span class="section-label">SECURITY OF INFORMATION:</span>
+        <span class="section-text">
+          During the period of your services and after leaving the company, you will not disclose, divulge or
+          communicate to any interested party or any other person whatsoever, any information relating to the
+          company’s business or any other confidential information or any company’s transactions with its clients.
+          You cannot accept employment from the same domain company or a competitive company for the next
+          <strong>one (1) year</strong> after leaving SLOG. In case you do so, you will be guilty of misconduct and
+          the company shall have the right to claim damages and take appropriate action against you.
+        </span>
+      </p>
+
+      <p class="section-line">
+        <span class="section-label">MISCONDUCT:</span>
+        <span class="section-text">
+          The company reserves the right to take disciplinary action against you for misconduct. The punishment
+          will vary according to the gravity of the misconduct and may include warning in writing, suspension,
+          stoppage of annual increment and/or incentives, demotion, dismissal and/or legal action.
+        </span>
+      </p>
+
+      <p class="section-line">
+        <span class="section-label">CONCURRENT EMPLOYMENT:</span>
+        <span class="section-text">
+          You will not, without the prior approval of the Director of the company, accept employment or a position
+          of responsibility with any other company, nor provide “freelance” services to anyone as long as you are
+          in the service of <strong>SLOG Solutions Pvt. Ltd.</strong>. If any such conflict is discovered at any time,
+          the management shall have the right to terminate this appointment without any notice or to take legal action.
+        </span>
+      </p>
+
+      <!-- closing paragraphs (not labelled as section) -->
+      <div style="margin-top: 12px;">
+        <p>
+          In case the above terms and conditions are acceptable to you, please sign the duplicate of this
+          letter in token of your having understood and accepted the same.
+        </p>
+        <p>
+          We welcome you as a member of the organization and look forward to your long and fruitful association with us.
+        </p>
+      </div>
+
+
+
+      
+
+      <!-- After all sections + text, then spacing and signature area -->
+      <div style="height: 20px;"></div>
+      
+
+      <div class="blank-signature-space2"></div>
+           <div class="header">
+        <!-- <div class="header-left">
+          SLOG SOLUTIONS PVT. LTD.
+        </div> -->
+       
+      <div class="to-block">
+       <strong> To,</strong><br>
+        <strong>Mr. {{candidateName}}</strong><br>
+        <strong>S/O {{father_name}}</strong><br>
+        <strong>{{candidate_full_address}}</strong><br>
+        <br>
+       <strong>Mobile: {{candidate_mobile}}</strong> 
+      </div>
+
+
+        <div class="header-right">
+     
+      <div class="to-block">
+       <strong> To,</strong><br>
+        <strong>Mr. {{candidateName}}</strong><br>
+        <strong>S/O {{father_name}}</strong><br>
+        <strong>{{candidate_full_address}}</strong><br>
+        <br>
+       <strong>Mobile: {{candidate_mobile}}</strong> 
+      </div>
+        </div>
+
+      </div>
+
+      <!-- Date and Reference NOT in same line -->
+      
+<!-- 
+      <div class="to-block">
+       <strong> To,</strong><br>
+        <strong>Mr. {{candidateName}}</strong><br>
+        <strong>S/O {{father_name}}</strong><br>
+        <strong>{{candidate_full_address}}</strong><br>
+        <br>
+       <strong>Mobile: {{candidate_mobile}}</strong> 
+      </div> -->
+        <hr/>
+
+
+
+      <!-- <div class="bottom-contact">
+        <div>+91-7456000240, +91-7456000241</div>
+        <div>www.slogsolutions.com | slog.doon@gmail.com</div>
+        <div>Engineers Bhawan, 1st Floor, IEI, Near ISBT Flyover, Dehradun</div>
+      </div>
+      <div class="bottom-bar">
+        TRAINING | EDUCATIONAL KITS | OUTBOUND ACTIVITIES | FDP | PROJECTS - 125+ CENTERS
+      </div> -->
+    </div>
+  </div>
+
+</body>
+</html>

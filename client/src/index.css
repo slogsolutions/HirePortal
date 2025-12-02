@@ -1,0 +1,86 @@
+/* GLOBAL: html2canvas fix + simple animation keyframes/helpers (apply everywhere) */
+.html2canvas-fix * {
+  color-scheme: light !important;
+}
+.html2canvas-fix, .html2canvas-fix html, .html2canvas-fix body {
+  background-color: rgb(243, 244, 246) !important;
+}
+
+/* Animations (global keyframes used by scoped utilities if needed) */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes scaleUp {
+  from { transform: translateY(6px) scale(0.98); opacity: 0; }
+  to   { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 180ms ease-out forwards;
+}
+.animate-scaleUp {
+  animation: scaleUp 220ms cubic-bezier(.2,.9,.2,1) forwards;
+}
+
+.themeClass .video-overlay {
+  position: absolute;
+  inset: 0;
+  /* use HSL with CSS color alpha so it matches tokens exactly */
+  background-color: hsl(var(--overlay-tint) / var(--overlay-alpha));
+  /* friendly fallback for older browsers */
+  background-color: rgba(79,85,49,var(--overlay-alpha)); /* approx verdigris fallback */
+  backdrop-filter: blur(6px) saturate(120%);
+  -webkit-backdrop-filter: blur(6px) saturate(120%);
+  pointer-events: none;
+  z-index: 10;
+  mix-blend-mode: overlay; /* softens tint and blends with video */
+  opacity: 0.95;
+}
+
+
+
+
+/* -------------------------
+   SCOPED DESIGN SYSTEM ONLY
+   Enabled when you add "themeClass" to a wrapper element.
+   Dark mode activates only when that wrapper has "dark" too:
+   <div className="themeClass"> light </div>
+   <div className="themeClass dark"> dark  </div>
+   ------------------------- */
+
+/* New Slate/Neutral Palette for Dark Theme Standardization */
+:root { /* Light theme values */
+  --bg-page: 240 10% 100%; /* bg-white */
+  --bg-card: 240 10% 100%; /* bg-white */
+  --text-primary: 222 47% 11%; /* text-slate-900 */
+  --text-secondary: 215 14% 45%; /* text-slate-500 */
+  --border-color: 220 14% 96%; /* border-gray-200 */
+}
+
+.dark { /* Dark theme values */
+  --bg-page: 222 47% 4%; /* slate-950 */
+  --bg-card: 222 47% 11%; /* slate-900 */
+  --text-primary: 210 40% 98%; /* text-slate-100 */
+  --text-secondary: 215 14% 65%; /* text-slate-400 */
+  --border-color: 215 14% 25%; /* border-slate-700 */
+}
+
+/* Fallback for global styles that use hardcoded colors */
+body {
+  background-color: hsl(var(--bg-page));
+  color: hsl(var(--text-primary));
+}
+
+/* Example for a card-like element if needed */
+.card-like {
+  background-color: hsl(var(--bg-card));
+  border-color: hsl(var(--border-color));
+}
+
+/* supporting keyframes left global */
+@keyframes gradientShift { 0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%} }
+@keyframes float { 0%,100%{transform:translateY(0)}50%{transform:translateY(-20px)} }
+@keyframes glow { 0%,100%{box-shadow:0 0 20px hsl(var(--primary) / 0.22)}50%{box-shadow:0 0 40px hsl(var(--accent) / 0.32), 0 0 60px hsl(var(--secondary) / 0.14)} }
+@keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
