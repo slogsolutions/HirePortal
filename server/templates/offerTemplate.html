@@ -27,7 +27,30 @@
       font-size: 14px; /* Bigger base font */
     }
 
+    .page2 {
+  width: 210mm;
+  min-height: 240mm;  /* reduced more */
+  margin: 0 auto;
+  padding: 10mm 14mm; /* reduced padding also */
+  background: #fff;
+  position: relative;
+  page-break-after: always;
+  color: #000;
+  font-size: 14px;
+  box-sizing: border-box; /* important */
+}
+
+.page2 p {
+  margin: 4px 0; /* instead of browser default 16px */
+}
+
+
     .page-content {
+      position: relative;
+      z-index: 1;
+    }
+    
+    .page2-content {
       position: relative;
       z-index: 1;
     }
@@ -123,7 +146,7 @@
     }
      .blank-signature-space2 {
       margin-top: 40px;
-      height: 200px; /* reserved physical signature space */
+      height: 160px; /* reserved physical signature space */
     }
 
     .bottom-contact {
@@ -176,11 +199,11 @@
           SLOG SOLUTIONS PVT. LTD.
         </div> -->
         <div class="meta">
-        <div>Date: {{offerDate}}</div>
-        <div>Reference No: {{referenceNo}}</div>
+        <div>Date: ...................................</div>
+        <div>Reference No: ........................................</div>
       </div>
         <div class="header-right">
-          <img class="logo" src="/offers/template-images/Slog-logo.png" alt="Slog Solutions Logo">
+          <img class="logo" src="./Slog-logo.png" alt="Slog Solutions Logo">
           <div class="company-name">SLOG SOLUTIONS PVT. LTD.</div>
           <div class="iso-text">ISO 9001 : 2015 CERTIFIED</div>
         </div>
@@ -284,7 +307,7 @@
   </div>
 
   <!-- PAGE 2 (RULES & REGULATIONS) -->
-  <div class="page">
+  <div class="page2">
     <div class="page-content">
 
       <div class="page2-title">RULES AND REGULATIONS &amp; OFFICE ORDERS</div>
@@ -365,29 +388,25 @@
         </div> -->
        
       <div class="to-block">
-       <strong> To,</strong><br>
-        <strong>Mr. {{candidateName}}</strong><br>
-        <strong>S/O {{father_name}}</strong><br>
-        <strong>{{candidate_full_address}}</strong><br>
-        <br>
-       <strong>Mobile: {{candidate_mobile}}</strong> 
+       <!-- <strong> To,</strong><br> -->
+        <strong>Mrs. Pinki Negi</strong><br>
+        <strong>Branch Coordinator</strong><br>
+        <strong>Slog Solutions Pvt. Ltd.</strong><br>
       </div>
 
 
         <div class="header-right">
      
       <div class="to-block">
-       <strong> To,</strong><br>
-        <strong>Mr. {{candidateName}}</strong><br>
-        <strong>S/O {{father_name}}</strong><br>
-        <strong>{{candidate_full_address}}</strong><br>
-        <br>
-       <strong>Mobile: {{candidate_mobile}}</strong> 
+       <!-- <strong> To,</strong><br> -->
+        <strong>Kiran Bisht</strong><br>
+        <strong>Marketing Director</strong><br>
+        <strong>Slog Solutions Pvt. Ltd.</strong><br>
       </div>
         </div>
 
       </div>
-
+  <hr/>
       <!-- Date and Reference NOT in same line -->
       
 <!-- 
@@ -399,7 +418,7 @@
         <br>
        <strong>Mobile: {{candidate_mobile}}</strong> 
       </div> -->
-        <hr/>
+      
 
 
 
