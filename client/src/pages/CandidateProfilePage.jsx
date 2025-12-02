@@ -184,7 +184,7 @@ export default function CandidateProfilePage() {
             {candidate.mobileVerified ? "Mobile Verified" : verifying ? "Verifying..." : "Verify Mobile"}
           </button>
 
-          <select value={candidate.status || "applied"} onChange={(e) => updateStatus(e.target.value)} className="px-2 py-1 border rounded">
+          <select value={candidate.status || "applied"} onChange={(e) => updateStatus(e.target.value)} className="px-2 py-1 border rounded dark:bg-slate-950">
             {STATUS_ORDER.map((s) => (
               <option key={s} value={s}>
                 {prettyStatus(s)}
@@ -195,9 +195,9 @@ export default function CandidateProfilePage() {
       </div>
 
       {/* Timeline & Details */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 ">
         {/* Timeline */}
-        <div className="col-span-1 bg-white rounded-xl shadow p-4">
+        <div className="col-span-1 bg-white rounded-xl shadow p-4 dark:bg-slate-900">
           <div className="text-sm font-semibold mb-3">Timeline</div>
           <div className="space-y-4">
             {STATUS_ORDER.map((step, idx) => {
@@ -253,8 +253,8 @@ export default function CandidateProfilePage() {
         </div>
 
         {/* Candidate Details */}
-        <div className="col-span-2 bg-white rounded-xl shadow p-6 space-y-4">
-          <div className="flex justify-between items-center">
+        <div className="col-span-2 bg-white rounded-xl shadow p-6 space-y-4 dark:bg-slate-900">
+          <div className="flex justify-between items-centerdark:bg-slate-900">
             <h2 className="text-lg font-semibold">Candidate Details</h2>
             <button onClick={() => setEditModalOpen(true)} className="text-indigo-600 hover:text-indigo-800">
               <PencilIcon className="w-5 h-5 inline" />
@@ -373,7 +373,7 @@ export default function CandidateProfilePage() {
 
           {/* PG Info (only if isPG true) */}
           {candidate.address?.isPG && (
-            <div className="bg-gray-50 border rounded p-3">
+            <div className="bg-gray-50 border rounded p-3 dark:bg-slate-900">
               <div className="text-xs text-gray-500">Living Arrangement</div>
               <div className="mt-1">Living in PG / Rent</div>
 
@@ -958,7 +958,7 @@ async function fetchNextEmpCode() {
   // UI Section wrapper
   function SectionEditor({ title, sectionKey, children }) {
     return (
-      <div ref={(el) => (sectionRefs.current[sectionKey] = el)} className="bg-white rounded-xl shadow p-4 space-y-2">
+      <div ref={(el) => (sectionRefs.current[sectionKey] = el)} className="bg-white rounded-xl shadow p-4 space-y-2 dark:bg-slate-900">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-sm font-semibold">{title}</h3>
           {editingSection === sectionKey ? (
@@ -993,17 +993,17 @@ async function fetchNextEmpCode() {
   }
 
   return (
-    <div className="space-y-4 max-h-[70vh] overflow-y-auto">
+    <div className="space-y-4 max-h-[70vh] overflow-y-auto dark:bg-slate-900 ">
 
 
       {/* EMP CODE CONTROL - shown at top so user can select auto/manual for assignment */}
-      <div className="bg-white rounded-xl shadow p-4">
-        <div className="flex justify-between items-center mb-2">
+      <div className="bg-white rounded-xl shadow p-4 dark:bg-slate-900">
+        <div className="flex justify-between items-center mb-2 ">
           <h3 className="text-sm font-semibold">Employee Code</h3>
           <div className="text-xs text-gray-500">{candidate.empCode ? "Assigned" : "Not assigned"}</div>
         </div>
 
-        <div className="space-y-2">
+        <div className="space-y-2 ">
           <div className="text-xs text-gray-500">Current empCode: <span className="font-medium">{candidate.empCode || "-"}</span></div>
 
           <div className="flex items-center gap-3">
@@ -1083,7 +1083,7 @@ async function fetchNextEmpCode() {
 
       {/* Personal Section */}
       <SectionEditor title="Personal Details" sectionKey="personal">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
           <div>
             <label className="text-xs text-gray-500">First name</label>
             <input
@@ -1198,8 +1198,8 @@ async function fetchNextEmpCode() {
       <SectionEditor title="Job Info" sectionKey="job">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-xs text-gray-500">Company</label>
-            <input type="text" disabled value="SLOG" className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed" />
+            <label className="text-xs text-gray-500 ">Company</label>
+            <input type="text" disabled value="SLOG" className="w-full border rounded px-2 py-1 bg-gray-100 cursor-not-allowed dark:bg-slate-900 " />
           </div>
           <div>
             <label className="text-xs text-gray-500">Designation</label>
@@ -1319,7 +1319,7 @@ async function fetchNextEmpCode() {
       </SectionEditor>
 
       {/* Password Panel */}
-      <div className="bg-white rounded-xl shadow p-4">
+      <div className="bg-white rounded-xl shadow p-4 dark:bg-slate-900">
         <div className="flex justify-between items-center mb-2">
           <h3 className="text-sm font-semibold">Password</h3>
           <button onClick={() => setShowPasswordPanel((s) => !s)} className="text-indigo-600 text-xs hover:underline">

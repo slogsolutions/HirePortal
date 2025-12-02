@@ -1,4 +1,6 @@
-/* GLOBAL: html2canvas fix + simple animation keyframes/helpers (apply everywhere) */
+
+
+
 .html2canvas-fix * {
   color-scheme: light !important;
 }

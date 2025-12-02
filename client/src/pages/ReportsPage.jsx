@@ -110,5 +110,5 @@ export default function CandidateScores() {
         </div>
       )}
     </div>
-  );
+  )
 }
