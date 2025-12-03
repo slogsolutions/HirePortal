@@ -203,7 +203,7 @@ const deleteOffer = async (o) => {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto dark:bg-slate-900">
       <header className="mb-6 flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold">Offers Admin</h1>
@@ -221,7 +221,7 @@ const deleteOffer = async (o) => {
             <select
               value={generateForm.candidateId}
               onChange={e => setGenerateForm({ ...generateForm, candidateId: e.target.value })}
-              className="w-full mt-1 p-2 border rounded"
+              className="w-full mt-1 p-2 border rounded dark:bg-slate-900"
             >
               <option value="">-- select candidate --</option>
               {candidatesLoading ? (
@@ -246,8 +246,8 @@ const deleteOffer = async (o) => {
             <input value={generateForm.ctc} onChange={e => setGenerateForm({ ...generateForm, ctc: e.target.value })} className="w-full mt-1 p-2 border rounded" placeholder="e.g. 1200000" />
           </div>
 
-          <div className="col-span-1 md:col-span-1">
-            <label className="text-sm text-gray-700">Joining Date</label>
+          <div className="col-span-1 md:col-span-1 dark:bg-slate-900">
+            <label className="text-sm text-gray-700 dark:bg-slate-900">Joining Date</label>
             <input type="date" value={generateForm.joiningDate} onChange={e => setGenerateForm({ ...generateForm, joiningDate: e.target.value })} className="w-full mt-1 p-2 border rounded" />
           </div>
 
@@ -255,7 +255,7 @@ const deleteOffer = async (o) => {
             <label className="text-sm text-gray-700">&nbsp;</label>
             <div className="flex gap-2">
               <button type="submit" disabled={generating} className="px-3 py-2 bg-green-600 text-white rounded">{generating ? 'Generating...' : 'Generate Offer'}</button>
-              <button type="button" onClick={() => setGenerateForm({ candidateId: '', designation: '', ctc: '', joiningDate: '', notes: '' })} className="px-3 py-2 bg-gray-200 rounded">Reset</button>
+              <button type="button" onClick={() => setGenerateForm({ candidateId: '', designation: '', ctc: '', joiningDate: '', notes: '' })} className="px-3 py-2 bg-gray-200 rounded dark:bg-red-700">Reset</button>
             </div>
           </div>
 
@@ -267,7 +267,7 @@ const deleteOffer = async (o) => {
       </section>
 
       {/* ---------- cdate filter (ONLY addition) ---------- */}
-      <section className="mb-6 bg-white p-4 rounded shadow-sm">
+      <section className="mb-6 bg-white p-4 rounded shadow-sm dark:bg-slate-900">
         <div className="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
           <div className="md:col-span-2">
             <label className="text-sm text-gray-700">Start cdate</label>
@@ -279,7 +279,7 @@ const deleteOffer = async (o) => {
           </div>
           <div className="md:col-span-2 flex items-center gap-2">
             <button onClick={() => {}} className="px-3 py-2 bg-indigo-600 text-white rounded">Apply</button>
-            <button onClick={resetDates} className="px-3 py-2 bg-gray-200 rounded">Reset</button>
+            <button onClick={resetDates} className="px-3 py-2 bg-gray-200 rounded dark:bg-red-700">Reset</button>
             <div className="ml-auto text-sm text-gray-600">{filteredOffers.length ?? 0} / {offers.length} shown</div>
           </div>
         </div>
@@ -287,19 +287,19 @@ const deleteOffer = async (o) => {
       {/* ---------- end cdate filter ---------- */}
 
       <section>
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-lg font-medium">Generated Offers</h2>
-          <div className="text-sm text-gray-600">Total: {offers.length}</div>
+        <div className="mb-4 flex items-center justify-between dark:bg-slate-900">
+          <h2 className="text-lg font-medium dark:bg-slate-900">Generated Offers</h2>
+          <div className="text-sm text-gray-600 dark:bg-slate-900">Total: {offers.length}</div>
         </div>
 
         {loading ? (
-          <div className="p-6 bg-white rounded shadow">Loading...</div>
+          <div className="p-6 bg-white rounded shadow dark:bg-slate-900">Loading...</div>
         ) : error ? (
-          <div className="p-6 bg-red-50 text-red-700 rounded">{error}</div>
+          <div className="p-6 bg-red-50 text-red-700 rounded dark:bg-slate-900">{error}</div>
         ) : (
-          <div className="overflow-x-auto bg-white rounded shadow">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+          <div className="overflow-x-auto bg-white rounded shadow dark:bg-slate-900">
+            <table className="min-w-full divide-y divide-gray-200 dark:bg-slate-900">
+              <thead className="bg-gray-50 dark:bg-slate-900">
                 <tr>
                   <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">File</th>
                   <th className="px-4 py-2 text-left text-sm font-medium text-gray-600">Created</th>
@@ -307,18 +307,18 @@ const deleteOffer = async (o) => {
                   <th className="px-4 py-2 text-right text-sm font-medium text-gray-600">Actions</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-100">
+              <tbody className="bg-white divide-y divide-gray-100 dark:bg-slate-900">
                 {filteredOffers.map((o) => (
                   <tr key={getIdentifier(o)}>
                     <td className="px-4 py-3 text-sm">
                       <div className="font-medium">{o.filename || getIdentifier(o)}</div>
                       {o.url ? <div className="text-xs text-gray-500 break-all">{o.url}</div> : null}
                     </td>
-                    <td className="px-4 py-3 text-sm">{o.createdAt ? new Date(o.createdAt).toLocaleString() : '-'}</td>
-                    <td className="px-4 py-3 text-sm">{o.sizeKB ?? '-'}</td>
-                    <td className="px-4 py-3 text-sm text-right">
-                      <div className="inline-flex items-center gap-2">
-                        <button onClick={() => openPreview(o)} className="px-2 py-1 bg-indigo-600 text-white rounded text-sm">Preview</button>
+                    <td className="px-4 py-3 text-sm dark:bg-slate-900">{o.createdAt ? new Date(o.createdAt).toLocaleString() : '-'}</td>
+                    <td className="px-4 py-3 text-sm dark:bg-slate-900">{o.sizeKB ?? '-'}</td>
+                    <td className="px-4 py-3 text-sm text-right dark:bg-slate-900">
+                      <div className="inline-flex items-center gap-2 dark:bg-slate-900">
+                        <button onClick={() => openPreview(o)} className="px-2 py-1 bg-indigo-600 text-white rounded text-sm ">Preview</button>
                         <button onClick={() => downloadOffer(o)} className="px-2 py-1 bg-blue-600 text-white rounded text-sm">Download</button>
                         <button onClick={() => deleteOffer(o)} className="px-2 py-1 bg-red-600 text-white rounded text-sm">Delete</button>
                       </div>
@@ -327,15 +327,15 @@ const deleteOffer = async (o) => {
                 ))}
               </tbody>
             </table>
-            {filteredOffers.length === 0 && <div className="p-4 text-gray-500">No offers match the selected date range.</div>}
+            {filteredOffers.length === 0 && <div className="p-4 text-gray-500 dark:bg-slate-900">No offers match the selected date range.</div>}
           </div>
         )}
       </section>
 
       {/* Preview Modal */}
       {previewOffer && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="w-[90%] md:w-3/4 lg:w-2/3 bg-white rounded shadow-lg overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 dark:bg-slate-900">
+          <div className="w-[90%] md:w-3/4 lg:w-2/3 bg-white rounded shadow-lg overflow-hidden dark:bg-blue-700">
             <div className="flex items-center justify-between p-3 border-b">
               <h3 className="text-lg font-medium">Preview Offer — {previewOffer.identifier}</h3>
               <div className="flex items-center gap-2">
@@ -343,11 +343,14 @@ const deleteOffer = async (o) => {
                   href={buildBackendOfferUrl(previewOffer.identifier, "download")}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="px-3 py-1 bg-blue-600 text-white rounded"
+                  className="px-4 py-2 rounded-lg 
+        bg-emerald-600 text-white 
+        hover:bg-emerald-700
+        dark:bg-emerald-500 dark:hover:bg-emerald-600"
                 >
-                  Open in new tab
+                  Download
                 </a>
-                <button onClick={closePreview} className="px-3 py-1 bg-gray-200 rounded">Close</button>
+                <button onClick={closePreview} className="px-3 py-1 bg-gray-200 rounded dark:bg-red-700">Close</button>
               </div>
             </div>
             <div className="h-[70vh]">

@@ -48,19 +48,19 @@ export default function CandidateScores() {
     SCORE_KEYS.reduce((sum, k) => sum + Number(scores?.[k] || 0), 0);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow">
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow dark:bg-slate-900">
       <h2 className="text-2xl font-semibold mb-4">Candidate Scores</h2>
 
       {/* Candidate selector */}
       <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-600 mb-1">Select Candidate</label>
+        <label className="block text-sm font-medium text-gray-600 mb-1 dark:bg-slate-900">Select Candidate</label>
         {loadingCandidates ? (
-          <div className="text-gray-500">Loading candidates...</div>
+          <div className="text-gray-500 dark:bg-slate-900">Loading candidates...</div>
         ) : (
           <select
             value={selectedCandidate || ""}
             onChange={(e) => setSelectedCandidate(e.target.value)}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-slate-900"
           >
             <option value="">-- Select a candidate --</option>
             {candidates.map(c => (

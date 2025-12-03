@@ -37,18 +37,18 @@ export default function AdminHolidays() {
   };
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Admin — Holidays</h1>
+    <div className="p-6 dark:bg-slate-900">
+      <h1 className="text-2xl font-bold mb-4 dark:bg-slate-900">Admin — Holidays</h1>
 
-      <div className="mb-4 p-4 bg-white rounded shadow">
-        <div className="flex gap-2 items-center">
+      <div className="mb-4 p-4 bg-white rounded shadow dark:bg-slate-900">
+        <div className="flex gap-2 items-center dark:bg-slate-900">
           <input type="date" value={date} onChange={e=>setDate(e.target.value)} className="border px-2 py-1" />
           <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="Holiday name" className="border px-2 py-1" />
           <button onClick={add} className="bg-green-600 text-white px-3 py-1 rounded">Add</button>
         </div>
       </div>
 
-      <div className="bg-white rounded shadow p-4">
+      <div className="bg-white rounded shadow p-4 dark:bg-slate-900">
         {loading && <div>Loading...</div>}
         <table className="w-full table-auto">
           <thead><tr><th>Date</th><th>Name</th><th></th></tr></thead>

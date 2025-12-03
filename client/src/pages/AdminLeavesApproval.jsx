@@ -188,9 +188,9 @@ export default function AdminLeavePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white p-6">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-6 flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-b from-indigo-50 to-white p-6 dark:bg-slate-900">
+      <div className="max-w-7xl mx-auto ">
+        <header className="mb-6 flex items-center justify-between ">
           <h1 className="text-2xl md:text-3xl font-bold text-gray-800">Leave Management</h1>
           <a href="/" className="text-indigo-600 hover:underline">Employee Page</a>
         </header>

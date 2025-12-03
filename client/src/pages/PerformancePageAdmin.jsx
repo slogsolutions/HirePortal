@@ -304,13 +304,13 @@ const AdminPerformancePage = () => {
   });
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-indigo-600">
+    <div className="p-6 bg-gray-50 min-h-screen dark:bg-slate-900">
+      <h1 className="text-3xl font-bold mb-6 text-indigo-600 dark:bg-slate-900 dark:text-gray-100">
         Employee Performance Dashboard
       </h1>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-6 items-center">
+      <div className="flex flex-wrap gap-4 mb-6 items-center dark:bg-slate-900">
         <input
           type="text"
           placeholder="Search employee..."
@@ -328,10 +328,10 @@ const AdminPerformancePage = () => {
 
       {/* Modern Overall Bar Chart */}
       {Object.keys(grouped).length > 0 ? (
-        <div className="bg-white p-4 rounded-lg shadow mb-6">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-xl font-semibold">Overall Employee Performance</h2>
-            <div className="text-sm text-gray-500">Average score per employee</div>
+        <div className="bg-white p-4 rounded-lg shadow mb-6 dark:bg-slate-900 dark:text-gray-100">
+          <div className="flex items-center justify-between mb-3 dark:bg-slate-900 dark:text-gray-100 ">
+            <h2 className="text-xl font-semibold dark:bg-slate-900 dark:text-gray-100">Overall Employee Performance</h2>
+            <div className="text-sm text-gray-500 dark:bg-slate-900 dark:text-gray-100">Average score per employee</div>
           </div>
 
           <OverallBarChart
@@ -342,11 +342,11 @@ const AdminPerformancePage = () => {
           />
         </div>
       ) : (
-        <div className="bg-white p-4 rounded-lg shadow mb-6 text-gray-500">No performance data to display.</div>
+        <div className="bg-white p-4 rounded-lg shadow mb-6 text-gray-500 dark:bg-slate-900 dark:text-gray-100">No performance data to display.</div>
       )}
 
       {/* Employee Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 dark:bg-slate-900 dark:text-gray-100">
         {/* {filteredEmployees.length === 0 && (
           <p className="text-gray-500 col-span-full">No employees found.</p>
         )} */}
@@ -355,14 +355,14 @@ const AdminPerformancePage = () => {
           return (
             <motion.div
               key={id}
-              className="bg-white shadow rounded-lg p-4 hover:shadow-lg transition cursor-pointer flex flex-col justify-between"
+              className="bg-white shadow rounded-lg p-4 hover:shadow-lg transition cursor-pointer flex flex-col justify-between dark:bg-slate-800 dark:text-gray-100"
               whileHover={{ scale: 1.02 }}
               onClick={() => setExpandedEmployee(id)}
             >
               <div>
-                <h3 className="text-lg font-bold">{emp.employeeName}</h3>
+                <h3 className="text-lg font-bold dark:bg-slate-800 dark:text-gray-100">{emp.employeeName}</h3>
                 <Stars value={emp.average} />
-                <p className="text-gray-500 mt-1">{(Array.isArray(emp.records) ? emp.records.length : 0)} records</p>
+                <p className="text-gray-500 mt-1 dark:bg-slate-800 dark:text-gray-100">{(Array.isArray(emp.records) ? emp.records.length : 0)} records</p>
               </div>
               <EmployeeLineChart records={Array.isArray(emp.records) ? emp.records : []} />
             </motion.div>
@@ -373,14 +373,14 @@ const AdminPerformancePage = () => {
       {/* Expanded Employee Details */}
       {expandedEmployee && grouped[expandedEmployee] && (
         <motion.div
-          className="fixed top-[64px] right-0 h-[calc(100%-64px)] w-full md:w-1/3 bg-white shadow-lg p-6 z-40 overflow-y-auto"
+          className="fixed top-[64px] right-0 h-[calc(100%-64px)] w-full md:w-1/3 bg-white shadow-lg p-6 z-40 overflow-y-auto dark:bg-slate-800 dark:text-gray-100"
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
         >
           {/* Close Button */}
           <button
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold dark:bg-slate-800 dark:text-gray-100"
             onClick={() => setExpandedEmployee(null)}
           >
             ×
@@ -388,7 +388,7 @@ const AdminPerformancePage = () => {
 
           {Array.isArray(grouped[expandedEmployee].records) && grouped[expandedEmployee].records.length > 0 ? (
             grouped[expandedEmployee].records.map((p, idx) => (
-              <div key={idx} className="border-b py-4 flex flex-col gap-2 mt-8">
+              <div key={idx} className="border-b py-4 flex flex-col gap-2 mt-8 dark:bg-slate-800 dark:text-gray-100">
                 <p><strong>Period:</strong> {p?.period || "N/A"}</p>
                 <p>
                   <strong>Performance Score:</strong> <Stars value={p?.performanceScore ?? 0} />
@@ -455,7 +455,7 @@ const AdminPerformancePage = () => {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-white/20 backdrop-blur-md">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-white/20 backdrop-blur-md dark:bg-slate-800 dark:text-gray-100">
           <motion.div
             className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-md"
             initial={{ scale: 0.9, opacity: 0 }}

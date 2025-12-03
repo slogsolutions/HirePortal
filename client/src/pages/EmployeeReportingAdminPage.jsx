@@ -23,14 +23,14 @@ import {
 
 // Color mapping for small badges (tailwind classes)
 const STATUS_COLORS = {
-  Working: "bg-green-200 text-black",
-  "On Leave": "bg-blue-200 text-black",
-  Holiday: "bg-yellow-200 text-black",
-  Missed: "bg-red-200 text-black",
-  Future: "bg-white text-gray-700",
-  Sunday: "bg-orange-200 text-black",
-  Pending: "bg-gray-100 text-black", // <-- new: today's not-yet-reported marker
-  Default: "bg-white text-black",
+  Working: "bg-green-200 text-black dark:bg-green-200",
+  "On Leave": "bg-blue-200 text-black dark:bg-blue-200",
+  Holiday: "bg-yellow-200 text-black dark:bg-yellow-200",
+  Missed: "bg-red-200 text-black dark:bg-red-200",
+  Future: "bg-white text-gray-700 dark:bg-slate-400",
+  Sunday: "bg-orange-200 text-black dark:bg-orange-200",
+  Pending: "bg-gray-100 text-black dark:bg-gray-100", // <-- new: today's not-yet-reported marker
+  Default: "bg-white text-black dark:bg-white",
 };
 
 // Status dropdown options
@@ -376,25 +376,25 @@ export default function AdminUsersWithDetail() {
 
         {/* NEW: button to show today's reporting and deselect any user */}
         <button
-          className="px-3 py-1 bg-gray-200 text-black rounded ml-2"
+          className="px-3 py-1 bg-gray-200 text-black rounded ml-2 dark:text-gray-100 dark:bg-emerald-700"
           onClick={() => { setSelectedUser(null); fetchTodaysReport(); }}
         >
           Show today's reporting
         </button>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-4">
+      <div className="flex flex-col lg:flex-row gap-4 dark:bg-slate-800">
         {/* Left: users list (unchanged) */}
-        <div className="lg:w-1/3 space-y-4">
-          <div className="p-3 bg-white rounded shadow-sm">
-            <div className="flex items-center justify-between">
+        <div className="lg:w-1/3 space-y-4 ">
+          <div className="p-3 bg-white rounded shadow-sm dark:bg-slate-800">
+            <div className="flex items-center justify-between dark:bg-slate-800">
               <h2 className="font-semibold">Users</h2>
-              <button className="text-sm text-indigo-600" onClick={() => fetchUsersAndReport(year, month)}>Refresh</button>
+              <button className="text-sm px-4 py-2 rounded-xl text-indigo-600 dark:bg-indigo-800 dark:text-gray-100" onClick={() => fetchUsersAndReport(year, month)}>Refresh</button>
             </div>
             {loadingUsers ? (
-              <div className="text-sm text-gray-500 mt-2">Loading users...</div>
+              <div className="text-sm text-gray-500 mt-2 dark:bg-slate-800">Loading users...</div>
             ) : (
-              <div className="mt-3 space-y-3 max-h-[60vh] overflow-auto">
+              <div className="mt-3 space-y-3 max-h-[60vh] overflow-auto dark:bg-slate-800">
                 {users.map(u => {
                   const s = summaryMap[u._id] || allUsersSummary.find(x => x.userId === u._id) || {};
                   const working = s.Working ?? 0;
@@ -403,10 +403,10 @@ export default function AdminUsersWithDetail() {
                   return (
                     <div
                       key={u._id}
-                      className={`p-3 rounded border cursor-pointer ${selectedUser?._id === u._id ? 'bg-indigo-50 border-indigo-200' : 'bg-white'}`}
+                      className={`p-3 rounded border cursor-pointer dark:bg-slate-900 ${selectedUser?._id === u._id ? 'bg-indigo-50 border-indigo-200' : 'bg-white'}`}
                       onClick={() => setSelectedUser(u)}
                     >
-                      <div className="flex justify-between items-start">
+                      <div className="flex justify-between items-start ">
                         <div>
                           <div className="font-semibold">{u.name || u.email}</div>
                           <div className="text-xs text-gray-600">{u.email}</div>
@@ -426,7 +426,7 @@ export default function AdminUsersWithDetail() {
           </div>
 
           {/* Stacked percentage bar chart (all employees) (unchanged) */}
-          <div className="p-3 bg-white rounded shadow-sm">
+          <div className="p-3 bg-white rounded shadow-sm dark:bg-slate-800">
             <h3 className="text-sm font-semibold mb-2">All Employees — {year}-{pad(month)}</h3>
             <div className="w-full h-60">
               <ResponsiveContainer width="100%" height="100%">
@@ -448,7 +448,7 @@ export default function AdminUsersWithDetail() {
         </div>
 
         {/* Right: Detail area */}
-        <div className="lg:w-2/3 bg-white rounded shadow-sm p-4">
+        <div className="lg:w-2/3 bg-white rounded shadow-sm p-4 dark:bg-slate-900">
           {/* NEW: when no user is selected show today's reporting for all users */}
           {!selectedUser ? (
             <div>
@@ -459,7 +459,7 @@ export default function AdminUsersWithDetail() {
                 </div>
                 <div className="flex items-center gap-2">
                   <button
-                    className="px-3 py-1 bg-gray-100 rounded text-sm"
+                    className="px-3 py-1 bg-gray-100 rounded text-sm dark:bg-emerald-800"
                     onClick={() => { fetchTodaysReport(); }}
                   >
                     Refresh
@@ -468,16 +468,16 @@ export default function AdminUsersWithDetail() {
               </div>
 
               {loadingToday ? (
-                <div className="text-sm text-gray-500">Loading today's reporting...</div>
+                <div className="text-sm text-gray-500 dark:bg-slate-800">Loading today's reporting...</div>
               ) : (
-                <div className="space-y-3 max-h-[60vh] overflow-auto">
+                <div className="space-y-3 max-h-[60vh] overflow-auto dark:bg-slate-800">
                   {todaysReport.length === 0 ? (
-                    <div className="text-center text-gray-600">No data for today.</div>
+                    <div className="text-center text-gray-600 dark:bg-slate-800">No data for today.</div>
                   ) : todaysReport.map(u => {
                     const t = u.today || {};
                     const cellClass = STATUS_COLORS[t.tag] || STATUS_COLORS.Default;
                     return (
-                      <div key={u.userId} className="p-3 rounded border bg-white flex justify-between items-start">
+                      <div key={u.userId} className="p-3 rounded border bg-white flex justify-between items-start dark:bg-slate-800">
                         <div>
                           <div className="font-semibold">{u.name}</div>
                           <div className="text-xs text-gray-600">{u.email} • {u.role}</div>
@@ -495,25 +495,25 @@ export default function AdminUsersWithDetail() {
           ) : (
             /* existing selectedUser UI - unchanged */
             <>
-              <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center justify-between mb-3 ">
                 <div>
                   <div className="text-lg font-semibold">{selectedUser.name || selectedUser.email}</div>
                   <div className="text-sm text-gray-600">{selectedUser.email} • {selectedUser.role}</div>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 ">
                   <input
                     type="month"
                     value={`${year}-${String(month).padStart(2,'0')}`}
                     onChange={e=>{ const [y,m]=e.target.value.split('-'); setYear(Number(y)); setMonth(Number(m)); }}
                     className="border rounded px-2 py-1 text-sm"
                   />
-                  <button className="text-sm text-gray-600" onClick={() => fetchUserMonth(selectedUser._id, year, month)}>Refresh</button>
+                  <button className="text-sm text-gray-600 dark:bg-emerald-800 px-4 py-2 rounded-2xl dark:text-gray-100 " onClick={() => fetchUserMonth(selectedUser._id, year, month)}>Refresh</button>
                 </div>
               </div>
               {/* ... rest of selectedUser UI (unchanged) */}
               {/* Headline + user quick stats */}
-              <div className="mb-4 p-3 rounded bg-gradient-to-r from-green-50 to-blue-50 border">
-                <div className="flex items-center justify-between">
+              <div className="mb-4 p-3 rounded bg-gradient-to-r from-green-50 to-blue-50 border dark:bg-slate-800">
+                <div className="flex items-center justify-between ">
                   <div>
                     <div className="text-sm text-gray-600">Selected Employee report for this month</div>
                     <div className="text-xl font-semibold">{selectedUser.name || selectedUser.email} • {year}-{pad(month)}</div>
@@ -545,8 +545,8 @@ export default function AdminUsersWithDetail() {
               ) : (
                 <>
                   {/* Calendar (unchanged) */}
-                  <div className="overflow-x-auto">
-                    <table className="table-auto w-full border-collapse text-center">
+                  <div className="overflow-x-auto dark:bg-slate-800">
+                    <table className="table-auto w-full border-collapse text-center dark:bg-slate-800">
                       <thead>
                         <tr>{["Sun","Mon","Tue","Wed","Thu","Fri","Sat"].map(h => (<th key={h} className="border p-2">{h}</th>))}</tr>
                       </thead>
@@ -554,11 +554,11 @@ export default function AdminUsersWithDetail() {
                         {weeks.map((week, wi) => (
                           <tr key={wi}>
                             {week.map((d, ci) => {
-                              const cellClass = d ? (STATUS_COLORS[d.tag] || STATUS_COLORS.Default) : "bg-gray-50 text-black";
+                              const cellClass = d ? (STATUS_COLORS[d.tag] || STATUS_COLORS.Default) : "bg-gray-50 text-black dark:bg-slate-300";
                               return (
                                 <td
                                   key={ci}
-                                  className={`border p-2 align-top min-w-[120px] h-[120px] relative ${cellClass}`}
+                                  className={`border p-2 align-top min-w-[120px] h-[120px] relative dark:bg-slate-400 ${cellClass}`}
                                 >
                                   {d ? (
                                     <>
@@ -576,7 +576,7 @@ export default function AdminUsersWithDetail() {
                                           <select value={d.tag} onChange={e=>handleDayChange(d.date,'tag',e.target.value)} className="px-2 py-1 rounded border text-sm">
                                             {STATUS_OPTIONS.map(o => <option key={o} value={o}>{o}</option>)}
                                           </select>
-                                          <button className="px-2 py-1 bg-green-600 text-white rounded" onClick={() => saveDay(d)}><CheckIcon className="h-4 w-4"/></button>
+                                          <button className="px-2 py-1 bg-green-600  text-white rounded" onClick={() => saveDay(d)}><CheckIcon className="h-4 w-4"/></button>
                                           <button className="px-2 py-1 bg-gray-300 rounded" onClick={() => cancelEdit()}><XMarkIcon className="h-4 w-4"/></button>
                                         </div>
                                       ) : (

@@ -263,7 +263,7 @@ export default function DocumentManager() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 relative">
+    <div className="min-h-screen bg-gray-50 p-6 relative dark:bg-slate-900">
       <Toaster position="top-center" />
 
       {/* Progress Bar */}
@@ -278,21 +278,21 @@ export default function DocumentManager() {
 
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+        <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6 dark:bg-slate-900">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-gray-900 dark:text-gray-100">
               Company Documents
             </h1>
             <p className="mt-1 text-sm text-gray-500">
               Upload, preview, download, send and delete company PDFs.
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 ">
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search by title..."
-              className="px-3 py-2 border rounded-lg bg-white shadow-sm text-sm w-64"
+              className="px-3 py-2 border rounded-lg bg-white shadow-sm text-sm w-64 dark:bg-slate-900"
             />
             <button
               onClick={() => fileRef.current.click()}
@@ -336,14 +336,14 @@ export default function DocumentManager() {
           filtered.map((doc) => (
             <div
               key={doc._id}
-              className="bg-white rounded-2xl p-4 shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+              className="bg-white rounded-2xl p-4  mb-5 shadow flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 dark:bg-slate-800"
             >
               <div className="flex items-start gap-4">
-                <div className="w-14 h-14 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 font-semibold">
+                <div className="w-14 h-14 flex items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 font-semibold ">
                   PDF
                 </div>
                 <div>
-                  <h3 className="text-sm font-medium text-gray-900">
+                  <h3 className="text-sm font-medium text-gray-900 ">
                     {doc.title || "Untitled"}
                   </h3>
                   <p className="text-xs text-gray-500">{doc.filename}</p>

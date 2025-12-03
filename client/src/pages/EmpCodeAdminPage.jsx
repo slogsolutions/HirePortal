@@ -144,40 +144,40 @@ export default function EmpCodeListPage() {
   const predictedLabel = predicted ? predicted : "—";
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">
+    <div className="max-w-6xl mx-auto p-6 dark:bg-slate-900">
+      <div className="flex items-center justify-between mb-6 ">
+        <h1 className="text-2xl font-semibold ">
           Employees / Candidate EmpCodes
         </h1>
-        <div className="flex gap-2">
+        <div className="flex gap-2 ">
           <button
             onClick={fetchList}
-            className="px-3 py-2 border rounded bg-white"
+            className="px-3 py-2 border rounded bg-white dark:bg-emerald-900"
           >
             Refresh
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4 mb-4">
-        <div className="text-sm text-gray-600">
+      <div className="bg-white rounded-lg shadow p-4 mb-4 dark:bg-slate-900">
+        <div className="text-sm text-gray-600 dark:bg-slate-900">
           Next predicted empCode:&nbsp;
           <strong>{predictedLabel}</strong>
         </div>
-        <div className="mt-3 rounded-md bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-500 italic">
+        <div className="mt-3 rounded-md bg-gray-50 border border-gray-200 px-3 py-2 text-xs text-gray-500 italic dark:bg-slate-700">
           ⚙️ You can change the employee code start number from{" "}
           <code>.env</code>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-x-auto">
+      <div className="bg-white rounded-lg shadow overflow-x-auto dark:bg-slate-800">
         {loading ? (
           <div className="p-6 text-center">Loading...</div>
         ) : fetchError ? (
           <div className="p-6 text-center text-red-600">{fetchError}</div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
+          <table className="min-w-full divide-y divide-gray-200 dark:bg-slate-800">
+            <thead className="bg-gray-50 dark:bg-slate-800">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500">
                   EmpCode
@@ -202,7 +202,7 @@ export default function EmpCodeListPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-100">
+            <tbody className="bg-white divide-y divide-gray-100 dark:bg-emerald-600">
               {rows.map((r) => (
                 <tr key={r._id}>
                   <td className="px-4 py-3 whitespace-nowrap">
@@ -236,7 +236,7 @@ export default function EmpCodeListPage() {
                     <button
                       onClick={() => openEdit(r)}
                       title="Edit empCode"
-                      className="inline-flex items-center gap-2 px-3 py-1 border rounded text-sm hover:bg-gray-50"
+                      className="inline-flex items-center gap-2 px-3 py-1 border rounded text-sm hover:bg-gray-50 dark:bg-indigo-600 dark:hover:bg-red-800"
                     >
                       <PencilIcon className="w-4 h-4" />
                       Edit

@@ -230,7 +230,7 @@ export default function SalaryEditorModern() {
   };
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto dark:bg-slate-900">
       {/* Header */}
       <div className="bg-gray-800 text-white rounded-lg p-6 shadow-lg mb-6">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -259,10 +259,10 @@ export default function SalaryEditorModern() {
       </div>
 
       {/* Main content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 dark:bg-slate-900">
         {/* Controls */}
-        <div className="space-y-4 col-span-1">
-          <div className="bg-white rounded-lg shadow p-4 space-y-3">
+        <div className="space-y-4 col-span-1 dark:bg-slate-900">
+          <div className="bg-white rounded-lg shadow p-4 space-y-3 dark:bg-slate-900">
             <h3 className="text-lg font-semibold">Earnings & Inputs</h3>
             <div className="grid grid-cols-2 gap-3">
               {Object.entries(fields)
@@ -311,7 +311,7 @@ export default function SalaryEditorModern() {
           </div>
 
           {/* History */}
-          <div className="bg-white rounded-lg shadow p-4">
+          <div className="bg-white rounded-lg shadow p-4 dark:bg-slate-900 dark:shadow">
             <h4 className="font-semibold mb-2">Salary History</h4>
             <div className="space-y-2 max-h-60 overflow-y-auto">
               {salaryHistory.map((s) => (
@@ -330,7 +330,7 @@ export default function SalaryEditorModern() {
         </div>
 
         {/* Preview */}
-        <div className="col-span-2 bg-white rounded-lg shadow p-4" ref={slipRef}>
+        <div className="col-span-2 bg-white rounded-lg shadow p-4 dark:bg-slate-900" ref={slipRef}>
           <div className="flex items-start justify-between">
             <div>
               <div className="text-xs text-gray-500">Payslip Preview</div>
