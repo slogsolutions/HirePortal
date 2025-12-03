@@ -91,7 +91,7 @@ export default function IDCardPage() {
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen space-y-6 bg-gray-100 p-6">
+    <div className="flex flex-col items-center min-h-screen space-y-6 bg-gray-100 p-6 dark:bg-slate-900">
       {/* Back button */}
       <button
         onClick={() => navigate("/candidates")}
@@ -100,8 +100,8 @@ export default function IDCardPage() {
         &larr; Back
       </button>
 
-      <h1 className="text-2xl font-bold text-gray-800">Employee ID Card</h1>
-      <p className="text-gray-600 text-sm text-center max-w-md">
+      <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Employee ID Card</h1>
+      <p className="text-gray-600 text-sm text-center max-w-md dark:text-gray-300">
         Preview the ID card below. Download or share it via WhatsApp or Email.
       </p>
 

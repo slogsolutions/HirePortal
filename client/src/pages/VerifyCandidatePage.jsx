@@ -211,25 +211,25 @@ export default function VerifyCandidatePage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="bg-white shadow-lg rounded-2xl overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+    <div className="max-w-4xl mx-auto p-6 dark:bg-slate-900">
+      <div className="bg-white shadow-lg rounded-2xl overflow-hidden dark:bg-slate-900">
+        <div className="flex items-center justify-between p-4 border-b bg-gray-50 dark:bg-slate-900">
           <button
             onClick={() => navigate(`/candidates/${id}`)}
-            className="text-sm text-indigo-600 hover:underline flex items-center gap-1"
+            className="text-sm text-indigo-600 hover:underline flex items-center gap-1 dark:bg-slate-900"
           >
             <span className="text-lg">&larr;</span> Back
           </button>
         </div>
-        <div className="p-6 border-b">
-          <div className="flex items-center gap-4">
+        <div className="p-6 border-b dark:bg-slate-900">
+          <div className="flex items-center gap-4 dark:bg-slate-900">
             <img
               src={candidate.photoUrl || "https://via.placeholder.com/80"}
               alt="profile"
-              className="w-20 h-20 rounded-full object-cover"
+              className="w-20 h-20 rounded-full object-cover dark:bg-slate-700"
             />
             <div className="flex-1">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between dark:bg-slate-900">
                 <div>
                   <h2 className="text-2xl font-semibold">
                     {candidate.firstName} {candidate.lastName}
@@ -245,8 +245,8 @@ export default function VerifyCandidatePage() {
                   />
                 </div>
               </div>
-              <div className="mt-3 flex items-center gap-3">
-                <Badge verified={!!candidate.mobileVerified} label="Mobile" />
+              <div className="mt-3 flex items-center gap-3 ">
+                <Badge verified={!!candidate.mobileVerified} label="Mobile" className=""/>
                 <Badge verified={!!candidate.emailVerified} label="Email" />
                 <Badge verified={!!candidate.aadhaarVerified} label="Aadhaar" />
                 <Badge
@@ -258,12 +258,12 @@ export default function VerifyCandidatePage() {
           </div>
         </div>
 
-        <div className="p-6 grid gap-6">
-          <div className="rounded-lg border p-4 bg-gray-50">
+        <div className="p-6 grid gap-6 dark:bg-slate-900">
+          <div className="rounded-lg border p-4 bg-gray-50 dark:bg-slate-800">
             <h3 className="text-lg font-medium mb-3">Contact & Verification</h3>
 
             <FieldRow title="Mobile">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-3 ">
                 <div>
                   <div className="font-medium">
                     {displayPhone(candidate.mobile)}
@@ -275,7 +275,7 @@ export default function VerifyCandidatePage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => manualVerify("mobile")}
-                    className="px-3 py-1 rounded border text-sm bg-white hover:bg-gray-50"
+                    className="px-3 py-1 rounded border text-sm bg-white hover:bg-gray-50 dark:bg-emerald-900"
                     disabled={processing}
                   >
                     Manual Verify
@@ -303,7 +303,7 @@ export default function VerifyCandidatePage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => manualVerify("email")}
-                      className="px-3 py-1 rounded border text-sm bg-white hover:bg-gray-50"
+                      className="px-3 py-1 rounded border text-sm bg-white hover:bg-gray-50 dark:bg-emerald-900"
                       disabled={processing}
                     >
                       Manual Verify
@@ -311,7 +311,7 @@ export default function VerifyCandidatePage() {
                     <button
                       onClick={() => sendOtp("email")}
                       disabled={processing || candidate.emailVerified}
-                      className="px-3 py-1 rounded bg-indigo-600 text-white text-sm"
+                      className="px-3 py-1 rounded bg-indigo-600 text-white text-sm "
                     >
                       Send Email OTP
                     </button>
@@ -334,7 +334,7 @@ export default function VerifyCandidatePage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => manualVerify("aadhaar")}
-                      className="px-3 py-1 rounded border text-sm bg-white hover:bg-gray-50"
+                      className="px-3 py-1 rounded border text-sm bg-white hover:bg-gray-50 dark:bg-emerald-900"
                       disabled={processing}
                     >
                       Manual Verify
@@ -345,7 +345,7 @@ export default function VerifyCandidatePage() {
             </div>
           </div>
 
-          <div className="rounded-lg border p-4 bg-white">
+          <div className="rounded-lg border p-4 bg-white dark:bg-slate-900">
             <h3 className="text-lg font-medium mb-3">
               Father / Emergency Contact
             </h3>
@@ -368,7 +368,7 @@ export default function VerifyCandidatePage() {
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => manualVerify("fatherMobile")}
-                      className="px-3 py-1 rounded border text-sm bg-white hover:bg-gray-50"
+                      className="px-3 py-1 rounded border text-sm bg-white hover:bg-gray-50 dark:bg-emerald-900"
                       disabled={processing}
                     >
                       Manual Verify
@@ -434,7 +434,7 @@ export default function VerifyCandidatePage() {
             </button>
             <button
               onClick={() => navigate(`/candidates/${id}`)}
-              className="px-4 py-2 rounded border"
+              className="px-4 py-2 rounded border dark:bg-red-600 hover:dark:bg-red-900"
             >
               Back
             </button>

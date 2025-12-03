@@ -238,11 +238,11 @@ export default function InterviewPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md">
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+    <div className="max-w-4xl mx-auto p-6 bg-white rounded-xl shadow-md dark:bg-slate-900">
+      <div className="flex items-center justify-between p-4 border-b bg-gray-50 dark:bg-slate-900">
           <button
             onClick={() => navigate(`/candidates/${id}`)}
-            className="text-sm text-indigo-600 hover:underline flex items-center gap-1"
+            className="text-sm text-indigo-600 hover:underline flex items-center gap-1 "
           >
             <span className="text-lg">&larr;</span> Back
           </button>
@@ -261,11 +261,11 @@ export default function InterviewPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-600">Round Type</label>
+            <label className="block text-sm font-medium text-gray-600 dark:bg-slate-900">Round Type</label>
             <select
               value={round.type}
               onChange={e => setRound(r => ({ ...r, type: e.target.value }))}
-              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              className="mt-1 w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 dark:bg-slate-900"
             >
               {ROUND_TYPES.map(rt => <option key={rt} value={rt}>{rt}</option>)}
             </select>
@@ -317,7 +317,7 @@ export default function InterviewPage() {
         <button onClick={submitFinal} disabled={saving} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
           {saving ? "Processing..." : "Submit Final (Offer)"}
         </button>
-        <button onClick={() => navigate(`/candidates/${id}`)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100">
+        <button onClick={() => navigate(`/candidates/${id}`)} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 dark:hover:bg-red-900 dark:bg-red-700">
           Back
         </button>
       </div>

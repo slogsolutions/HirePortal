@@ -134,11 +134,11 @@ export default function OfferPage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow">
-      <div className="flex items-center justify-between p-4 border-b bg-gray-50">
+    <div className="max-w-3xl mx-auto p-6 bg-white rounded shadow dark:bg-slate-900">
+      <div className="flex items-center justify-between p-4 border-b bg-gray-50 dark:bg-slate-900">
           <button
             onClick={() => navigate(`/candidates/${id}`)}
-            className="text-sm text-indigo-600 hover:underline flex items-center gap-1"
+            className="text-sm text-indigo-600 hover:underline flex items-center gap-1 "
           >
             <span className="text-lg">&larr;</span> Back
           </button>
@@ -191,7 +191,7 @@ export default function OfferPage() {
 
         <button
           onClick={() => navigate(`/candidates/${id}`)}
-          className="px-3 py-2 border rounded"
+          className="px-3 py-2 border rounded dark:bg-red-600 hover:dark:bg-red-900"
         >
           Back
         </button>
