@@ -314,6 +314,74 @@ const adminSaveEntriesBatch = asyncHandler(async (req, res) => {
   }
 });
 
+// Admin: today's reporting for all users
+// GET /attendance/admin/today-report
+//
+const adminTodayReport = asyncHandler(async (req, res) => {
+  // today's UTC start
+  const now = new Date();
+  const todayStart = normalizeDateToUTCStart(now); // 00:00 UTC of today
+  const todayEnd = new Date(Date.UTC(todayStart.getUTCFullYear(), todayStart.getUTCMonth(), todayStart.getUTCDate(), 23, 59, 59, 999));
+
+  // load users
+  const users = await User.find({}, '_id name email role').lean();
+
+  // fetch entries for today
+  const entries = await DailyEntry.find({
+    date: { $gte: todayStart, $lte: todayEnd }
+  }).lean();
+
+  // fetch holidays for today
+  const holidays = await Holiday.find({
+    date: { $gte: todayStart, $lte: todayEnd }
+  }).lean();
+
+  const entryMap = {}; // userId -> entry
+  entries.forEach(e => {
+    const uid = String(e.userId);
+    entryMap[uid] = e;
+  });
+
+  const holidaySet = new Set(holidays.map(h => h.date.toISOString().slice(0,10)));
+  const keyToday = todayStart.toISOString().slice(0,10);
+  const weekday = todayStart.getUTCDay();
+  const isSunday = weekday === 0;
+  const isHoliday = holidaySet.has(keyToday);
+
+  // Build result array
+  const result = users.map(u => {
+    const uid = String(u._id);
+    const entry = entryMap[uid] || null;
+    let tag = 'Pending'; // no entry yet (today)
+    let note = '';
+    if (isSunday) tag = 'Holiday';
+    if (isHoliday) tag = 'Holiday';
+    if (entry) {
+      tag = entry.tag || 'Working';
+      note = entry.note || '';
+    }
+    // Keep same fields structure as other endpoints: date, day, weekday, isSunday, isHoliday, tag, note, locked
+    const todayObj = {
+      date: keyToday,
+      day: todayStart.getUTCDate(),
+      weekday,
+      isSunday,
+      isHoliday,
+      tag,
+      note,
+      locked: false
+    };
+    return {
+      _id: u._id,
+      name: u.name,
+      email: u.email,
+      role: u.role,
+      today: todayObj
+    };
+  });
+
+  res.json({ date: keyToday, data: result });
+});
 
 module.exports = {
   getMyMonth,
@@ -324,5 +392,6 @@ module.exports = {
   adminRemoveHoliday,
   adminListUsers,
   adminGetUserMonth,
-  adminSaveEntriesBatch
+  adminSaveEntriesBatch,
+  adminTodayReport
 };

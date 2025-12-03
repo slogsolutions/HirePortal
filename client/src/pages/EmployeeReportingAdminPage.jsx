@@ -19,11 +19,7 @@ import {
   Line
 } from 'recharts';
 
-/*
-  AdminUsersWithDetail.jsx
-  - Left: users + monthly summary
-  - Right: detail calendar for selected user + headline + charts
-*/
+/* (top comment kept) */
 
 // Color mapping for small badges (tailwind classes)
 const STATUS_COLORS = {
@@ -33,6 +29,7 @@ const STATUS_COLORS = {
   Missed: "bg-red-200 text-black",
   Future: "bg-white text-gray-700",
   Sunday: "bg-orange-200 text-black",
+  Pending: "bg-gray-100 text-black", // <-- new: today's not-yet-reported marker
   Default: "bg-white text-black",
 };
 
@@ -66,8 +63,12 @@ export default function AdminUsersWithDetail() {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   // Per-user summary derived for chart and left panel
-  const [allUsersSummary, setAllUsersSummary] = useState([]); // [{ userId, name, Working, OnLeave, Missed, totalDays, pctWorking, pctOnLeave, pctMissed }]
-  const [stackedChartData, setStackedChartData] = useState([]); // for recharts
+  const [allUsersSummary, setAllUsersSummary] = useState([]);
+  const [stackedChartData, setStackedChartData] = useState([]);
+
+  // Todays reporting state (new)
+  const [todaysReport, setTodaysReport] = useState([]); // [{ userId, name, email, role, today: { date, day, tag, note, isSunday, isHoliday } }]
+  const [loadingToday, setLoadingToday] = useState(false);
 
   // small map for quick lookup
   const summaryMap = {};
@@ -216,9 +217,44 @@ export default function AdminUsersWithDetail() {
     else {
       setDays([]);
       setUserSummary({});
+      // When we deselect user, auto-fetch today's reporting for everyone
+      fetchTodaysReport();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser, year, month]);
+
+  // NEW: fetch today's reporting for all users (calls backend '/attendance/admin/today-report')
+  const fetchTodaysReport = async () => {
+    setLoadingToday(true);
+    try {
+      const res = await api.get('/attendance/admin/today-report');
+      // expected res.data.data or res.data (array)
+      const data = res.data?.data || res.data || [];
+      console.log(data,"data for today from backend")
+      // Normalize a bit for frontend: create displayNote and tag mapping similar to user month
+      const normalized = data.map(u => {
+        const t = u.today || {};
+        const fullNote = t.note || '';
+        const displayNote = fullNote.split(' ').slice(0, 15).join(' ') + (fullNote.split(' ').length > 15 ? '...' : '');
+        let tag = t.tag || 'Pending';
+        if (t.isSunday) tag = 'Sunday';
+        if (t.isHoliday) tag = 'Holiday';
+        return {
+          userId: u._id,
+          name: u.name || u.email,
+          email: u.email,
+          role: u.role,
+          today: { ...t, fullNote, displayNote, tag }
+        };
+      });
+      setTodaysReport(normalized);
+    } catch (err) {
+      console.error('[admin] fetchTodaysReport error', err);
+      setTodaysReport([]);
+    } finally {
+      setLoadingToday(false);
+    }
+  };
 
   // Edit helpers (same as before)
   const startEdit = (date) => {
@@ -337,10 +373,18 @@ export default function AdminUsersWithDetail() {
           className="border rounded px-2 py-1 text-sm"
         />
         <button className="px-3 py-1 bg-indigo-600 text-white rounded" onClick={() => fetchUsersAndReport(year, month)}>Refresh Report</button>
+
+        {/* NEW: button to show today's reporting and deselect any user */}
+        <button
+          className="px-3 py-1 bg-gray-200 text-black rounded ml-2"
+          onClick={() => { setSelectedUser(null); fetchTodaysReport(); }}
+        >
+          Show today's reporting
+        </button>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-4">
-        {/* Left: users list */}
+        {/* Left: users list (unchanged) */}
         <div className="lg:w-1/3 space-y-4">
           <div className="p-3 bg-white rounded shadow-sm">
             <div className="flex items-center justify-between">
@@ -381,7 +425,7 @@ export default function AdminUsersWithDetail() {
             )}
           </div>
 
-          {/* Stacked percentage bar chart (all employees) */}
+          {/* Stacked percentage bar chart (all employees) (unchanged) */}
           <div className="p-3 bg-white rounded shadow-sm">
             <h3 className="text-sm font-semibold mb-2">All Employees — {year}-{pad(month)}</h3>
             <div className="w-full h-60">
@@ -405,9 +449,51 @@ export default function AdminUsersWithDetail() {
 
         {/* Right: Detail area */}
         <div className="lg:w-2/3 bg-white rounded shadow-sm p-4">
+          {/* NEW: when no user is selected show today's reporting for all users */}
           {!selectedUser ? (
-            <div className="text-center text-gray-600">Select a user on the left to view / edit their month.</div>
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-lg font-semibold">Today's reporting — { (new Date()).toISOString().slice(0,10) }</div>
+                  <div className="text-sm text-gray-600">Overview of everyone's reporting for today</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    className="px-3 py-1 bg-gray-100 rounded text-sm"
+                    onClick={() => { fetchTodaysReport(); }}
+                  >
+                    Refresh
+                  </button>
+                </div>
+              </div>
+
+              {loadingToday ? (
+                <div className="text-sm text-gray-500">Loading today's reporting...</div>
+              ) : (
+                <div className="space-y-3 max-h-[60vh] overflow-auto">
+                  {todaysReport.length === 0 ? (
+                    <div className="text-center text-gray-600">No data for today.</div>
+                  ) : todaysReport.map(u => {
+                    const t = u.today || {};
+                    const cellClass = STATUS_COLORS[t.tag] || STATUS_COLORS.Default;
+                    return (
+                      <div key={u.userId} className="p-3 rounded border bg-white flex justify-between items-start">
+                        <div>
+                          <div className="font-semibold">{u.name}</div>
+                          <div className="text-xs text-gray-600">{u.email} • {u.role}</div>
+                          <div className="text-sm mt-2">{t.displayNote || t.note || (t.tag === 'Pending' ? 'No report yet' : '')}</div>
+                        </div>
+                        <div className="text-right">
+                          <div className={`text-sm font-semibold px-3 py-1 rounded ${cellClass}`}>{t.tag}</div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           ) : (
+            /* existing selectedUser UI - unchanged */
             <>
               <div className="flex items-center justify-between mb-3">
                 <div>
@@ -424,7 +510,7 @@ export default function AdminUsersWithDetail() {
                   <button className="text-sm text-gray-600" onClick={() => fetchUserMonth(selectedUser._id, year, month)}>Refresh</button>
                 </div>
               </div>
-
+              {/* ... rest of selectedUser UI (unchanged) */}
               {/* Headline + user quick stats */}
               <div className="mb-4 p-3 rounded bg-gradient-to-r from-green-50 to-blue-50 border">
                 <div className="flex items-center justify-between">
@@ -458,7 +544,7 @@ export default function AdminUsersWithDetail() {
                 <div className="text-sm text-gray-500">Loading month...</div>
               ) : (
                 <>
-                  {/* Calendar */}
+                  {/* Calendar (unchanged) */}
                   <div className="overflow-x-auto">
                     <table className="table-auto w-full border-collapse text-center">
                       <thead>
@@ -511,7 +597,7 @@ export default function AdminUsersWithDetail() {
                     </table>
                   </div>
 
-                  {/* Charts */}
+                  {/* Charts (unchanged) */}
                   <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* Pie chart */}
                     <div className="w-full h-64 bg-white p-2 rounded shadow-sm">
@@ -555,7 +641,7 @@ export default function AdminUsersWithDetail() {
                     </div>
                   </div>
 
-                  {/* Large stacked percents again */}
+                  {/* Large stacked percents again (unchanged) */}
                   <div className="mt-6 bg-white p-2 rounded shadow-sm">
                     <h3 className="text-sm font-semibold mb-2">Overall Users Performance — {year}-{pad(month)}</h3>
                     <div className="w-full h-64">

@@ -11,7 +11,8 @@ const {
   adminRemoveHoliday,
   adminListUsers,
   adminGetUserMonth,
-  adminSaveEntriesBatch
+  adminSaveEntriesBatch,
+  adminTodayReport
   
 } = require('../controllers/attendance.controller');
 
@@ -24,6 +25,8 @@ router.post('/me/entries', protect, saveMyEntriesBatch); // batch save
 // Admin routes
 router.get('/admin/report', protect, requireRole(['hr','admin']), adminListReport); // filters
 router.post('/admin/holidays', protect, requireRole(['hr','admin']), adminAddHoliday);
+router.get('/admin/today-report', protect, requireRole(['hr','admin']),adminTodayReport);
+
 // add to top imports if not present
 // const { getMyMonth, saveMyEntriesBatch, adminListReport, adminAddHoliday, adminListHolidays, adminRemoveHoliday } = require('../controllers/attendance.controller');
 // add new exports: adminListUsers, adminGetUserMonth, adminSaveEntriesBatch
