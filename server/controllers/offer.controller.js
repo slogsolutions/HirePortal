@@ -247,6 +247,99 @@ function buildFullAddress(candidate) {
 }
 
 // Generate offer
+// const generateOffer = async (req, res) => {
+//   try {
+//     console.log("--- generateOffer called ---");
+//     const { id } = req.params;
+//     const { designation, ctc, joiningDate, notes } = req.body;
+//     const userId = req.user && req.user._id;
+
+//     const candidate = await Candidate.findById(id);
+//     if (!candidate) {
+//       return res.status(404).json({ message: "Candidate not found" });
+//     }
+
+//     console.log("Candidate found:", candidate.firstName, candidate.lastName);
+
+//     const offer = await Offer.create({
+//       candidate: id,
+//       createdBy: userId,
+//       designation,
+//       ctc,
+//       joiningDate: joiningDate ? new Date(joiningDate) : undefined,
+//       notes,
+//       templateName: "default",
+//     });
+
+//     console.log("Offer record created with ID:", offer._id);
+
+//     const offerDateObj = new Date();
+//     const offerDate = offerDateObj.toLocaleDateString("en-IN", {
+//       day: "2-digit",
+//       month: "long",
+//       year: "numeric",
+//     });
+
+//     const joiningDateFormatted = joiningDate
+//       ? new Date(joiningDate).toLocaleDateString("en-IN", {
+//           day: "2-digit",
+//           month: "long",
+//           year: "numeric",
+//         })
+//       : "";
+
+//     const candidate_full_address = buildFullAddress(candidate);
+
+//     const referenceNo = `SLOG/OFF/${String(offer._id).slice(-4).toUpperCase()}`;
+
+//     const htmlContent = compileTemplate({
+//       companyName: "SLOG Solutions PVT. LTD.",
+//       candidateName: `${candidate.firstName} ${candidate.lastName}`,
+//       position: designation || candidate.Designation || "",
+//       ctc,
+//       joiningDate: joiningDateFormatted,
+//       candidate_mobile: candidate.mobile,
+//       father_name: candidate.fatherName,
+//       candidate_full_address,
+//       offerDate,
+//       referenceNo,
+//       hrName: req.user?.name || "HR Team",
+//       notes,
+//       currentYear: new Date().getFullYear(),
+//     });
+
+//     console.log("Compiled HTML preview (first 500 chars):\n", htmlContent.slice(0, 500));
+
+//     const filepath = offerFilepath(offer._id);
+//     if (fs.existsSync(filepath)) {
+//       console.log("Existing PDF found, deleting before regeneration:", filepath);
+//       fs.unlinkSync(filepath);
+//     }
+
+//     await generatePdfFromHtml(htmlContent, filepath);
+//     console.log("PDF generated at:", filepath);
+
+//     offer.offerLetterUrl = `/offers/${offerFilename(offer._id)}`;
+//     offer.status = "generated";
+//     await offer.save();
+
+//     candidate.status = "offered";
+//     candidate.lastOffer = offer._id;
+//     await candidate.save();
+
+//     console.log("Offer and Candidate updated successfully");
+
+//     res.json({
+//       message: "Offer generated",
+//       offer,
+//       url: offerPublicUrl(req, offer._id),
+//     });
+//   } catch (err) {
+//     console.error("generateOffer error", err);
+//     res.status(500).json({ message: "Offer generation failed", error: err.message });
+//   }
+// };
+
 const generateOffer = async (req, res) => {
   try {
     console.log("--- generateOffer called ---");
@@ -292,7 +385,15 @@ const generateOffer = async (req, res) => {
 
     const referenceNo = `SLOG/OFF/${String(offer._id).slice(-4).toUpperCase()}`;
 
-    const htmlContent = compileTemplate({
+    // --- NEW: build absolute origin and logo URL for Puppeteer ---
+    const origin = `${req.protocol}://${req.get('host')}`; // e.g. http://localhost:5000
+    const uploadedLogoUrl = `${origin}/static/template-images/slog-red-logo.jpg`;
+    const baseUrl = origin; // optional: used by template to render <base href="...">
+
+    // Compile template and pass uploadedLogoUrl + baseUrl
+    let htmlContent = compileTemplate({
+      baseUrl,
+      uploadedLogoUrl,
       companyName: "SLOG Solutions PVT. LTD.",
       candidateName: `${candidate.firstName} ${candidate.lastName}`,
       position: designation || candidate.Designation || "",
@@ -307,6 +408,14 @@ const generateOffer = async (req, res) => {
       notes,
       currentYear: new Date().getFullYear(),
     });
+
+    // Safety: if template forgot to include a <base> tag, inject one so root-relative URLs resolve
+    if (!/\<base\s+href=/i.test(htmlContent)) {
+      htmlContent = htmlContent.replace(
+        /<head(\s*[^>]*)>/i,
+        `<head$1>\n<base href="${origin}">`
+      );
+    }
 
     console.log("Compiled HTML preview (first 500 chars):\n", htmlContent.slice(0, 500));
 
@@ -339,6 +448,7 @@ const generateOffer = async (req, res) => {
     res.status(500).json({ message: "Offer generation failed", error: err.message });
   }
 };
+
 
 // Preview offer PDF
 const previewOffer = async (req, res) => {

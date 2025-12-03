@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <title>Offer Letter - SLOG Solutions</title>
+
+    <!-- optional: Handlebars will replace {{baseUrl}} if provided -->
+  {{#if baseUrl}}
+  <base href="{{baseUrl}}">
+  {{/if}}
+
   <style>
     * {
       box-sizing: border-box;
@@ -29,7 +35,7 @@
 
     .page2 {
   width: 210mm;
-  min-height: 240mm;  /* reduced more */
+  min-height: 297mm;  /* reduced more */
   margin: 0 auto;
   padding: 10mm 14mm; /* reduced padding also */
   background: #fff;
@@ -84,10 +90,12 @@
     }
 
     .header-right img.logo {
-      max-height: 50px;
+      max-height: 100px;
       display: block;
       margin-left: auto;
       margin-bottom: 4px;
+      /* filter: brightness(0) saturate(100%) invert(14%) sepia(98%) saturate(6000%) hue-rotate(350deg) brightness(90%) contrast(110%); */
+
     }
 
     .company-name {
@@ -142,14 +150,14 @@
 
     .blank-signature-space {
       margin-top: 40px;
-      height: 150px; /* reserved physical signature space */
+      height: 100px; /* reserved physical signature space */
     }
      .blank-signature-space2 {
       margin-top: 40px;
-      height: 160px; /* reserved physical signature space */
+      height: 180px; /* reserved physical signature space */
     }
 
-    .bottom-contact {
+    /* .bottom-contact {
       position: absolute;
       left: 20mm;
       right: 20mm;
@@ -157,7 +165,32 @@
       font-size: 11px;
       display: flex;
       justify-content: space-between;
-    }
+    } */
+
+.bottom-contact {
+  position: absolute;
+  left: 20mm;
+  right: 20mm;
+  bottom: 12mm;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  color: #000;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.contact-item svg {
+  width: 14px;
+  height: 14px;
+  fill: #c00000;
+}
 
     .bottom-bar {
       position: absolute;
@@ -203,9 +236,9 @@
         <div>Reference No: ........................................</div>
       </div>
         <div class="header-right">
-          <img class="logo" src="./Slog-logo.png" alt="Slog Solutions Logo">
-          <div class="company-name">SLOG SOLUTIONS PVT. LTD.</div>
-          <div class="iso-text">ISO 9001 : 2015 CERTIFIED</div>
+          <img class="logo" src="{{uploadedLogoUrl}}" alt="Slog Solutions Logo">
+          <!-- <div class="company-name">SLOG SOLUTIONS PVT. LTD.</div>
+          <div class="iso-text">ISO 9001 : 2015 CERTIFIED</div> -->
         </div>
       </div>
 
@@ -294,15 +327,41 @@
 
       <div class="blank-signature-space"></div>
 
-      <div class="bottom-contact">
+      <!-- <div class="bottom-contact">
         <div>+91-7456000240, +91-7456000241</div>
         <div>www.slogsolutions.com | slog.doon@gmail.com</div>
         <div>Engineers Bhawan, 1st Floor, IEI, Near ISBT Flyover, Dehradun</div>
-      </div>
+      </div> -->
 
-      <div class="bottom-bar">
+      <div class="bottom-contact">
+
+  <!-- Phone -->
+  <div class="contact-item">
+    <svg viewBox="0 0 24 24">
+      <path d="M6.62 10.79a15.093 15.093 0 006.59 6.59l2.2-2.2a1 1 0 011.01-.24 11.72 11.72 0 003.7.59 1 1 0 011 1v3.49a1 1 0 01-1 1A16 16 0 014 5a1 1 0 011-1h3.5a1 1 0 011 1 11.72 11.72 0 00.59 3.7 1 1 0 01-.24 1.01l-2.23 2.08z"/>
+    </svg>
+    +91-7456000240, +91-7456000241
+  </div>
+
+  <!-- Email + Website -->
+  <div class="contact-item">
+    <svg viewBox="0 0 24 24">
+      <path d="M2 4h20v16H2V4zm10 7l10-6H4l8 6zm0 2l-8-6v10h16V7l-8 6z"/>
+    </svg>
+    www.slogsolutions.com | slog.doon@gmail.com
+  </div>
+
+  <!-- Location -->
+  <div class="contact-item">
+    <svg viewBox="0 0 24 24">
+      <path d="M12 2a7 7 0 00-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 00-7-7zm0 9.5a2.5 2.5 0 112.5-2.5A2.5 2.5 0 0112 11.5z"/>
+    </svg>
+    Engineers Bhawan, 1st Floor, IEI, Near ISBT Flyover, Dehradun
+  </div>
+
+      <!-- <div class="bottom-bar">
         TRAINING | EDUCATIONAL KITS | OUTBOUND ACTIVITIES | FDP | PROJECTS - 125+ CENTERS
-      </div>
+      </div> -->
     </div>
   </div>
 
@@ -321,7 +380,7 @@
           will be deemed as rules and regulations as part of these terms of employment.
         </span>
       </p>
-
+<br>
       <p class="section-line">
         <span class="section-label">CASUAL LEAVES:</span>
         <span class="section-text">
@@ -330,6 +389,8 @@
           without a prior <strong>1-month</strong> application.
         </span>
       </p>
+
+      <br>
 
       <p class="section-line">
         <span class="section-label">SECURITY OF INFORMATION:</span>
@@ -342,6 +403,7 @@
           the company shall have the right to claim damages and take appropriate action against you.
         </span>
       </p>
+      <br>
 
       <p class="section-line">
         <span class="section-label">MISCONDUCT:</span>
@@ -351,6 +413,7 @@
           stoppage of annual increment and/or incentives, demotion, dismissal and/or legal action.
         </span>
       </p>
+      <br>
 
       <p class="section-line">
         <span class="section-label">CONCURRENT EMPLOYMENT:</span>
@@ -406,7 +469,6 @@
         </div>
 
       </div>
-  <hr/>
       <!-- Date and Reference NOT in same line -->
       
 <!-- 
