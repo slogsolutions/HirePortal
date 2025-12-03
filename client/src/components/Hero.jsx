@@ -102,7 +102,7 @@ export const Hero = () => {
   return (
     <section 
       ref={sectionRef}
-      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background"
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-background "
     >
       {/* Video/Image Background  Laksh*/} 
       <div className="absolute inset-0 z-0">
@@ -122,20 +122,21 @@ export const Hero = () => {
           className="w-full h-full object-cover hidden"
         />
        <div className="absolute inset-0 video-overlay" />
+       
       </div>
 
       {/* Content */}
-      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <div className="mb-8">
-          <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold mb-6 leading-tight min-h-[1.2em]">
-            <span ref={textRef} className="gradient-text inline-block"></span>
-            <span ref={cursorRef} className="gradient-text inline-block ml-1">
+      <div className="relative z-10 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-emerald-100">
+        <div className="mb-8 text-emerald-100">
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold mb-6 leading-tight min-h-[1.2em] dark:text-emerald-300">
+            <span ref={textRef} className="gradient-text inline-block text-emerald-800"></span>
+            <span ref={cursorRef} className="gradient-text inline-block ml-1 text-emerald-800">
               |
             </span>
           </h1>
         </div>
 
-        <p className="text-xl md:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto leading-relaxed">
+        <p className="text-xl md:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto leading-relaxed bg-text-emerald-100 ">
           Empowering businesses with cutting-edge solutions and innovative
           technology that drives growth and success in the digital age.
         </p>
