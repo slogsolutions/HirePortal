@@ -214,9 +214,9 @@ export default function ProfilePage() {
   ];
 
   return (
-    <div className="p-6 max-w-6xl mx-auto font-sans">
-      <div className="bg-white rounded shadow-sm p-6">
-        <div className="flex flex-col lg:flex-row gap-6">
+    <div className="p-6 max-w-6xl mx-auto font-sans dark:bg-slate-900">
+      <div className="bg-white rounded shadow-sm p-6 dark:bg-slate-900">
+        <div className="flex flex-col lg:flex-row gap-6 dark:bg-slate-900">
           {/* Left column: avatar + basic */}
           <div className="w-full lg:w-1/3 flex flex-col items-center">
             <div className="relative">
@@ -225,15 +225,15 @@ export default function ProfilePage() {
                 alt="profile"
                 className="h-40 w-40 object-cover rounded-full border shadow-sm"
               />
-              <div className="absolute bottom-0 right-0 bg-white p-1 rounded-full shadow">
-                <label className="cursor-pointer flex items-center gap-1 text-sm text-gray-700" title="Edit photo">
+              <div className="absolute bottom-0 right-0 bg-white p-1 rounded-full shadow ">
+                <label className="cursor-pointer flex items-center gap-1 text-sm text-gray-700 dark:bg-indigo-800 dark:hover:bg-indigo-700" title="Edit photo">
                   <CameraIcon className="h-5 w-5" />
                   <input ref={fileInputRef} onChange={onFileChange} type="file" accept="image/*" className="hidden" />
                 </label>
               </div>
             </div>
 
-            <div className="mt-4 text-center">
+            <div className="mt-4 text-center dark:bg-slate-900">
               <div className="text-lg font-semibold">{profile.fullName || `${profile.firstName} ${profile.lastName}`}</div>
               <div className="text-sm text-gray-600">{profile.Designation || profile.userId?.role || "—"}</div>
               <div className="mt-2 flex flex-wrap gap-2 justify-center">
@@ -244,7 +244,7 @@ export default function ProfilePage() {
             <div className="mt-4 w-full flex gap-2 justify-center">
               {photoFile ? (
                 <>
-                  <button onClick={uploadPhoto} className="px-3 py-1 bg-green-600 text-white rounded flex items-center gap-2">
+                  <button onClick={uploadPhoto} className="px-3 py-1 bg-green-600 text-white rounded flex items-center gap-2 dark:bg-indigo-800 dark:hover:bg-indigo-700">
                     <CheckIcon className="h-4 w-4" /> Upload
                   </button>
                   <button onClick={() => { setPhotoFile(null); setPhotoPreview(null); fileInputRef.current.value = null; }} className="px-3 py-1 bg-gray-200 rounded flex items-center gap-2">
@@ -253,7 +253,7 @@ export default function ProfilePage() {
                 </>
               ) : (
                 <>
-                  <button onClick={() => fileInputRef.current.click()} className="px-3 py-1 bg-white border rounded flex items-center gap-2">
+                  <button onClick={() => fileInputRef.current.click()} className="px-3 py-1 bg-white border rounded flex items-center gap-2 dark:bg-red-800 dark:hover:bg-red-700">
                     <CameraIcon className="h-4 w-4" /> Edit Photo
                   </button>
                   <button onClick={() => setPasswordModalOpen(true)} className="px-3 py-1 bg-indigo-600 text-white rounded flex items-center gap-2">
@@ -279,8 +279,8 @@ export default function ProfilePage() {
             </div>
 
             {/* SECTION: Personal */}
-            <div className="bg-gray-50 p-4 rounded">
-              <div className="flex items-center justify-between mb-3">
+            <div className="bg-gray-50 p-4 rounded dark:bg-slate-800 dark:text-gray-100">
+              <div className="flex items-center justify-between mb-3 dark:text-gray-100">
                 <div>
                   <div className="font-semibold">Personal</div>
                   <div className="text-xs text-gray-500">Name, DOB, Gender, marital status</div>
@@ -292,7 +292,7 @@ export default function ProfilePage() {
                       <button onClick={cancelEdit} className="px-3 py-1 bg-gray-200 rounded flex items-center gap-2"><XMarkIcon className="h-4 w-4" /> Cancel</button>
                     </div>
                   ) : (
-                    <button onClick={() => startEdit("personal")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 text-sm"><PencilIcon className="h-4 w-4" /> Edit</button>
+                    <button onClick={() => startEdit("personal")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 text-sm dark:bg-indigo-800 dark:hover:bg-indigo-700"><PencilIcon className="h-4 w-4 " /> Edit</button>
                   )}
                 </div>
               </div>
@@ -351,7 +351,7 @@ export default function ProfilePage() {
             </div>
 
             {/* SECTION: Contact */}
-            <div className="bg-white p-4 rounded">
+            <div className="bg-white p-4 rounded dark:bg-slate-800">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="font-semibold">Contact</div>
@@ -364,7 +364,7 @@ export default function ProfilePage() {
                       <button onClick={cancelEdit} className="px-3 py-1 bg-gray-200 rounded flex items-center gap-2"><XMarkIcon className="h-4 w-4" /> Cancel</button>
                     </div>
                   ) : (
-                    <button onClick={() => startEdit("contact")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 text-sm"><PencilIcon className="h-4 w-4" /> Edit</button>
+                    <button onClick={() => startEdit("contact")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 text-sm dark:bg-indigo-800 dark:hover:bg-indigo-700"><PencilIcon className="h-4 w-4" /> Edit</button>
                   )}
                 </div>
               </div>
@@ -397,7 +397,7 @@ export default function ProfilePage() {
             </div>
 
             {/* SECTION: Employment */}
-            <div className="bg-gray-50 p-4 rounded">
+            <div className="bg-gray-50 p-4 rounded dark:bg-slate-800">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="font-semibold">Employment</div>
@@ -410,7 +410,7 @@ export default function ProfilePage() {
                       <button onClick={cancelEdit} className="px-3 py-1 bg-gray-200 rounded flex items-center gap-2"><XMarkIcon className="h-4 w-4" /> Cancel</button>
                     </div>
                   ) : (
-                    <button onClick={() => startEdit("employment")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 text-sm"><PencilIcon className="h-4 w-4" /> Edit</button>
+                    <button onClick={() => startEdit("employment")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 text-sm dark:bg-indigo-800 dark:hover:bg-indigo-700"><PencilIcon className="h-4 w-4" /> Edit</button>
                   )}
                 </div>
               </div>
@@ -452,7 +452,7 @@ export default function ProfilePage() {
             </div>
 
             {/* SECTION: IDs */}
-            <div className="bg-white p-4 rounded">
+            <div className="bg-white p-4 rounded dark:bg-slate-800">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="font-semibold">IDs & Policies</div>
@@ -465,7 +465,7 @@ export default function ProfilePage() {
                       <button onClick={cancelEdit} className="px-3 py-1 bg-gray-200 rounded flex items-center gap-2"><XMarkIcon className="h-4 w-4" /> Cancel</button>
                     </div>
                   ) : (
-                    <button onClick={() => startEdit("ids")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 text-sm"><PencilIcon className="h-4 w-4" /> Edit</button>
+                    <button onClick={() => startEdit("ids")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 dark:bg-indigo-800  dark:hover:bg-indigo-700 text-sm"><PencilIcon className="h-4 w-4" /> Edit</button>
                   )}
                 </div>
               </div>
@@ -510,7 +510,7 @@ export default function ProfilePage() {
             </div>
 
             {/* SECTION: Address */}
-            <div className="bg-gray-50 p-4 rounded">
+            <div className="bg-gray-50 p-4 rounded dark:bg-slate-800">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="font-semibold">Address</div>
@@ -523,7 +523,7 @@ export default function ProfilePage() {
                       <button onClick={cancelEdit} className="px-3 py-1 bg-gray-200 rounded flex items-center gap-2"><XMarkIcon className="h-4 w-4" /> Cancel</button>
                     </div>
                   ) : (
-                    <button onClick={() => startEdit("address")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 text-sm"><PencilIcon className="h-4 w-4" /> Edit</button>
+                    <button onClick={() => startEdit("address")} className="px-2 py-1 bg-white border rounded flex items-center gap-2 text-sm dark:bg-indigo-800 dark:hover:bg-indigo-700"><PencilIcon className="h-4 w-4" /> Edit</button>
                   )}
                 </div>
               </div>
@@ -582,14 +582,14 @@ export default function ProfilePage() {
             </div>
 
             {/* SECTION: Documents */}
-            <div className="bg-white p-4 rounded">
+            <div className="bg-white p-4 rounded dark:bg-slate-800">
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <div className="font-semibold">Documents</div>
                   <div className="text-xs text-gray-500">Uploaded files</div>
                 </div>
                 <div>
-                  <button onClick={() => alert("Upload flow placeholder — wire to file upload endpoint")} className="px-2 py-1 bg-white border rounded text-sm flex items-center gap-2"><DocumentIcon className="h-4 w-4" /> Upload</button>
+                  <button onClick={() => alert("Upload flow placeholder — wire to file upload endpoint")} className="px-2 py-1 bg-white border rounded text-sm flex items-center gap-2 dark:bg-indigo-800 dark:hover:bg-indigo-700"><DocumentIcon className="h-4 w-4 dark:bg-indigo-800 dark:hover:bg-indigo-700" /> Upload</button>
                 </div>
               </div>
 
@@ -634,8 +634,8 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-3 flex justify-end gap-2">
-              <button onClick={() => setPasswordModalOpen(false)} className="px-3 py-1 bg-gray-200 rounded">Cancel</button>
-              <button onClick={changePassword} className="px-3 py-1 bg-indigo-600 text-white rounded">Save</button>
+              <button onClick={() => setPasswordModalOpen(false)} className="px-3 py-1 bg-gray-200 rounded dark:bg-red-800 dark:hover:bg-red-700">Cancel</button>
+              <button onClick={changePassword} className="px-3 py-1 bg-indigo-600 text-white rounded dark:bg-indigo-800 dark:hover:bg-indigo-700">Save</button>
             </div>
           </div>
         </div>
