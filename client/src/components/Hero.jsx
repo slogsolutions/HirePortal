@@ -2,18 +2,21 @@ import { useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import { gsap } from "gsap";
+import { useNavigate } from "react-router-dom";
 
 const quotes = [
-  "Innovation starts here.",
-  "Transform your business.",
-  "Building the future together.",
-  "Excellence in every detail.",
+  "Innovation starts here with Slog Solutions.",
+  "Transform your business with Slog Solutions.",
+  "Building the future together with Slog Solutions.",
+  "Achieve Excellence with with Slog Solutions.",
 ];
 
 export const Hero = () => {
   const textRef = useRef(null);
   const cursorRef = useRef(null);
   const sectionRef = useRef(null);
+
+   const navigate = useNavigate();
 
   useEffect(() => {
     let currentQuoteIndex = 0;
@@ -136,7 +139,7 @@ export const Hero = () => {
           </h1>
         </div>
 
-        <p className="text-xl md:text-2xl text-foreground/80 mb-12 max-w-3xl mx-auto leading-relaxed bg-text-emerald-100 ">
+        <p className="text-xl md:text-2xl  mb-12 max-w-3xl mx-auto leading-relaxed text-emerald-200">
           Empowering businesses with cutting-edge solutions and innovative
           technology that drives growth and success in the digital age.
         </p>
@@ -144,7 +147,8 @@ export const Hero = () => {
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <Button
             size="lg"
-            className="hero-button group text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg"
+            className="hero-button group text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-emerald-900 shadow-lg"
+           onClick={() => navigate("/login")}
           >
             Get Started
             <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
@@ -152,9 +156,10 @@ export const Hero = () => {
           <Button
             size="lg"
             variant="outline"
-            className="hero-button text-lg px-8 py-6 border-2"
+            className="hero-button text-lg px-8 py-6 border-2 text-emerald-900 bg-indigo-100"
+            onClick={() => navigate("/attendance")}
           >
-            Learn More
+            Daily Logs
           </Button>
         </div>
       </div>

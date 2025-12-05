@@ -144,8 +144,8 @@ export default function EmpCodeListPage() {
   const predictedLabel = predicted ? predicted : "—";
 
   return (
-    <div className="max-w-6xl mx-auto p-6 dark:bg-slate-900">
-      <div className="flex items-center justify-between mb-6 ">
+    <div className="max-w-6xl mx-auto p-6 dark:bg-slate-900 min-w-max">
+      <div className="flex items-center justify-between mb-6 min-w-max">
         <h1 className="text-2xl font-semibold ">
           Employees / Candidate EmpCodes
         </h1>
@@ -159,7 +159,7 @@ export default function EmpCodeListPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow p-4 mb-4 dark:bg-slate-900">
+      <div className="bg-white rounded-lg shadow p-4 mb-4 dark:bg-slate-900 min-w-max">
         <div className="text-sm text-gray-600 dark:bg-slate-900">
           Next predicted empCode:&nbsp;
           <strong>{predictedLabel}</strong>
@@ -170,7 +170,7 @@ export default function EmpCodeListPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-x-auto dark:bg-slate-800">
+      <div className="bg-white rounded-lg shadow overflow-x-auto dark:bg-slate-800 min-w-max ">
         {loading ? (
           <div className="p-6 text-center">Loading...</div>
         ) : fetchError ? (
