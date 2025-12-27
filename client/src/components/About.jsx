@@ -9,10 +9,10 @@ if (typeof window !== "undefined") {
 }
 
 const stats = [
-  { icon: Building2, value: "15+", label: "Years Experience" },
-  { icon: Users, value: "500+", label: "Team Members" },
-  { icon: Target, value: "1000+", label: "Projects Delivered" },
-  { icon: Award, value: "50+", label: "Awards Won" },
+  { icon: Building2, value: "10+", label: "Years Experience" },
+  { icon: Users, value: "100+", label: "Team Members" },
+  { icon: Target, value: "50+", label: "Projects Delivered" },
+  { icon: Award, value: "5000+", label: "Students Mentored" },
 ];
 
 export const About = () => {

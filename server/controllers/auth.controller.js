@@ -36,7 +36,7 @@ const verifyOtp = asyncHandler(async (req, res) => {
 const login = asyncHandler(async (req, res) => {
 
   const { email, password } = req.body;
-  console.log("entered login",email,password)
+  // console.log("entered login",email,password)
   // console.log(email,password,"login");
   const user = await User.findOne({ email });
   console.log(user)

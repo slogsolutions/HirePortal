@@ -23,10 +23,11 @@
 import { useState } from "react";
 import { Hero } from "@/components/Hero";
 import { About } from "@/components/About";
-import { Services } from "@/components/Services";
+import  Services  from "@/components/Services";
 import { Portfolio } from "@/components/Portfolio";
 import { Testimonials } from "@/components/Testimonials";
 import { CTA } from "@/components/CTA";
+import AnimationText from "@/components/AnimationText";
 
 const Index = () => {
   const [isDark, setIsDark] = useState(false);
@@ -50,6 +51,7 @@ const Index = () => {
         <Services />
         <Portfolio />
         <Testimonials />
+       
         <CTA />
       </div>
     </>

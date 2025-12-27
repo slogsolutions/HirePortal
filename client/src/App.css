@@ -18,6 +18,8 @@
 html, body {
   background-color: hsl(var(--bg-page)) !important;
   color: hsl(var(--text-primary)) !important;
+   height: 100%;
+  margin: 0;
 }
 
 /* --- CSS-first theme mapping (so Tailwind generates the same tokens/utilities) --- */

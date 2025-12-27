@@ -1,163 +1,117 @@
-import { useEffect, useRef } from "react";
-import { gsap } from "gsap";
+import { useRef } from "react";
+import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import {
-  Code,
-  Palette,
-  Megaphone,
-  LineChart,
-  Shield,
-  Cloud,
-} from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
+import { useGSAP } from "@gsap/react";
 
-// Register ScrollTrigger plugin
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
+gsap.registerPlugin(ScrollTrigger);
 
-const services = [
-  {
-    icon: Code,
-    title: "Web Development",
-    description: "Custom web applications built with modern technologies and best practices.",
-  },
-  {
-    icon: Palette,
-    title: "UI/UX Design",
-    description: "Beautiful, intuitive interfaces that users love and understand instantly.",
-  },
-  {
-    icon: Megaphone,
-    title: "Digital Marketing",
-    description: "Strategic campaigns that drive traffic, engagement, and conversions.",
-  },
-  {
-    icon: LineChart,
-    title: "Data Analytics",
-    description: "Transform data into actionable insights for smarter business decisions.",
-  },
-  {
-    icon: Shield,
-    title: "Cybersecurity",
-    description: "Protect your business with enterprise-grade security solutions.",
-  },
-  {
-    icon: Cloud,
-    title: "Cloud Solutions",
-    description: "Scalable cloud infrastructure that grows with your business needs.",
-  },
-];
+export default function SlogCreativePinned() {
+  const pinRef = useRef(null);
 
-export const Services = () => {
-  const sectionRef = useRef(null);
-  const headingRef = useRef(null);
-  const cardsRef = useRef(null);
+  useGSAP(() => {
+    // Horizontal Scroll
+    gsap.to(".slogTitle", {
+      xPercent: -80,
+      scrollTrigger: {
+        trigger: pinRef.current,
+        start: "top top",
+        end: "+=300%",
+        scrub: 2,
+        pin: true,
+      },
+    });
 
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
+    // Sticker Floating Animation
+    gsap.to(".sticker", {
+      y: 20,
+      rotate: 5,
+      repeat: -1,
+      yoyo: true,
+      ease: "sine.inOut",
+      duration: 2.5,
+    });
 
-    // Animate heading
-    if (headingRef.current) {
-      const headingElements = Array.from(headingRef.current.children);
-      headingElements.forEach((el) => {
-        gsap.fromTo(
-          el,
-          {
-            y: 50,
-            opacity: 0,
-          },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 1,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: section,
-              start: "top 80%",
-              toggleActions: "play none none none",
-            },
-            immediateRender: false,
-          }
-        );
-      });
-    }
-
-    // Animate service cards
-    const serviceCards = cardsRef.current?.children;
-    if (serviceCards && serviceCards.length > 0) {
-      Array.from(serviceCards).forEach((card, index) => {
-        gsap.fromTo(
-          card,
-          {
-            y: 100,
-            opacity: 0,
-          },
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.8,
-            delay: index * 0.1,
-            ease: "power3.out",
-            scrollTrigger: {
-              trigger: section,
-              start: "top 70%",
-              toggleActions: "play none none none",
-            },
-            immediateRender: false,
-          }
-        );
-      });
-    }
-
-    // Refresh ScrollTrigger after a short delay
-    setTimeout(() => {
-      ScrollTrigger.refresh();
-    }, 100);
-
-    // Cleanup
-    return () => {
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-    };
+    ScrollTrigger.refresh();
   }, []);
 
   return (
-    <section ref={sectionRef} className="py-24 px-4 sm:px-6 lg:px-8 relative bg-background">
-      <div className="max-w-6xl mx-auto">
-        <div ref={headingRef} className="text-center mb-16">
-          <h2 className="text-4xl md:text-5xl font-display font-bold mb-4 text-foreground">
-            Our Services
-          </h2>
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Comprehensive solutions tailored to your business needs
-          </p>
-        </div>
+    <section
+      ref={pinRef}
+      className="h-screen relative overflow-hidden flex items-center"
+      style={{
+        background: "#a9ced9",
+      }}
+    >
+      {/* HUGE TEXT */}
+      <h1
+        className="slogTitle"
+        style={{
+          fontSize: "60vh",
+          fontWeight: "900",
+          letterSpacing: "-8px",
+          color: "#111",
+          whiteSpace: "nowrap",
+          marginLeft: "20vw",
+        }}
+      >
+        SLOG SOLUTIONS
+      </h1>
 
-        <div ref={cardsRef} className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {services.map((service, index) => {
-            const IconComponent = service.icon;
-            return (
-              <Card
-                key={index}
-                className="service-card group hover:border-primary/50 transition-all duration-300 bg-card/50 backdrop-blur-sm cursor-pointer shadow-sm hover:shadow-md"
-              >
-                <CardContent className="p-6">
-                  <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:scale-110 group-hover:bg-primary/20 transition-all duration-300">
-                    <IconComponent className="w-7 h-7 text-primary" />
-                  </div>
-                  <h3 className="text-xl font-display font-semibold mb-3 text-foreground">
-                    {service.title}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {service.description}
-                  </p>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+      {/* Stickers */}
+      <div className="sticker absolute bottom-24 left-20 bg-pink-200 border-4 border-black rounded-full px-8 py-4 text-2xl font-bold">
+        Defence
+      </div>
+
+      <div className="sticker absolute top-16 right-40 bg-yellow-300 border-4 border-black rounded-full px-8 py-3 text-xl font-bold">
+        Government
+      </div>
+
+      <div className="sticker absolute top-1/10 left-1/7 -translate-x-1/2 -translate-y-1/2 rotate-[-8deg]">
+  <div className="
+      w-[240px] h-[240px]
+      bg-white
+      border-[6px] border-black
+      rounded-full
+      shadow-[10px_10px_0px_#000]
+      flex flex-col items-center justify-center
+      text-center
+      relative
+  ">
+    <span className="text-[22px] font-extrabold tracking-wide">
+      CORPORATE
+    </span>
+
+    <span className="
+      mt-2 text-sm font-bold
+      bg-black text-white px-4 py-1
+      rounded-full border-[3px] border-black
+    ">
+      TRAINING
+    </span>
+
+    {/* inner ring */}
+    <div className="
+      absolute inset-4 border-[3px] border-black rounded-full
+    "></div>
+  </div>
+</div>
+
+
+      <div
+        className="
+    sticker absolute bottom-10 right-10
+    px-12 py-6 text-xl font-bold
+    bg-green-300 border-[4px] border-black
+    text-black
+    shadow-[6px_6px_0px_#000]
+    rotate-[-6deg]
+  "
+        style={{
+          borderRadius: "40% 60% 55% 45% / 60% 40% 60% 40%",
+        }}
+      >
+        Innovation
       </div>
     </section>
   );
-};
+}

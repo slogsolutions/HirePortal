@@ -155,6 +155,7 @@ import ProfilePage from "./pages/MyProfilePage";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index";
+import ContactAdmin from "./pages/ContactAdmin";
 // We alias webB's Toaster to avoid a name conflict with 'sonner'
 // import { Toaster as ShadcnToaster } from "@/components/ui/toaster";
 // We don't need webB's "Sonner" import, since you already import it from "sonner" directly.
@@ -189,7 +190,7 @@ function AppContent() {
       <Routes>
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/complain" element={<ContactAdmin />} />
         <Route path="/about-us" element={<AboutUs />} />
 
         {/* Protected routes wrapper */}

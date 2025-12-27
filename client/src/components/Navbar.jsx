@@ -17,11 +17,12 @@ import {
   ArrowRightOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { Button } from "@/components/ui/button";
+import { useGSAP } from "@gsap/react";
+import gsap from "gsap";
 
 export default function Navbar({ brand = "Slog Solutions" }) {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
-
   const [isDark, setIsDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -31,6 +32,18 @@ export default function Navbar({ brand = "Slog Solutions" }) {
   const [displayName, setDisplayName] = useState("");
 
   const profileRef = useRef(null);
+  const HomeRef = useRef();
+
+  useGSAP(() => {
+    gsap.from(HomeRef.current, {
+      opacity: 0,
+      scale: 0.8, // small pop effect
+      duration: 0.9,
+      // ease: "back.out(1.7)",
+      delay: 0.5,
+        y: 10, 
+    });
+  });
 
   // Initialize theme from localStorage on mount
   useEffect(() => {
@@ -150,7 +163,7 @@ export default function Navbar({ brand = "Slog Solutions" }) {
           </div>
 
           {/* Center: desktop links */}
-          <div className="hidden md:flex items-center gap-8">
+          <div className="hidden md:flex items-center gap-8" ref={HomeRef}>
             <Link
               to="/"
               className="text-foreground/80 hover:text-foreground transition-colors"
@@ -231,7 +244,9 @@ export default function Navbar({ brand = "Slog Solutions" }) {
                   avatarUrl ? (
                     <img
                       src={avatarUrl}
-                      alt={displayName ? `${displayName} avatar` : "User avatar"}
+                      alt={
+                        displayName ? `${displayName} avatar` : "User avatar"
+                      }
                       className="h-9 w-9 rounded-full object-cover border"
                       onError={(e) => {
                         e.currentTarget.onerror = null;
@@ -374,7 +389,10 @@ export default function Navbar({ brand = "Slog Solutions" }) {
         )}
       </nav>
 
-      <FcmTokenModal isOpen={showFcmModal} onClose={() => setShowFcmModal(false)} />
+      <FcmTokenModal
+        isOpen={showFcmModal}
+        onClose={() => setShowFcmModal(false)}
+      />
       <div className="pt-20" />
     </>
   );
