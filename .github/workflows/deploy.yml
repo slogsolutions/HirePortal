@@ -1,0 +1,31 @@
+name: MERN CI/CD to VPS
+
+on:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Deploy to VPS
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: |
+            cd /var/www/hireportalWithCiCd
+            git pull
+
+            cd server
+            npm install
+            pm2 restart server || pm2 start index.js --name server
+
+            cd ../client
+            npm install
+            npm run build
