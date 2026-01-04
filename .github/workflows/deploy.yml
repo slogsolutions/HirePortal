@@ -49,8 +49,9 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: "client/dist/"
+          source: "client/dist/**"
           target: "/var/www/hireportalWithCiCd/client/dist"
+          strip_components: 2
           overwrite: true
 
       # ================= Reload Nginx =================
