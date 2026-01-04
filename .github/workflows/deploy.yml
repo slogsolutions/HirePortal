@@ -109,7 +109,7 @@ jobs:
 
             cd server
             npm install
-            pm2 restart hireportal-api || pm2 start index.js --name hireportal-api
+            pm2 restart hireportal-cicd || pm2 start index.js --name hireportal-cicd
 
 
       # ================= Frontend Build on VPS =================
