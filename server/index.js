@@ -182,7 +182,7 @@ async function ensureSuperAdmin() {
 // );
 
 // ====== START SERVER ======
-const port = process.env.PORT || 5000;
+const port = process.env.PORT || 3001;
 mongoose.connection.once('open', async () => {
   console.log('💾 Database connected');
   await ensureSuperAdmin();
