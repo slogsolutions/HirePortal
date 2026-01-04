@@ -2,7 +2,8 @@ name: MERN CI/CD to VPS
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - main
 
 jobs:
   deploy:
@@ -12,7 +13,13 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Deploy to VPS
+      - name: Use Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      # ================= Backend =================
+      - name: Deploy Backend
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
@@ -26,6 +33,31 @@ jobs:
             npm install
             pm2 restart server || pm2 start index.js --name server
 
-            cd ../client
-            npm install
-            npm run build
+      # ================= Frontend Build =================
+      - name: Install Frontend Dependencies
+        working-directory: client
+        run: npm install --legacy-peer-deps
+
+      - name: Build Frontend
+        working-directory: client
+        run: npm run build
+
+      # ================= Upload Dist =================
+      - name: Upload dist to VPS
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          source: "client/dist/*"
+          target: "/var/www/hireportalWithCiCd/client/dist"
+          strip_components: 1
+
+      # ================= Reload Nginx =================
+      - name: Reload Nginx
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: sudo systemctl reload nginx
