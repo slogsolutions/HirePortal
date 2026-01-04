@@ -31,7 +31,7 @@ jobs:
 
             cd server
             npm install
-            pm2 restart server || pm2 start index.js --name server
+            pm2 restart hireportalServer || pm2 start index.js --name hireportalServer
 
       # ================= Frontend Build =================
       - name: Install Frontend Dependencies
