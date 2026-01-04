@@ -51,7 +51,6 @@ jobs:
           key: ${{ secrets.SSH_KEY }}
           source: "client/dist/*"
           target: "/var/www/hireportalWithCiCd/client/dist"
-          strip_components: 1
 
       # ================= Reload Nginx =================
       - name: Reload Nginx
