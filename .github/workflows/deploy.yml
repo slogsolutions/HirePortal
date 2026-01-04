@@ -1,3 +1,80 @@
+# name: MERN CI/CD to VPS
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout Repo
+#         uses: actions/checkout@v4
+
+#       - name: Use Node
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: 18
+
+
+#       # ================= Backend =================
+#       - name: Deploy Backend
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.SERVER_IP }}
+#           username: ${{ secrets.SERVER_USER }}
+#           key: ${{ secrets.SSH_KEY }}
+#           script: |
+#             cd /var/www/hireportalWithCiCd
+#             git pull
+
+#             cd server
+#             npm install
+#             pm2 restart hireportal-api || pm2 start index.js --name hireportal-api
+
+
+#       # ================= Frontend Build =================
+
+#       #  Create production env for frontend build
+#       - name: Create .env.production
+#         working-directory: client
+#         run: |
+#            echo "VITE_API_BASE=/api" >> .env.production
+#            echo "VITE_FIREBASE_VAPID_KEY=${{ secrets.VITE_FIREBASE_VAPID_KEY }}" >> .env.production
+#            echo "VITE_SOME_OTHER_KEY=${{ secrets.VITE_SOME_OTHER_KEY }}" >> .env.production
+
+#       - name: Install Frontend Dependencies
+#         working-directory: client
+#         run: npm install --legacy-peer-deps
+        
+#       - name: Build Frontend
+#         working-directory: client
+#         run: npm run build
+
+
+#       # ================= Upload Dist =================
+#       - name: Upload dist to VPS
+#         uses: appleboy/scp-action@master
+#         with:
+#           host: ${{ secrets.SERVER_IP }}
+#           username: ${{ secrets.SERVER_USER }}
+#           key: ${{ secrets.SSH_KEY }}
+#           source: "client/dist/*"
+#           target: "/var/www/hireportalWithCiCd/client/dist"
+#           overwrite: true
+
+
+#       # ================= Reload Nginx =================
+#       - name: Reload Nginx
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.SERVER_IP }}
+#           username: ${{ secrets.SERVER_USER }}
+#           key: ${{ secrets.SSH_KEY }}
+#           script: sudo systemctl reload nginx
+
 name: MERN CI/CD to VPS
 
 on:
@@ -35,35 +112,25 @@ jobs:
             pm2 restart hireportal-api || pm2 start index.js --name hireportal-api
 
 
-      # ================= Frontend Build =================
-
-      #  Create production env for frontend build
-      - name: Create .env.production
-        working-directory: client
-        run: |
-           echo "VITE_API_BASE=/api" >> .env.production
-           echo "VITE_FIREBASE_VAPID_KEY=${{ secrets.VITE_FIREBASE_VAPID_KEY }}" >> .env.production
-           echo "VITE_SOME_OTHER_KEY=${{ secrets.VITE_SOME_OTHER_KEY }}" >> .env.production
-
-      - name: Install Frontend Dependencies
-        working-directory: client
-        run: npm install --legacy-peer-deps
-        
-      - name: Build Frontend
-        working-directory: client
-        run: npm run build
-
-
-      # ================= Upload Dist =================
-      - name: Upload dist to VPS
-        uses: appleboy/scp-action@master
+      # ================= Frontend Build on VPS =================
+      - name: Build Frontend on VPS
+        uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
-          source: "client/dist/*"
-          target: "/var/www/hireportalWithCiCd/client/dist"
-          overwrite: true
+          script: |
+            cd /var/www/hireportalWithCiCd
+            git pull
+
+            cd client
+            npm install --legacy-peer-deps
+
+            # clean old build
+            rm -rf dist
+
+            # build using VPS .env
+            npm run build
 
 
       # ================= Reload Nginx =================
