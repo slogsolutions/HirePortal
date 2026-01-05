@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
-import { Bell, X } from "lucide-react";
+import { Bell, X, ArrowRight } from "lucide-react";
 
 export default function NotificationDropdown({ isOpen, onClose }) {
   const {
@@ -10,8 +11,13 @@ export default function NotificationDropdown({ isOpen, onClose }) {
     markRead,
     refreshNotifications,
   } = useNotifications();
-
+  const navigate = useNavigate();
   const dropdownRef = useRef(null);
+
+  // Show only latest 5 notifications in dropdown
+  const latestNotifications = useMemo(() => {
+    return notifications.slice(0, 5);
+  }, [notifications]);
 
   useEffect(() => {
     if (isOpen) {
@@ -43,9 +49,18 @@ export default function NotificationDropdown({ isOpen, onClose }) {
   }, [isOpen, onClose]);
 
   const handleNotificationClick = async (notification) => {
+    // Mark as read on click
     if (!notification.read) {
       await markRead(notification._id);
     }
+    // Close dropdown and navigate to full notifications page
+    onClose();
+    navigate('/user-notifications');
+  };
+
+  const handleViewAll = () => {
+    onClose();
+    navigate('/user-notifications');
   };
 
   const formatDate = (dateString) => {
@@ -91,44 +106,47 @@ export default function NotificationDropdown({ isOpen, onClose }) {
       </div>
 
       {/* Notifications List */}
-      <div className="overflow-y-auto flex-1">
+      <div className="overflow-y-auto flex-1 max-h-[400px]">
         {loading ? (
-          <div className="p-8 text-center text-muted-foreground">
-            Loading notifications...
+          <div className="p-8 text-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto mb-2"></div>
+            <p className="text-sm text-muted-foreground">Loading notifications...</p>
           </div>
         ) : notifications.length === 0 ? (
           <div className="p-8 text-center">
-            <Bell className="h-12 w-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground">No notifications yet</p>
-            <p className="text-sm text-muted-foreground mt-1">
+            <div className="h-12 w-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
+              <Bell className="h-6 w-6 text-muted-foreground opacity-50" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">No notifications yet</p>
+            <p className="text-xs text-muted-foreground">
               You'll see notifications here when you receive them
             </p>
           </div>
         ) : (
           <div className="divide-y divide-border">
-            {notifications.map((notification) => (
+            {latestNotifications.map((notification) => (
               <div
                 key={notification._id}
                 onClick={() => handleNotificationClick(notification)}
-                className={`p-4 cursor-pointer transition-colors ${
+                className={`p-4 cursor-pointer transition-all duration-150 ${
                   notification.read
                     ? "bg-background hover:bg-accent/50"
-                    : "bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-100/50 dark:hover:bg-blue-900/20"
+                    : "bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-100/50 dark:hover:bg-blue-900/20 border-l-2 border-l-blue-600"
                 }`}
               >
                 <div className="flex items-start gap-3">
                   {!notification.read && (
-                    <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0" />
+                    <div className="w-2 h-2 bg-blue-600 rounded-full mt-2 flex-shrink-0 animate-pulse" />
                   )}
                   <div className="flex-1 min-w-0">
                     <h4
-                      className={`font-semibold text-sm ${
+                      className={`font-semibold text-sm mb-1 ${
                         !notification.read ? "text-foreground" : "text-muted-foreground"
                       }`}
                     >
                       {notification.title}
                     </h4>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    <p className="text-sm text-muted-foreground line-clamp-2">
                       {notification.body}
                     </p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
@@ -136,7 +154,7 @@ export default function NotificationDropdown({ isOpen, onClose }) {
                       {notification.sentBy && (
                         <>
                           <span>•</span>
-                          <span>
+                          <span className="truncate max-w-[120px]">
                             {notification.sentBy.name || notification.sentBy.email}
                           </span>
                         </>
@@ -152,14 +170,19 @@ export default function NotificationDropdown({ isOpen, onClose }) {
 
       {/* Footer */}
       {notifications.length > 0 && (
-        <div className="p-3 border-t border-border">
-          <a
-            href="/allnotifications"
-            onClick={onClose}
-            className="block text-center text-sm text-primary hover:underline"
+        <div className="p-3 border-t border-border bg-accent/30">
+          <button
+            onClick={handleViewAll}
+            className="w-full flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-primary hover:bg-accent rounded-md transition-colors"
           >
-            View all notifications ({notifications.length})
-          </a>
+            <span>View All Notifications</span>
+            <ArrowRight className="h-4 w-4" />
+            {notifications.length > 5 && (
+              <span className="ml-1 px-2 py-0.5 text-xs bg-primary/20 text-primary rounded-full">
+                {notifications.length - 5} more
+              </span>
+            )}
+          </button>
         </div>
       )}
     </div>

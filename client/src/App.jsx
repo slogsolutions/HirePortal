@@ -150,6 +150,7 @@ import AdminAttendancePage from "./pages/AdminAttendancePage";
 import AdminHolidays from "./pages/AdminHolidaysPage";
 import AdminUsersWithDetail from "./pages/EmployeeReportingAdminPage";
 import ProfilePage from "./pages/MyProfilePage";
+import UserNotificationsPage from "./pages/UserNotificationsPage";
 
 // --- New Imports from shadcn/ui App (webB) ---
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -220,6 +221,7 @@ function AppContent() {
           <Route path="/holidays/admin" element={<AdminHolidays />} />
           <Route path="/reporting/admin" element={<AdminUsersWithDetail />} />
           <Route path="/my-profile" element={<ProfilePage />} />
+          <Route path="/user-notifications" element={<UserNotificationsPage />} />
         </Route>
 
         {/* catch-all -> redirect to home */}
