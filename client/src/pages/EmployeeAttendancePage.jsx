@@ -71,41 +71,80 @@ const handleKeyDown = useCallback(
 
 
 
-  const fetchMonth = async () => {
-    try {
-      const { data } = await api.get(
-        `/attendance/me?year=${year}&month=${month}`
-      );
-      const daysData = data.days.map((d) => {
-        const dayDate = new Date(d.date + "T00:00:00Z");
-        const isFuture = dayDate > today;
-        // const editable = !d.isSunday && !d.isHoliday && (dayDate <= today || forceEditMode);
-        const isToday = dayDate.toDateString() === today.toDateString();
-        const editable =
-          !d.isSunday && !d.isHoliday && (isToday || forceEditMode);
+const fetchMonth = async () => {
+  try {
+    const { data } = await api.get(
+      `/attendance/me?year=${year}&month=${month}`
+    );
 
-        const fullNote = d.note || "";
-        const displayNote =
-          fullNote.split(" ").slice(0, 15).join(" ") +
-          (fullNote.split(" ").length > 15 ? "..." : "");
-        let tag = d.tag || "Working";
-        if (d.isSunday) tag = "Sunday";
-        else if (isFuture) tag = "Future";
-        return { ...d, editable, fullNote, displayNote, tag };
-      });
-      setDays(daysData);
+    console.log("data we got from /me",data, year ,month);
 
-      const totalDays = daysData.filter(
-        (d) => !d.isSunday && !d.isHoliday && d.tag !== "Future"
-      ).length;
-      const working = daysData.filter((d) => d.tag === "Working").length;
-      const missed = daysData.filter((d) => d.tag === "Missed").length;
-      const leave = daysData.filter((d) => d.tag === "On Leave").length;
-      setSummary({ total: totalDays, working, missed, leave });
-    } catch (err) {
-      console.error("[fetchMonth] error:", err);
-    }
-  };
+    const daysData = data.days.map((d) => {
+      const dayDate = new Date(d.date + "T00:00:00Z");
+      const isFuture = dayDate > today;
+      const isToday = dayDate.toDateString() === today.toDateString();
+
+      const editable =
+        !d.isSunday && !d.isHoliday && (isToday || forceEditMode);
+
+      const fullNote = d.note || "";
+      const displayNote =
+        fullNote.split(" ").slice(0, 15).join(" ") +
+        (fullNote.split(" ").length > 15 ? "..." : "");
+
+      // ---------- REAL FIX START ----------
+      let rawTag = (d.tag || "").trim();
+      const lower = rawTag.toLowerCase();
+
+      // strong normalization
+      if (lower === "onleave") rawTag = "On Leave";
+      else if (lower === "leave") rawTag = "On Leave";
+      else if (lower === "on leave") rawTag = "On Leave";
+      else if (lower.includes("leave")) rawTag = "On Leave";
+
+      // Sunday always wins
+      if (d.isSunday) {
+        rawTag = "Sunday";
+      }
+      // Do NOT override approved Leave or Holiday with Future
+      else if (
+        isFuture &&
+        rawTag !== "On Leave" &&
+        rawTag !== "Holiday"
+      ) {
+        rawTag = "Future";
+      }
+      // default fallback
+      else if (!rawTag) {
+        rawTag = "Working";
+      }
+      // ---------- REAL FIX END ----------
+
+      return { ...d, editable, fullNote, displayNote, tag: rawTag };
+    });
+
+    setDays(daysData);
+
+    // ---------- SAFE SUMMARY ----------
+    const totalDays = daysData.filter(
+      (d) => !d.isSunday && !d.isHoliday && d.tag !== "Future"
+    ).length;
+
+    const working = daysData.filter((d) => d.tag === "Working").length;
+    const missed = daysData.filter((d) => d.tag === "Missed").length;
+
+    const leave = daysData.filter(
+      (d) => (d.tag || "").trim() === "On Leave"
+    ).length;
+
+    setSummary({ total: totalDays, working, missed, leave });
+
+  } catch (err) {
+    console.error("[fetchMonth] error:", err);
+  }
+};
+
+
 
   useEffect(() => {
     fetchMonth();
