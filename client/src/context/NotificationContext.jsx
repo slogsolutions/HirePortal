@@ -52,14 +52,22 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (isAuthenticated && user?.id) {
       fetchNotifications();
-      // Refresh unread count every 30 seconds
-      const interval = setInterval(fetchUnreadCount, 30000);
+      // Refresh unread count more frequently (every 10 seconds) for real-time updates
+      const interval = setInterval(() => {
+        fetchUnreadCount();
+      }, 10000); // 10 seconds instead of 30
       return () => clearInterval(interval);
     }
   }, [isAuthenticated, user?.id, fetchNotifications, fetchUnreadCount]);
 
   const addNotification = useCallback((notif) => {
-    setNotifications((prev) => [notif, ...prev]);
+    // Check if notification already exists (avoid duplicates)
+    setNotifications((prev) => {
+      // If it's a temp notification, it will be replaced by the real one from API
+      const exists = prev.some(n => n._id === notif._id || (n.title === notif.title && n.body === notif.body && Math.abs(new Date(n.createdAt) - new Date(notif.createdAt)) < 5000));
+      if (exists) return prev;
+      return [notif, ...prev];
+    });
     if (!notif.read) {
       setUnreadCount((prev) => prev + 1);
     }

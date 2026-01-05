@@ -1,9 +1,10 @@
 // src/hooks/useFirebaseMessaging.js
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useContext } from "react";
 import { messaging } from "../firebase";
 import { getToken, onMessage } from "firebase/messaging";
 import { toast } from "sonner";
 import api from "../api/axios";
+import { useNotifications } from "../context/NotificationContext";
 
 const useFirebaseMessaging = (user) => {
   const [fcmToken, setFcmToken] = useState(null);
@@ -11,6 +12,10 @@ const useFirebaseMessaging = (user) => {
   const notificationStoreRef = useRef({});
   const saveTokenRetryRef = useRef(null);
   const tokenCheckIntervalRef = useRef(null);
+  
+  // Get notification context to update notifications in real-time
+  // This hook must be called inside NotificationProvider (which it is, via main.jsx)
+  const { refreshNotifications, refreshUnreadCount, addNotification } = useNotifications();
 
   // Retry logic for saving token
   const saveTokenToBackend = async (userId, token, platform, retries = 5) => {
@@ -176,13 +181,31 @@ const useFirebaseMessaging = (user) => {
         console.log("[FCM] 📄 Extracted body:", body);
         console.log("[FCM] 🏷️ Extracted tag:", tag);
 
-        // Show exact message (no merging)
+        // Show toast notification
         toast(`${title}`, { 
           description: body,
           duration: 5000,
         });
 
-        console.log(`[FCM] ✅ Toast displayed: "${title}: ${body}"`);
+        // Immediately refresh notifications to update count and list
+        console.log("[FCM] 🔄 Refreshing notifications list and unread count...");
+        refreshNotifications();
+        refreshUnreadCount();
+
+        // Also add notification to context immediately (optimistic update)
+        // This creates a temporary notification until the API call completes
+        const tempNotification = {
+          _id: `temp_${Date.now()}`,
+          title,
+          body,
+          tag,
+          read: false,
+          createdAt: new Date().toISOString(),
+          data: payload.data || {},
+        };
+        addNotification(tempNotification);
+
+        console.log(`[FCM] ✅ Toast displayed and notifications refreshed: "${title}: ${body}"`);
         console.log("------------------------------------------------------");
       });
 
