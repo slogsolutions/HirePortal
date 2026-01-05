@@ -154,7 +154,7 @@ export default function NotificationDropdown({ isOpen, onClose }) {
       {notifications.length > 0 && (
         <div className="p-3 border-t border-border">
           <a
-            href="/notifications"
+            href="/allnotifications"
             onClick={onClose}
             className="block text-center text-sm text-primary hover:underline"
           >

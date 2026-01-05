@@ -105,33 +105,45 @@ export default function NotificationsAdmin() {
       } else if (target === "device") {
         payload.deviceToken = String(deviceToken).trim();
       } else if (target === "user") {
-        // send by userId — backend will resolve tokens
-        payload.userId = singleUserId.trim();
+        // Check if it's an email or ID
+        const input = singleUserId.trim();
+        if (input.includes('@')) {
+          payload.email = input;
+        } else {
+          // Try as userId first, but backend will also try candidateId if userId fails
+          payload.userId = input;
+        }
       } else if (target === "users") {
-        payload.userIds = selectedIds;
+        // Send candidateIds - backend will resolve to userIds
+        payload.candidateIds = selectedIds;
       }
+
+      console.log("[NotificationsAdmin] 📤 Sending notification with payload:", payload);
 
       // call adminSend route (data-only)
       const res = await api.post("/fcm/admin/send", payload);
 
-      // backend returns { success: true, tokensSent, responses } per your controller
-      // if you applied the optional backend change below it will also include 'resolved' and 'skipped' arrays
+      // backend returns { success: true, tokensSent, successCount, failureCount, skipped, responses }
       const data = res.data || {};
-      const tokensSent = data.tokensSent ?? data.tokensSent ?? (data.success ? (data.responses?.length || 0) : 0);
+      const tokensSent = data.tokensSent ?? data.successCount ?? (data.success ? (data.responses?.length || 0) : 0);
 
       // Build friendly result structure for UI:
       const uiResult = {
         ok: true,
         raw: data,
-        tokensSent: data.tokensSent ?? tokensSent,
-        responses: data.responses || data.responses || [],
-        resolved: data.resolved || null, // optional: per-user resolution (backend change recommended)
+        tokensSent: tokensSent,
+        totalTokens: data.totalTokens || 0,
+        successCount: data.successCount || tokensSent,
+        failureCount: data.failureCount || 0,
+        responses: data.responses || [],
         skipped: data.skipped || null
       };
 
-      // If backend didn't return per-user skipped list but tokensSent < selected count, we warn user
-      if (target === "users" && uiResult.tokensSent !== null && uiResult.tokensSent < selectedIds.length && !uiResult.skipped) {
-        uiResult.warning = `Sent to ${uiResult.tokensSent} tokens out of ${selectedIds.length} selected users. Some users did not have tokens. To see which users were skipped, apply the backend update that returns per-user resolution (controller change).`;
+      // Show warning if some were skipped
+      if (target === "users" && uiResult.skipped && uiResult.skipped.length > 0) {
+        uiResult.warning = `Sent to ${uiResult.tokensSent} tokens. ${uiResult.skipped.length} candidate(s) were skipped (no linked user or no FCM token).`;
+      } else if (target === "users" && uiResult.tokensSent !== null && uiResult.tokensSent < selectedIds.length && !uiResult.skipped) {
+        uiResult.warning = `Sent to ${uiResult.tokensSent} tokens out of ${selectedIds.length} selected candidates. Some candidates may not have linked users or FCM tokens.`;
       }
 
       setResult(uiResult);
@@ -170,9 +182,9 @@ export default function NotificationsAdmin() {
 
         {target === 'user' && (
           <div>
-            <label className="block text-sm font-medium">User ID</label>
-            <input value={singleUserId} onChange={e => setSingleUserId(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="User ID (e.g. 64f...)" />
-            <div className="text-xs text-gray-500 mt-1">Backend will resolve tokens for this user ID. If no token is found, the server returns 404 / message.</div>
+            <label className="block text-sm font-medium">User ID or Email</label>
+            <input value={singleUserId} onChange={e => setSingleUserId(e.target.value)} className="w-full border rounded px-3 py-2" placeholder="User ID (e.g. 64f...) or Email (e.g. user@example.com)" />
+            <div className="text-xs text-gray-500 mt-1">Enter either a User ID or Email address. Backend will resolve tokens for this user. If no token is found, the server returns 404 / message.</div>
           </div>
         )}
 
@@ -181,7 +193,7 @@ export default function NotificationsAdmin() {
             <div className="flex items-center justify-between mb-2">
               <div>
                 <label className="block text-sm font-medium">Pick candidates</label>
-                <div className="text-xs text-gray-500">This will pass selected `userIds` to the backend; the backend sends only to users with tokens and returns count of tokens sent.</div>
+                <div className="text-xs text-gray-500">This will pass selected candidate IDs to the backend; the backend will resolve them to user IDs and send only to users with tokens. Returns count of tokens sent and list of skipped candidates.</div>
               </div>
               <div className="flex gap-2">
                 <button onClick={selectAllVisible} className="px-2 py-1 bg-indigo-600 text-white rounded text-sm">Select visible</button>
@@ -249,11 +261,16 @@ export default function NotificationsAdmin() {
                   </div>
                 )}
 
-                {result.raw?.skipped && result.raw.skipped.length > 0 && (
+                {result.skipped && result.skipped.length > 0 && (
                   <div className="mt-2 text-sm text-red-700">
-                    <div className="font-medium">Skipped (no tokens):</div>
-                    <ul className="list-disc pl-5">
-                      {result.raw.skipped.map(u => <li key={u.userId}>{u.userId}</li>)}
+                    <div className="font-medium">Skipped ({result.skipped.length}):</div>
+                    <ul className="list-disc pl-5 max-h-32 overflow-auto">
+                      {result.skipped.map((item, idx) => (
+                        <li key={idx}>
+                          {item.name || item.email || item.candidateId || item.userId} 
+                          {item.reason && <span className="text-gray-600"> - {item.reason}</span>}
+                        </li>
+                      ))}
                     </ul>
                   </div>
                 )}

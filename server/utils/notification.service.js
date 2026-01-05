@@ -6,13 +6,57 @@ class NotificationService {
   /**
    * Send a data message to a single token
    * Automatically removes invalid tokens from database
+   * Supports both data-only and notification+data messages
    */
   static async sendDataMessage(token, payload) {
     try {
-      return await admin.messaging().send({
+      // Build message payload
+      const message = {
         token,
-        data: payload.data,
-      });
+      };
+
+      // If payload has notification field, include it (for foreground display)
+      // Note: notification.icon is NOT valid in FCM notification object
+      if (payload.notification) {
+        // Create a clean notification object without icon
+        const cleanNotification = {
+          title: payload.notification.title,
+          body: payload.notification.body,
+        };
+        // Only include image if it exists (not icon)
+        if (payload.notification.image) {
+          cleanNotification.image = payload.notification.image;
+        }
+        message.notification = cleanNotification;
+      }
+
+      // Always include data (for background handling)
+      if (payload.data) {
+        message.data = {};
+        // Convert all data values to strings (FCM requirement)
+        for (const [key, value] of Object.entries(payload.data)) {
+          message.data[key] = String(value);
+        }
+      }
+
+      // Set Android priority for better delivery
+      message.android = {
+        priority: 'high',
+      };
+
+      // Set web push options (icon goes here, not in notification)
+      message.webpush = {
+        notification: {
+          title: payload.notification?.title || payload.data?.title || 'Notification',
+          body: payload.notification?.body || payload.data?.body || '',
+          icon: '/slog-logo.png', // Icon is valid in webpush.notification
+        },
+      };
+
+      console.log(`[FCM] 📤 Sending message to token ${token.substring(0, 20)}...`);
+      const result = await admin.messaging().send(message);
+      console.log(`[FCM] ✅ Message sent successfully: ${result}`);
+      return result;
     } catch (err) {
       const code = err?.errorInfo?.code || err?.code;
       
@@ -36,6 +80,7 @@ class NotificationService {
       }
       
       // For other errors, throw to be handled by caller
+      console.error(`[FCM] ❌ Error sending message:`, err);
       throw err;
     }
   }
@@ -122,10 +167,47 @@ class NotificationService {
         if (allSamePayload && batch.length > 1) {
           // Use multicast for better performance
           try {
-            const multicastResponse = await admin.messaging().sendMulticast({
+            const multicastMessage = {
               tokens: batch,
-              data: firstPayload.data,
-            });
+            };
+
+            // Include notification if available (without icon - icon is not valid in notification object)
+            if (firstPayload.notification) {
+              const cleanNotification = {
+                title: firstPayload.notification.title,
+                body: firstPayload.notification.body,
+              };
+              // Only include image if it exists (not icon)
+              if (firstPayload.notification.image) {
+                cleanNotification.image = firstPayload.notification.image;
+              }
+              multicastMessage.notification = cleanNotification;
+            }
+
+            // Include data (convert all values to strings)
+            if (firstPayload.data) {
+              multicastMessage.data = {};
+              for (const [key, value] of Object.entries(firstPayload.data)) {
+                multicastMessage.data[key] = String(value);
+              }
+            }
+
+            // Set Android priority
+            multicastMessage.android = {
+              priority: 'high',
+            };
+
+            // Set web push options (icon goes here, not in notification)
+            multicastMessage.webpush = {
+              notification: {
+                title: firstPayload.notification?.title || firstPayload.data?.title || 'Notification',
+                body: firstPayload.notification?.body || firstPayload.data?.body || '',
+                icon: '/slog-logo.png', // Icon is valid in webpush.notification
+              },
+            };
+
+            // Use sendMulticast (correct method name in Firebase Admin SDK)
+            const multicastResponse = await admin.messaging().sendMulticast(multicastMessage);
 
             // Process responses
             multicastResponse.responses.forEach((resp, idx) => {

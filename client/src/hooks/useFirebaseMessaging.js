@@ -13,22 +13,41 @@ const useFirebaseMessaging = (user) => {
   const tokenCheckIntervalRef = useRef(null);
 
   // Retry logic for saving token
-  const saveTokenToBackend = async (userId, token, platform, retries = 3) => {
+  const saveTokenToBackend = async (userId, token, platform, retries = 5) => {
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
         console.log(`[FCM] 🚀 Sending token to backend (attempt ${attempt}/${retries})...`);
-        await api.post("/fcm/token", {
-          userId,
-          token,
-          platform,
-        });
+        
+        // Try authenticated route first (if user is logged in), fallback to regular route
+        try {
+          await api.post("/fcm/token/me", {
+            token,
+            platform,
+          });
+        } catch (authErr) {
+          // If authenticated route fails (401 or not found), try regular route with userId
+          if (authErr.response?.status === 401 || authErr.response?.status === 404) {
+            console.log("[FCM] 🔄 Authenticated route failed, trying regular route with userId...");
+            await api.post("/fcm/token", {
+              userId,
+              token,
+              platform,
+            });
+          } else {
+            throw authErr;
+          }
+        }
+        
         console.log("[FCM] ✅ Token saved to backend successfully!");
         return true;
       } catch (err) {
-        console.error(`[FCM] ❌ Failed to save token to backend (attempt ${attempt}/${retries}):`, err);
+        const errorMsg = err?.response?.data?.message || err.message || 'Unknown error';
+        console.error(`[FCM] ❌ Failed to save token to backend (attempt ${attempt}/${retries}):`, errorMsg);
+        
         if (attempt < retries) {
           // Exponential backoff: wait 2^attempt seconds
           const delay = Math.pow(2, attempt) * 1000;
+          console.log(`[FCM] ⏳ Retrying in ${delay/1000} seconds...`);
           await new Promise(resolve => setTimeout(resolve, delay));
         } else {
           console.error("[FCM] ❌ All retry attempts failed. Token will be saved on next check.");
@@ -101,11 +120,21 @@ const useFirebaseMessaging = (user) => {
           newToken: token?.substring(0, 20) + "...",
         });
 
-        // Always save to backend if token changed or user changed
-        // This handles token rotation automatically
+        // ALWAYS save to backend when token is first obtained or changed
+        // This ensures token is saved immediately in the database
         if (needSendToBackend) {
+          console.log("[FCM] 💾 Saving token to backend immediately...");
           const saved = await saveTokenToBackend(user.id, token, "web");
-          if (!saved && mounted) {
+          if (saved) {
+            console.log("[FCM] ✅ Token successfully saved to database!");
+            // Update localStorage to mark as saved
+            localStorage.setItem(localKey, JSON.stringify({ 
+              token, 
+              userId: user.id,
+              savedAt: new Date().toISOString(),
+              savedToBackend: true
+            }));
+          } else if (mounted) {
             // Schedule retry on next focus if save failed
             console.log("[FCM] ⏰ Will retry token save on next focus event");
           }
@@ -161,8 +190,8 @@ const useFirebaseMessaging = (user) => {
       console.log("[FCM] ✅ Foreground onMessage listener setup complete.");
     }
 
-    // Initial token request
-    requestPermissionAndToken();
+    // Initial token request - force save on mount
+    requestPermissionAndToken(true);
 
     // Periodic token check (every 5 minutes) to catch token rotation
     tokenCheckIntervalRef.current = setInterval(() => {
