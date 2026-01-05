@@ -8,6 +8,7 @@ const mongoose = require('mongoose');
 const cron = require('node-cron'); // ✅ for daily background jobs
 const db = require('./config/db.config');
 const { startCron } = require('./jobs/attendanceCron');
+const { startFcmCleanupCron } = require('./jobs/fcmCleanupCron');
 // ====== MODELS ======
 const User = require('./models/User.model');
 const DailyEntry = require('./models/DailyEntry.model'); // ✅ we'll create this model for attendance entries
@@ -132,6 +133,7 @@ mongoose.connection.once('open', async () => {
 
 
   startCron();
+  startFcmCleanupCron();
   app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
 });
 

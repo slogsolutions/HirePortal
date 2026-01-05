@@ -15,14 +15,54 @@ exports.upsertToken = asyncHandler(async (req, res) => {
   }
 
   const userAgent = req.headers['user-agent'];
+  const platformValue = platform || 'web';
 
-  const doc = await FcmToken.findOneAndUpdate(
-    { userId, token },
-    { platform: platform || 'web', userAgent, lastSeenAt: new Date() },
-    { new: true, upsert: true, setDefaultsOnInsert: true }
-  );
+  try {
+    // Check if this exact token already exists for this user
+    const existingToken = await FcmToken.findOne({ userId, token });
+    
+    if (existingToken) {
+      // Token already exists, just update metadata
+      existingToken.lastSeenAt = new Date();
+      existingToken.userAgent = userAgent;
+      existingToken.platform = platformValue;
+      await existingToken.save();
+      console.log(`[FCM] ✅ Token updated for user ${userId}`);
+      return res.json({ message: 'token updated', data: existingToken });
+    }
 
-  res.json({ message: 'token saved', data: doc });
+    // This is a new token - check if user has other tokens
+    const userTokens = await FcmToken.find({ userId });
+    
+    // Save the new token (multi-device support - keep old tokens)
+    // Invalid tokens will be cleaned up automatically when we try to send notifications
+    const doc = await FcmToken.create({
+      userId,
+      token,
+      platform: platformValue,
+      userAgent,
+      lastSeenAt: new Date()
+    });
+
+    console.log(`[FCM] ✅ New token saved for user ${userId} (total tokens: ${userTokens.length + 1})`);
+
+    res.json({ message: 'token saved', data: doc });
+  } catch (error) {
+    // Handle duplicate key error (race condition)
+    if (error.code === 11000) {
+      const existing = await FcmToken.findOne({ userId, token });
+      if (existing) {
+        existing.lastSeenAt = new Date();
+        existing.userAgent = userAgent;
+        existing.platform = platformValue;
+        await existing.save();
+        console.log(`[FCM] ✅ Token updated (race condition handled) for user ${userId}`);
+        return res.json({ message: 'token updated', data: existing });
+      }
+    }
+    console.error(`[FCM] ❌ Error saving token for user ${userId}:`, error);
+    throw error;
+  }
 });
 
 exports.sendToUser = asyncHandler(async (req, res) => {
@@ -48,7 +88,6 @@ exports.sendToUser = asyncHandler(async (req, res) => {
 
 // Admin: send data-only messages to various targets
 exports.adminSend = asyncHandler(async (req, res) => {
-  console.log("entered")
   ensureAdminInitialized();
 
   const { title, body, userId, userIds, deviceToken, allUsers } = req.body;
@@ -56,6 +95,7 @@ exports.adminSend = asyncHandler(async (req, res) => {
 
   // Resolve tokens
   let tokens = [];
+  let resolvedUserIds = [];
 
   async function getTokensByUserId(id) {
     const docs = await FcmToken.find({ userId: id }).select('token -_id');
@@ -69,55 +109,51 @@ exports.adminSend = asyncHandler(async (req, res) => {
     tokens = [deviceToken];
   } else if (userId) {
     tokens = await getTokensByUserId(userId);
+    resolvedUserIds = [userId];
   } else if (Array.isArray(userIds) && userIds.length > 0) {
     const docs = await FcmToken.find({ userId: { $in: userIds } }).select('token -_id');
     tokens = docs.map(d => d.token);
+    resolvedUserIds = userIds;
   } else {
     return res.status(400).json({ message: 'No target specified' });
   }
 
   if (!tokens.length) return res.status(404).json({ message: 'No tokens found for target' });
 
-  const messaging = admin.messaging();
+  // Use NotificationService for better token cleanup
+  const NotificationService = require('../utils/notification.service');
 
-  // Helper: send single data message and cleanup invalid tokens
-  async function sendDataMessage(singleToken, payload) {
-    try {
-      return await messaging.send({ token: singleToken, data: payload.data });
-    } catch (err) {
-      if (err.code === 'messaging/registration-token-not-registered') {
-        try {
-          await FcmToken.deleteOne({ token: singleToken });
-          // eslint-disable-next-line no-console
-          console.log(`FCM: Removed invalid token ${singleToken}`);
-        } catch (_) {}
-        return null;
-      }
-      throw err;
+  // Build payload factory with proper tag
+  const payloadFor = (tkn) => {
+    // Determine tag based on target type
+    let tag;
+    if (userId) {
+      tag = `user_${userId}_notification`;
+    } else if (resolvedUserIds.length > 0) {
+      // For multiple users, use a generic tag or find user for this token
+      tag = `users_notification`;
+    } else {
+      tag = `device_${tkn.substring(0, 10)}_notification`;
     }
-  }
 
-  // Build payload factory with merged user/device tag
-  const payloadFor = (tkn) => ({
-    data: {
-      title: String(title),
-      body: String(body),
-      tag: userId ? `user_${userId}_notification` : `device_${tkn}_notification`,
-    },
+    return {
+      data: {
+        title: String(title),
+        body: String(body),
+        tag: tag,
+      },
+    };
+  };
+
+  // Use NotificationService for batch sending and automatic cleanup
+  const responses = await NotificationService.sendDataMessageMultiple(tokens, payloadFor);
+
+  return res.json({ 
+    success: true, 
+    tokensSent: responses.length, 
+    totalTokens: tokens.length,
+    responses 
   });
-
-  const responses = [];
-  for (const t of tokens) {
-    try {
-      const resp = await sendDataMessage(t, payloadFor(t));
-      if (resp) responses.push(resp);
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error(`FCM admin send error for token ${t}:`, err.message || err);
-    }
-  }
-
-  return res.json({ success: true, tokensSent: responses.length, responses });
 });
 
 // Very simple admin route: resolve tokens and send data-only messages

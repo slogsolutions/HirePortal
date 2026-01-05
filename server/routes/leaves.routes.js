@@ -9,7 +9,7 @@ const {
   getMyLeaves,
 } = require('../controllers/leaves.controller');
 const { protect } = require('../middlewares/auth.middleware'); // your auth middleware
-const {requireRole} = require("../middlewares/roles.middleware")
+const {requireRole} = require("../middlewares/roles.middleware");
 
 router.use(protect);
 
