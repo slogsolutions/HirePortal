@@ -78,7 +78,7 @@ const Login = () => {
         "
       >
         <h2 className="title text-3xl font-bold mb-6 tracking-wide">
-          Welcome Back 👋
+          Welcome Back 
         </h2>
 
         {error && (

@@ -9,11 +9,12 @@ const {
   getMyLeaves,
 } = require('../controllers/leaves.controller');
 const { protect } = require('../middlewares/auth.middleware'); // your auth middleware
+const {requireRole} = require("../middlewares/roles.middleware")
 
 router.use(protect);
 
 // create leave
-router.post('/', createLeave);
+router.post('/', requireRole(['hr','admin']),createLeave);
 
 // admin or reviewers: get all leaves (will be filtered by controller based on role)
 router.get('/', getLeaves);
