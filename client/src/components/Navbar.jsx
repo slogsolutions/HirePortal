@@ -8,8 +8,10 @@ import React, {
 import PropTypes from "prop-types";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { useNotifications } from "../context/NotificationContext";
 import FcmTokenModal from "./FcmTokenModal";
-import { Sun, Moon, Menu, X } from "lucide-react";
+import NotificationDropdown from "./NotificationDropdown";
+import { Sun, Moon, Menu, X, Bell } from "lucide-react";
 import {
   ChevronDownIcon,
   UserCircleIcon,
@@ -22,16 +24,19 @@ import gsap from "gsap";
 
 export default function Navbar({ brand = "Slog Solutions" }) {
   const { user, logout } = useContext(AuthContext);
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [isDark, setIsDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationOpen, setNotificationOpen] = useState(false);
   const [showFcmModal, setShowFcmModal] = useState(false);
 
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [displayName, setDisplayName] = useState("");
 
   const profileRef = useRef(null);
+  const notificationRef = useRef(null);
   const HomeRef = useRef();
 
   useGSAP(() => {
@@ -80,9 +85,18 @@ export default function Navbar({ brand = "Slog Solutions" }) {
       if (profileRef.current && !profileRef.current.contains(e.target)) {
         setProfileOpen(false);
       }
+      if (notificationRef.current && !notificationRef.current.contains(e.target)) {
+        // Don't close if clicking on the bell icon
+        if (!e.target.closest('[data-notification-bell]')) {
+          setNotificationOpen(false);
+        }
+      }
     }
     function onKey(e) {
-      if (e.key === "Escape") setProfileOpen(false);
+      if (e.key === "Escape") {
+        setProfileOpen(false);
+        setNotificationOpen(false);
+      }
     }
     document.addEventListener("mousedown", onClick);
     document.addEventListener("keydown", onKey);
@@ -178,24 +192,16 @@ export default function Navbar({ brand = "Slog Solutions" }) {
             </Link>
 
             {user && (
-              <>
-                <Link
-                  to="/notifications"
-                  className="text-foreground/80 hover:text-foreground transition-colors"
-                >
-                  Notifications
-                </Link>
-                <Link
-                  to="/dashboard"
-                  className="text-foreground/80 hover:text-foreground transition-colors"
-                >
-                  Dashboard
-                </Link>
-              </>
+              <Link
+                to="/dashboard"
+                className="text-foreground/80 hover:text-foreground transition-colors"
+              >
+                Dashboard
+              </Link>
             )}
           </div>
 
-          {/* Right: utilities (dark mode, FCM, login/profile) */}
+          {/* Right: utilities (dark mode, notifications, FCM, login/profile) */}
           <div className="flex items-center gap-3">
             {/* Dark Mode Toggle */}
             <Button
@@ -210,6 +216,31 @@ export default function Navbar({ brand = "Slog Solutions" }) {
                 <Moon size={18} className="rotate-0 scale-100" />
               )}
             </Button>
+
+            {/* Notification Bell - visible only when logged in */}
+            {user && (
+              <div className="relative" ref={notificationRef}>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setNotificationOpen((s) => !s)}
+                  aria-label="Notifications"
+                  data-notification-bell
+                  className="relative"
+                >
+                  <Bell size={18} />
+                  {unreadCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-600 text-white text-xs rounded-full flex items-center justify-center">
+                      {unreadCount > 9 ? "9+" : unreadCount}
+                    </span>
+                  )}
+                </Button>
+                <NotificationDropdown
+                  isOpen={notificationOpen}
+                  onClose={() => setNotificationOpen(false)}
+                />
+              </div>
+            )}
 
             {/* Save FCM Token - visible only when logged in */}
             {user && (
@@ -346,14 +377,6 @@ export default function Navbar({ brand = "Slog Solutions" }) {
 
             {user && (
               <>
-                <Link
-                  to="/notifications"
-                  onClick={() => setMobileOpen(false)}
-                  className="block px-2 py-2 text-foreground hover:text-primary"
-                >
-                  Notifications
-                </Link>
-
                 <Link
                   to="/attendance"
                   onClick={() => setMobileOpen(false)}

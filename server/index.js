@@ -20,6 +20,7 @@ const candidateRoutes = require('./routes/candidates.routes');
 const scoreRoutes = require('./routes/scores.routes');
 const offerRoutes = require('./routes/offers.routes');
 const fcmRoutes = require('./routes/fcm.routes');
+const notificationRoutes = require('./routes/notification.routes');
 const rulesDocumentRoutes = require('./routes/documentRules.routes');
 const verificationRoutes = require('./routes/verification.routes');
 const interviewRoutes = require('./routes/interview.routes');
@@ -62,6 +63,7 @@ app.use('/api/docs', rulesDocumentRoutes);
 app.use('/api/candidates', verificationRoutes); // this
 app.use('/api/candidates', interviewRoutes);
 app.use('/api', fcmRoutes);
+app.use('/api', notificationRoutes);
 app.use('/api/leaves', leaveRoutes);
 app.use('/api/salaries', salaryRoutes);
 app.use('/api/performance', performanceRoutes);

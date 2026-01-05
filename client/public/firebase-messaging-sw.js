@@ -15,33 +15,23 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
-const notificationStore = {};
-
 messaging.onBackgroundMessage((payload) => {
   const userTag = payload.data?.tag || "user_default_notification";
   const messageTitle = payload.data?.title || "New Notification";
   const messageBody = payload.data?.body || "";
 
-  if (notificationStore[userTag]) {
-    notificationStore[userTag].count += 1;
-    notificationStore[userTag].body = `${notificationStore[userTag].count} new messages`;
-    notificationStore[userTag].title = messageTitle;
-  } else {
-    notificationStore[userTag] = { count: 1, body: messageBody, title: messageTitle };
-  }
-
+  // Show exact message (no merging) - each notification is unique
   const options = {
-    body: notificationStore[userTag].body,
+    body: messageBody,
     icon: "/slog-logo.png",
-    tag: userTag,
-    renotify: true,
-    data: payload.data
+    tag: `${userTag}_${Date.now()}`, // Unique tag for each notification
+    renotify: false, // Don't renotify, show each message separately
+    data: payload.data,
+    timestamp: Date.now()
   };
 
-  self.registration.getNotifications({ tag: userTag }).then((existing) => {
-    existing.forEach((n) => n.close());
-    self.registration.showNotification(notificationStore[userTag].title, options);
-  });
+  // Show notification directly without closing existing ones
+  self.registration.showNotification(messageTitle, options);
 });
 
 self.addEventListener("notificationclick", (event) => {

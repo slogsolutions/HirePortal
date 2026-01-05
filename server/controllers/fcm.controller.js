@@ -103,10 +103,15 @@ exports.adminSend = asyncHandler(async (req, res) => {
   }
 
   if (allUsers) {
-    const docs = await FcmToken.find({}).select('token -_id');
+    const docs = await FcmToken.find({}).select('userId token -_id');
     tokens = docs.map(d => d.token);
+    // Get unique user IDs for all users
+    const uniqueUserIds = [...new Set(docs.map(d => d.userId.toString()))];
+    resolvedUserIds = uniqueUserIds;
   } else if (deviceToken) {
     tokens = [deviceToken];
+    // Can't determine userId from deviceToken alone
+    resolvedUserIds = [];
   } else if (userId) {
     tokens = await getTokensByUserId(userId);
     resolvedUserIds = [userId];
@@ -123,6 +128,9 @@ exports.adminSend = asyncHandler(async (req, res) => {
   // Use NotificationService for better token cleanup
   const NotificationService = require('../utils/notification.service');
 
+  // Get sender ID from request (if authenticated)
+  const sentBy = req.user?.id || null;
+
   // Build payload factory with proper tag
   const payloadFor = (tkn) => {
     // Determine tag based on target type
@@ -130,7 +138,7 @@ exports.adminSend = asyncHandler(async (req, res) => {
     if (userId) {
       tag = `user_${userId}_notification`;
     } else if (resolvedUserIds.length > 0) {
-      // For multiple users, use a generic tag or find user for this token
+      // For multiple users, use a generic tag
       tag = `users_notification`;
     } else {
       tag = `device_${tkn.substring(0, 10)}_notification`;
@@ -145,8 +153,13 @@ exports.adminSend = asyncHandler(async (req, res) => {
     };
   };
 
-  // Use NotificationService for batch sending and automatic cleanup
-  const responses = await NotificationService.sendDataMessageMultiple(tokens, payloadFor);
+  // Use NotificationService for batch sending, automatic cleanup, and DB storage
+  const responses = await NotificationService.sendDataMessageMultiple(
+    tokens, 
+    payloadFor, 
+    resolvedUserIds.length > 0 ? resolvedUserIds : null,
+    sentBy
+  );
 
   return res.json({ 
     success: true, 

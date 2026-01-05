@@ -147,21 +147,13 @@ const useFirebaseMessaging = (user) => {
         console.log("[FCM] 📄 Extracted body:", body);
         console.log("[FCM] 🏷️ Extracted tag:", tag);
 
-        // Merge notifications by tag
-        const store = notificationStoreRef.current;
-        if (store[tag]) {
-          store[tag].count += 1;
-          store[tag].body = `${store[tag].count} new messages`;
-          console.log(`[FCM] 🔁 Updated count for '${tag}':`, store[tag].count);
-        } else {
-          store[tag] = { count: 1, body };
-          console.log(`[FCM] 🆕 New notification stored for tag '${tag}':`, body);
-        }
+        // Show exact message (no merging)
+        toast(`${title}`, { 
+          description: body,
+          duration: 5000,
+        });
 
-        // Show Sonner toast
-        toast(`${title}`, { description: store[tag].body });
-
-        console.log(`[FCM] ✅ Toast displayed: "${title}: ${store[tag].body}"`);
+        console.log(`[FCM] ✅ Toast displayed: "${title}: ${body}"`);
         console.log("------------------------------------------------------");
       });
 

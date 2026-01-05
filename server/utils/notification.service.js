@@ -1,5 +1,6 @@
 const admin = require('firebase-admin');
 const FcmToken = require('../models/FcmToken.model');
+const Notification = require('../models/Notification.model');
 
 class NotificationService {
   /**
@@ -40,11 +41,59 @@ class NotificationService {
   }
 
   /**
+   * Save notification to database for a user
+   */
+  static async saveNotification(userId, title, body, tag, data = {}, sentBy = null) {
+    try {
+      const notification = await Notification.create({
+        userId,
+        title,
+        body,
+        tag,
+        data,
+        sentBy,
+        read: false
+      });
+      console.log(`[FCM] 💾 Notification saved to DB for user ${userId}`);
+      return notification;
+    } catch (err) {
+      console.error(`[FCM] ❌ Failed to save notification to DB:`, err);
+      // Don't throw - notification sending should continue even if DB save fails
+      return null;
+    }
+  }
+
+  /**
+   * Save notifications for multiple users
+   */
+  static async saveNotificationsForUsers(userIds, title, body, tag, data = {}, sentBy = null) {
+    try {
+      const notifications = userIds.map(userId => ({
+        userId,
+        title,
+        body,
+        tag,
+        data,
+        sentBy,
+        read: false
+      }));
+      
+      const result = await Notification.insertMany(notifications);
+      console.log(`[FCM] 💾 Saved ${result.length} notifications to DB`);
+      return result;
+    } catch (err) {
+      console.error(`[FCM] ❌ Failed to save notifications to DB:`, err);
+      return [];
+    }
+  }
+
+  /**
    * Send data messages to multiple tokens
    * Uses batch sending (multicast) for better performance
    * Automatically cleans up invalid tokens
+   * Saves notifications to database
    */
-  static async sendDataMessageMultiple(tokens, payloadFactory) {
+  static async sendDataMessageMultiple(tokens, payloadFactory, userIds = null, sentBy = null) {
     if (!tokens || tokens.length === 0) {
       return [];
     }
@@ -126,6 +175,29 @@ class NotificationService {
         console.log(`[FCM] 🗑️ Removed ${deleteResult.deletedCount} invalid tokens`);
       } catch (deleteErr) {
         console.error(`[FCM] ❌ Failed to delete invalid tokens:`, deleteErr);
+      }
+    }
+
+    // Save notifications to database if userIds provided
+    if (userIds && userIds.length > 0 && tokens.length > 0) {
+      try {
+        const firstPayload = payloadFactory(tokens[0]);
+        const title = firstPayload.data?.title || 'Notification';
+        const body = firstPayload.data?.body || '';
+        const tag = firstPayload.data?.tag || 'default_notification';
+        
+        // Save notifications for all users
+        await NotificationService.saveNotificationsForUsers(
+          userIds,
+          title,
+          body,
+          tag,
+          firstPayload.data || {},
+          sentBy
+        );
+      } catch (err) {
+        console.error(`[FCM] ❌ Failed to save notifications:`, err);
+        // Don't fail the whole operation if DB save fails
       }
     }
 
