@@ -45,7 +45,7 @@ export default function EmployeeCalendarModern() {
   });
 
 const keySequence = useRef([]);
-const SECRET_KEYS_2 = ["l", "a", "k", "s", "h"];
+const SECRET_KEYS_2 = ["l", "a", "k", "s", "h","r","k"];
 
 const handleKeyDown = useCallback(
   (e) => {
