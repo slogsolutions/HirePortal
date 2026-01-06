@@ -246,7 +246,7 @@ async function generatePdfFromHtml(htmlContent, filepath) {
 
   const launchOptions = {
     headless: "new",
-    executablePath: PUPPETEER_EXECUTABLE_PATH, // /snap/bin/chromium
+    executablePath: PUPPETEER_EXECUTABLE_PATH,
     args: [
       "--no-sandbox",
       "--disable-setuid-sandbox",
@@ -255,7 +255,7 @@ async function generatePdfFromHtml(htmlContent, filepath) {
       "--no-first-run",
       "--no-zygote"
     ],
-    timeout: 120000 // allow 2 mins for first cold start
+    timeout: 120000
   };
 
   console.log("Launching browser with:", launchOptions.executablePath);
@@ -268,11 +268,11 @@ async function generatePdfFromHtml(htmlContent, filepath) {
     await page.setViewport({ width: 1200, height: 800 });
 
     await page.setContent(htmlContent, {
-      waitUntil: "networkidle0",
+      waitUntil: "domcontentloaded",
       timeout: 90000
     });
 
-    await page.waitForTimeout(300);
+    await page.waitForTimeout(1500);
 
     await page.pdf({
       path: filepath,
@@ -291,6 +291,7 @@ async function generatePdfFromHtml(htmlContent, filepath) {
     } catch {}
   }
 }
+
 
 function buildFullAddress(candidate) {
   const permanent = candidate.address?.permanent || {};
