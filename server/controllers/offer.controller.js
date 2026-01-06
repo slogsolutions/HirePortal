@@ -495,11 +495,11 @@ const downloadOffer = async (req, res) => {
   }
 };
 
-// Send offer email
+// Send offer email - supports single email or array of emails
 const sendOfferEmail = async (req, res) => {
   try {
     const { offerId } = req.params;
-    const { to, subject, message } = req.body;
+    const { to, toArray, candidateIds, customEmails, subject, message } = req.body;
 
     console.log('🔹 Send email request for offer ID:', offerId);
     console.log('🔹 Request body:', req.body);
@@ -528,6 +528,38 @@ const sendOfferEmail = async (req, res) => {
       }
     }
 
+    // Resolve recipient emails
+    let recipientEmails = [];
+    const Candidate = require('../models/Candidate.model');
+
+    // Handle different input formats
+    if (toArray && Array.isArray(toArray)) {
+      // Direct array of emails
+      recipientEmails = toArray.filter(email => email && email.includes('@'));
+    } else if (candidateIds && Array.isArray(candidateIds) && candidateIds.length > 0) {
+      // Resolve candidate IDs to emails
+      const candidates = await Candidate.find({ _id: { $in: candidateIds } }).select('email firstName lastName').lean();
+      recipientEmails = candidates
+        .filter(c => c.email)
+        .map(c => c.email);
+      console.log(`🔹 Resolved ${candidateIds.length} candidates to ${recipientEmails.length} emails`);
+    } else if (customEmails && Array.isArray(customEmails)) {
+      // Custom email addresses
+      recipientEmails = customEmails.filter(email => email && email.includes('@'));
+    } else if (to) {
+      // Single email (backward compatibility)
+      recipientEmails = [to];
+    } else if (offer && offer.candidate && offer.candidate.email) {
+      // Fallback to candidate email
+      recipientEmails = [offer.candidate.email];
+    }
+
+    if (recipientEmails.length === 0) {
+      return res.status(400).json({ message: 'No valid recipient emails found' });
+    }
+
+    console.log(`🔹 Sending to ${recipientEmails.length} recipient(s):`, recipientEmails);
+
     // Create SMTP transporter
     const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
@@ -545,29 +577,53 @@ const sendOfferEmail = async (req, res) => {
       }
     });
 
-    // Prepare email options
-    const mailOptions = {
-      from: process.env.EMAIL_FROM || 'hr@example.com',
-      to: to || (offer && offer.candidate && offer.candidate.email),
-      subject: subject || 'Offer Letter from Company',
-      text: message || 'Please find attached your offer letter.',
-      attachments: [{ filename: path.basename(filepath), path: filepath, contentType: 'application/pdf' }],
+    // Read PDF file once
+    const pdfAttachment = {
+      filename: path.basename(filepath),
+      path: filepath,
+      contentType: 'application/pdf'
     };
 
-    console.log('🔹 Mail options prepared:', mailOptions);
+    // Send emails to all recipients
+    const results = [];
+    let successCount = 0;
+    let failureCount = 0;
 
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
-    console.log('✅ Email sent successfully:', info);
+    for (const email of recipientEmails) {
+      try {
+        const mailOptions = {
+          from: process.env.EMAIL_FROM || 'hr@example.com',
+          to: email,
+          subject: subject || 'Offer Letter from SLOG Solutions',
+          text: message || `Hello,\n\nPlease find attached your offer letter.\n\nRegards,\nHR Team\nSLOG Solutions`,
+          attachments: [pdfAttachment],
+        };
 
-    // Update offer status in DB
-    if (offer) {
+        const info = await transporter.sendMail(mailOptions);
+        successCount++;
+        results.push({ email, success: true, messageId: info.messageId });
+        console.log(`✅ Email sent successfully to: ${email}`);
+      } catch (err) {
+        failureCount++;
+        results.push({ email, success: false, error: err.message });
+        console.error(`❌ Failed to send email to ${email}:`, err.message);
+      }
+    }
+
+    // Update offer status in DB if at least one email was sent
+    if (offer && successCount > 0) {
       offer.status = 'sent';
       await offer.save();
       console.log('🔹 Offer status updated to "sent" in DB');
     }
 
-    res.json({ message: 'Email sent successfully', info });
+    res.json({ 
+      message: `Email sent to ${successCount} recipient(s)${failureCount > 0 ? `, ${failureCount} failed` : ''}`,
+      successCount,
+      failureCount,
+      total: recipientEmails.length,
+      results
+    });
   } catch (err) {
     console.error('❌ sendOfferEmail error:', err);
     res.status(500).json({ message: 'Failed to send email', error: err.message });
