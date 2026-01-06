@@ -69,103 +69,103 @@ if (!fs.existsSync(templatePath)) {
 const templateHtml = fs.readFileSync(templatePath, 'utf-8');
 const compileTemplate = Handlebars.compile(templateHtml);
 
-async function generatePdfFromHtml(htmlContent, filepath) {
-  // Ensure parent folder exists
-  mkdirp.sync(path.dirname(filepath));
+// async function generatePdfFromHtml(htmlContent, filepath) {
+//   // Ensure parent folder exists
+//   mkdirp.sync(path.dirname(filepath));
 
-  // common launch options (we build the final object below)
-  const baseLaunchOptions = {
-    headless: true,
-      executablePath: PUPPETEER_EXECUTABLE_PATH,
-    args: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--disable-gpu',
-      '--no-first-run',
-      '--no-zygote',
-      '--single-process'
-    ],
-    timeout: 60000
-  };
+//   // common launch options (we build the final object below)
+//   const baseLaunchOptions = {
+//     headless: true,
+//       executablePath: PUPPETEER_EXECUTABLE_PATH,
+//     args: [
+//       '--no-sandbox',
+//       '--disable-setuid-sandbox',
+//       '--disable-dev-shm-usage',
+//       '--disable-accelerated-2d-canvas',
+//       '--disable-gpu',
+//       '--no-first-run',
+//       '--no-zygote',
+//       '--single-process'
+//     ],
+//     timeout: 60000
+//   };
 
-  // If an executable path is provided, add it — otherwise let Puppeteer choose its bundled Chromium.
-  // We'll attempt to launch with executablePath if provided, but if that fails with ENOENT we will retry without it.
-  let browser;
-  let triedWithExecutablePath = false;
+//   // If an executable path is provided, add it — otherwise let Puppeteer choose its bundled Chromium.
+//   // We'll attempt to launch with executablePath if provided, but if that fails with ENOENT we will retry without it.
+//   let browser;
+//   let triedWithExecutablePath = false;
 
-  // Helper to actually launch
-  const tryLaunch = async (useExecutablePath) => {
-    const launchOptions = { ...baseLaunchOptions };
-    if (useExecutablePath && PUPPETEER_EXECUTABLE_PATH) {
-      launchOptions.executablePath = PUPPETEER_EXECUTABLE_PATH;
-      triedWithExecutablePath = true;
-    }
-    console.log('Launching browser. options.executablePath =', launchOptions.executablePath || '(bundled)');
-    return await puppeteer.launch(launchOptions);
-  };
+//   // Helper to actually launch
+//   const tryLaunch = async (useExecutablePath) => {
+//     const launchOptions = { ...baseLaunchOptions };
+//     if (useExecutablePath && PUPPETEER_EXECUTABLE_PATH) {
+//       launchOptions.executablePath = PUPPETEER_EXECUTABLE_PATH;
+//       triedWithExecutablePath = true;
+//     }
+//     console.log('Launching browser. options.executablePath =', launchOptions.executablePath || '(bundled)');
+//     return await puppeteer.launch(launchOptions);
+//   };
 
-  try {
-    try {
-      browser = await tryLaunch(Boolean(PUPPETEER_EXECUTABLE_PATH));
-    } catch (err) {
-      // If the error looks like 'ENOENT' / missing binary, retry without executablePath.
-      const msg = err && err.message ? err.message : String(err);
-      console.warn('Initial puppeteer.launch failed:', msg);
+//   try {
+//     try {
+//       browser = await tryLaunch(Boolean(PUPPETEER_EXECUTABLE_PATH));
+//     } catch (err) {
+//       // If the error looks like 'ENOENT' / missing binary, retry without executablePath.
+//       const msg = err && err.message ? err.message : String(err);
+//       console.warn('Initial puppeteer.launch failed:', msg);
 
-      if (triedWithExecutablePath && (msg.includes('ENOENT') || msg.includes('executablePath') || msg.includes('No such file or directory'))) {
-        console.warn('ExecutablePath appears invalid. Retrying launch without executablePath so Puppeteer can use its bundled Chromium.');
-        // Retry without executablePath
-        browser = await tryLaunch(false);
-      } else {
-        // Not a simple missing-binary error — rethrow for upstream handling.
-        throw err;
-      }
-    }
+//       if (triedWithExecutablePath && (msg.includes('ENOENT') || msg.includes('executablePath') || msg.includes('No such file or directory'))) {
+//         console.warn('ExecutablePath appears invalid. Retrying launch without executablePath so Puppeteer can use its bundled Chromium.');
+//         // Retry without executablePath
+//         browser = await tryLaunch(false);
+//       } else {
+//         // Not a simple missing-binary error — rethrow for upstream handling.
+//         throw err;
+//       }
+//     }
 
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1200, height: 800 });
-    await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Headless');
+//     const page = await browser.newPage();
+//     await page.setViewport({ width: 1200, height: 800 });
+//     await page.setUserAgent('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome Headless');
 
-    // Wait for network idle and a small extra settle time
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 60000 });
-    await page.waitForTimeout(300);
+//     // Wait for network idle and a small extra settle time
+//     await page.setContent(htmlContent, { waitUntil: 'networkidle0', timeout: 60000 });
+//     await page.waitForTimeout(300);
 
-    await page.pdf({
-      path: filepath,
-      format: 'A4',
-      printBackground: true,
-      timeout: 120000
-    });
+//     await page.pdf({
+//       path: filepath,
+//       format: 'A4',
+//       printBackground: true,
+//       timeout: 120000
+//     });
 
-    console.log('PDF successfully written to', filepath);
-  } catch (err) {
-    // Produce helpful hints for common issues
-    const extra = [];
-    const msg = err && err.message ? err.message : String(err);
+//     console.log('PDF successfully written to', filepath);
+//   } catch (err) {
+//     // Produce helpful hints for common issues
+//     const extra = [];
+//     const msg = err && err.message ? err.message : String(err);
 
-    if (msg.includes('error while loading shared libraries') || msg.includes('cannot open shared object file')) {
-      extra.push('Chromium failed due to missing shared libraries on the system.');
-      extra.push('Run: ldd ' + (PUPPETEER_EXECUTABLE_PATH || '<chromium-path>') + ' | grep "not found"  to list missing .so files.');
-      extra.push('On Ubuntu/Debian you typically need: libatk1.0-0, libgtk-3-0, libnss3, libx11-6, libxss1, libasound2, fonts-liberation, etc.');
-    }
-    if (msg.includes('executablePath') || msg.includes('No such file or directory') || msg.includes('ENOENT')) {
-      extra.push('Ensure PUPPETEER_EXECUTABLE_PATH (if set) points to an existing chromium binary on the system.');
-      extra.push('If you are deploying to Render, do not set PUPPETEER_EXECUTABLE_PATH unless Chromium is installed there; instead allow Puppeteer to use its bundled Chromium.');
-    }
+//     if (msg.includes('error while loading shared libraries') || msg.includes('cannot open shared object file')) {
+//       extra.push('Chromium failed due to missing shared libraries on the system.');
+//       extra.push('Run: ldd ' + (PUPPETEER_EXECUTABLE_PATH || '<chromium-path>') + ' | grep "not found"  to list missing .so files.');
+//       extra.push('On Ubuntu/Debian you typically need: libatk1.0-0, libgtk-3-0, libnss3, libx11-6, libxss1, libasound2, fonts-liberation, etc.');
+//     }
+//     if (msg.includes('executablePath') || msg.includes('No such file or directory') || msg.includes('ENOENT')) {
+//       extra.push('Ensure PUPPETEER_EXECUTABLE_PATH (if set) points to an existing chromium binary on the system.');
+//       extra.push('If you are deploying to Render, do not set PUPPETEER_EXECUTABLE_PATH unless Chromium is installed there; instead allow Puppeteer to use its bundled Chromium.');
+//     }
 
-    console.error('Failed to generate PDF — puppeteer launch/pdf error:', err);
-    if (extra.length) console.error('Hints:', extra.join(' '));
-    throw err;
-  } finally {
-    try {
-      if (browser) await browser.close();
-    } catch (closeErr) {
-      console.warn('Error while closing browser:', closeErr && closeErr.message ? closeErr.message : closeErr);
-    }
-  }
-}
+//     console.error('Failed to generate PDF — puppeteer launch/pdf error:', err);
+//     if (extra.length) console.error('Hints:', extra.join(' '));
+//     throw err;
+//   } finally {
+//     try {
+//       if (browser) await browser.close();
+//     } catch (closeErr) {
+//       console.warn('Error while closing browser:', closeErr && closeErr.message ? closeErr.message : closeErr);
+//     }
+//   }
+// }
 
 
 // ======================== CONTROLLERS ========================
@@ -240,6 +240,58 @@ async function generatePdfFromHtml(htmlContent, filepath) {
 //     res.status(500).json({ message: 'Offer generation failed', error: err.message });
 //   }
 // };
+
+async function generatePdfFromHtml(htmlContent, filepath) {
+  mkdirp.sync(path.dirname(filepath));
+
+  const launchOptions = {
+    headless: "new",
+    executablePath: PUPPETEER_EXECUTABLE_PATH, // /snap/bin/chromium
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-gpu",
+      "--no-first-run",
+      "--no-zygote"
+    ],
+    timeout: 120000 // allow 2 mins for first cold start
+  };
+
+  console.log("Launching browser with:", launchOptions.executablePath);
+
+  let browser;
+  try {
+    browser = await puppeteer.launch(launchOptions);
+
+    const page = await browser.newPage();
+    await page.setViewport({ width: 1200, height: 800 });
+
+    await page.setContent(htmlContent, {
+      waitUntil: "networkidle0",
+      timeout: 90000
+    });
+
+    await page.waitForTimeout(300);
+
+    await page.pdf({
+      path: filepath,
+      format: "A4",
+      printBackground: true,
+      timeout: 120000
+    });
+
+    console.log("PDF successfully written:", filepath);
+  } catch (err) {
+    console.error("❌ Puppeteer PDF failed:", err.message);
+    throw err;
+  } finally {
+    try {
+      if (browser) await browser.close();
+    } catch {}
+  }
+}
+
 function buildFullAddress(candidate) {
   const permanent = candidate.address?.permanent || {};
   return [
@@ -250,6 +302,7 @@ function buildFullAddress(candidate) {
     permanent.pincode,
   ].filter(Boolean).join(", ");
 }
+
 
 // Generate offer
 // const generateOffer = async (req, res) => {
