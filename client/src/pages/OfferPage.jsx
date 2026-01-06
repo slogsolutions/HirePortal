@@ -70,17 +70,19 @@ export default function OfferPage() {
 
   // Preview offer
   const previewOffer = () => {
-    if (!latestOffer) return alert("No offer to preview");
+  if (!latestOffer) return alert("No offer to preview");
 
-    // Get base URL from your configured axios instance
-    const baseURL = api.defaults.baseURL?.replace(/\/+$/, "") || "";
+  const baseURL = api.defaults.baseURL?.replace(/\/+$/, "") || "";
+  const identifier = latestOffer.filename 
+    ? latestOffer.filename 
+    : latestOffer._id || latestOffer.id;
 
-    // Build the URL dynamically based on API base, using the /offers/:id/preview endpoint
-    const url = `${baseURL}/offers/${latestOffer._id}/preview`;
+  const url = `${baseURL}/offers/${encodeURIComponent(identifier)}/preview`;
 
-    console.log("Previewing offer at URL:", url);
-    window.open(url, "_blank");
-  };
+  console.log("Previewing offer at URL:", url);
+  window.open(url, "_blank");
+};
+
 
   // Download offer
   const downloadOffer = () => {
