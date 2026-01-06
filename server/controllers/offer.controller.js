@@ -1,22 +1,26 @@
 const puppeteer = require('puppeteer');
-let PUPPETEER_EXECUTABLE_PATH;
+// let PUPPETEER_EXECUTABLE_PATH;
 
-if (process.env.PUPPETEER_EXECUTABLE_PATH) {
-  // If explicitly defined (via env or PM2), always prefer it
-  PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH;
-} else if (process.env.RENDER || process.env.NODE_ENV === 'production') {
-  // For Render or other production hosts (uses bundled Chromium)
-  PUPPETEER_EXECUTABLE_PATH = undefined;
-} else if (process.env.IS_VPS || process.env.HOSTNAME?.includes('vps')) {
-  // For your VPS
-  PUPPETEER_EXECUTABLE_PATH = '/snap/bin/chromium';
-} else {
-  // Local PC fallback
-  PUPPETEER_EXECUTABLE_PATH = undefined;
-}
+// if (process.env.PUPPETEER_EXECUTABLE_PATH) {
+//   // If explicitly defined (via env or PM2), always prefer it
+//   PUPPETEER_EXECUTABLE_PATH = process.env.PUPPETEER_EXECUTABLE_PATH;
+// } else if (process.env.RENDER || process.env.NODE_ENV === 'production') {
+//   // For Render or other production hosts (uses bundled Chromium)
+//   PUPPETEER_EXECUTABLE_PATH = undefined;
+// } else if (process.env.IS_VPS || process.env.HOSTNAME?.includes('vps')) {
+//   // For your VPS
+//   PUPPETEER_EXECUTABLE_PATH = '/snap/bin/chromium';
+// } else {
+//   // Local PC fallback
+//   PUPPETEER_EXECUTABLE_PATH = undefined;
+// }
+
+// module.exports = { PUPPETEER_EXECUTABLE_PATH };
+let PUPPETEER_EXECUTABLE_PATH =
+  process.env.PUPPETEER_EXECUTABLE_PATH ||
+  "/snap/bin/chromium";
 
 module.exports = { PUPPETEER_EXECUTABLE_PATH };
-
 //REPLACED
 
 // Prefer an env-provided executable path (set on your VPS). If not provided, leave undefined so Puppeteer uses its bundled Chromium.
@@ -72,6 +76,7 @@ async function generatePdfFromHtml(htmlContent, filepath) {
   // common launch options (we build the final object below)
   const baseLaunchOptions = {
     headless: true,
+      executablePath: PUPPETEER_EXECUTABLE_PATH,
     args: [
       '--no-sandbox',
       '--disable-setuid-sandbox',
