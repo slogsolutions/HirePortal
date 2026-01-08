@@ -14,21 +14,21 @@ const {requireRole} = require("../middlewares/roles.middleware");
 router.use(protect);
 
 // create leave
-router.post('/', requireRole(['hr','admin']),createLeave);
+router.post('/', requireRole(['hr','admin','employee','manager']),createLeave);
 
 // admin or reviewers: get all leaves (will be filtered by controller based on role)
-router.get('/', getLeaves);
+router.get('/',  requireRole(['hr','admin','employee','manager']),getLeaves);
 
 // get only my leaves (authenticated user)
-router.get('/me', getMyLeaves);
+router.get('/me', requireRole(['hr','admin','employee','manager']), getMyLeaves);
 
 // get single leave by id
-router.get('/:id', getLeaveById);
+router.get('/:id',  requireRole(['hr','admin','employee','manager']), getLeaveById);
 
 // applicant modifies their pending leave
-router.patch('/:id', updateLeave);
+router.patch('/:id',  requireRole(['hr','admin','employee','manager']), updateLeave);
 
 // applicant or admin delete (owner only pending)
-router.delete('/:id', deleteLeave);
+router.delete('/:id',  requireRole(['hr','admin','employee','manager']), deleteLeave);
 
 module.exports = router;
