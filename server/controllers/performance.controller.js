@@ -64,25 +64,41 @@ const getPerformanceById = async (req, res) => {
 // ✅ Get performance for the logged-in user (/me)
 const getMyPerformance = async (req, res) => {
   try {
-    const userId = req.user?._id; // assuming you have auth middleware that sets req.user
+    const userId = req.user?._id; // User ID from auth middleware
 
     if (!userId) {
       return res.status(401).json({ message: 'Unauthorized. User not found in request.' });
     }
 
-    const performances = await EmployeePerformance.find({ employee: userId })
-      .populate('employee', 'firstName lastName email')
+    // Get user with candidateId
+    const User = require('../models/User.model');
+    const user = await User.findById(userId).select('candidateId');
+    
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.candidateId) {
+      return res.status(404).json({ 
+        message: 'No candidate profile linked to your account. Please contact HR.' 
+      });
+    }
+
+    // Find performance records using candidateId (employee field references Candidate)
+    const performances = await EmployeePerformance.find({ employee: user.candidateId })
+      .populate('employee', 'firstName lastName email Designation')
       .populate('reviewer', 'name email')
       .sort({ createdAt: -1 });
 
-    if (!performances || performances.length === 0) {
-      return res.status(404).json({ message: 'No performance records found for this user' });
-    }
-
-    res.json(performances);
+    // Return empty array if no records (not an error)
+    res.json({
+      success: true,
+      data: performances || [],
+      count: performances?.length || 0
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Failed to load your performance records' });
+    console.error('getMyPerformance error:', err);
+    res.status(500).json({ message: 'Failed to load your performance records', error: err.message });
   }
 };
 

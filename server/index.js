@@ -80,6 +80,10 @@ app.get('/offerletter', (req, res) => {
 // ====== ROOT ======
 app.get('/', (_, res) => res.json({ message: 'HirePortal backend running' }));
 
+app.get("/health", (req, res) => {
+  res.status(200).send("OK");
+});
+
 
 app.get('/test', (_, res) => res.json({ message: 'HirePortal backend updated testing' }));
 

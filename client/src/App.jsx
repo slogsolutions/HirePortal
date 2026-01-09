@@ -151,6 +151,9 @@ import AdminHolidays from "./pages/AdminHolidaysPage";
 import AdminUsersWithDetail from "./pages/EmployeeReportingAdminPage";
 import ProfilePage from "./pages/MyProfilePage";
 import UserNotificationsPage from "./pages/UserNotificationsPage";
+import MyPerformancePage from "./pages/MyPerformancePage";
+import RoleProtectedRoute from "./pages/RoleProtectedRoute";
+import Unauthorized from "./pages/Unauthorized";
 
 // --- New Imports from shadcn/ui App (webB) ---
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -193,6 +196,11 @@ function AppContent() {
         <Route path="/login" element={<Login />} />
         <Route path="/complain" element={<ContactAdmin />} />
         <Route path="/about-us" element={<AboutUs />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        
+        <Route element={<RoleProtectedRoute allowedRoles={['admin', 'manager', 'hr']} />}>
+  <Route path="/notifications" element={<NotificationsAdmin />} />
+</Route>
 
         {/* Protected routes wrapper */}
         <Route element={<ProtectedRoute />}>
@@ -210,7 +218,12 @@ function AppContent() {
           />
           <Route path="/candidates/:id/offer" element={<OfferPage />} />
           <Route path="/offerletter" element={<OfferLetterTabPage />} />
-          <Route path="/notifications" element={<NotificationsAdmin />} />
+          
+          {/* Role-protected routes - Only admin, manager, or hr can access */}
+          <Route element={<RoleProtectedRoute allowedRoles={['admin', 'manager', 'hr']} />}>
+            <Route path="/notifications" element={<NotificationsAdmin />} />
+          </Route>
+          
           <Route path="/leave" element={<EmployeeLeave />} />
           <Route path="/leaveApproval" element={<AdminLeaveApproval />} />
           <Route path="/salaryAdmin" element={<SalaryEditor />} />
@@ -222,6 +235,7 @@ function AppContent() {
           <Route path="/reporting/admin" element={<AdminUsersWithDetail />} />
           <Route path="/my-profile" element={<ProfilePage />} />
           <Route path="/user-notifications" element={<UserNotificationsPage />} />
+          <Route path="/my-performance" element={<MyPerformancePage />} />
         </Route>
 
         {/* catch-all -> redirect to home */}
