@@ -1,5 +1,12 @@
 // src/pages/DashboardPage.jsx
-import React, { useState, lazy, Suspense, useContext, useMemo, useEffect } from "react";
+import React, {
+  useState,
+  lazy,
+  Suspense,
+  useContext,
+  useMemo,
+  useEffect,
+} from "react";
 import { AuthContext } from "../context/AuthContext";
 import Documents from "./Documents";
 import OfferLetterTabPage from "./OfferLetterTabPage";
@@ -13,6 +20,9 @@ import AdminUsersWithDetail from "./EmployeeReportingAdminPage";
 import AdminHolidays from "./AdminHolidaysPage";
 import EmployeeTable from "./EmpCodeAdminPage";
 import MyPerformancePage from "./MyPerformancePage";
+import AdminLeaderBoard from "./AdminLeaderBoard";
+import EmployeeAttendancePage from "./EmployeeAttendancePage";
+import EmployeeLeave from "./LeaveRequestPage";
 
 import { ShieldX } from "lucide-react";
 // import CandidatesPage from "./CandidatesPage"; // <-- your real page
@@ -38,21 +48,87 @@ const Settings = () => (
 );
 
 const TABS = [
-  { key: "candidates", label: "Candidates" ,allowedRoles: ['admin', 'manager', 'hr']},
-  { key: "reports", label: "Reports",allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "offerLetter", label: "Offer Letter",allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "EmployeeCode", label: "Employee's Codes",allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "documents", label: "Documents", allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "notification", label: "Notification", allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "leavesApproval", label: "Leaves Approval",allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "salary", label: "Salary Slip", allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "massSalary", label: "Generate Salary",allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "reportingAdmin", label: "Employee Daily Reporting", allowedRoles: ['admin', 'manager', 'hr'] },
-   { key: "holidaysAdmin", label: "Add Holidays",allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "performanceReview", label: "Employee Performance",allowedRoles: ['admin', 'manager', 'hr'] },
-  { key: "myPerformance", label: "My Performance", allowedRoles: ['admin', 'manager', 'hr','employee']  }, // Accessible to all employees
-  
-  
+  {
+    key: "candidates",
+    label: "Candidates",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "reports",
+    label: "Reports",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "offerLetter",
+    label: "Offer Letter",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "EmployeeCode",
+    label: "Employee's Codes",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "documents",
+    label: "Documents",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "notification",
+    label: "Notification",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "leavesApproval",
+    label: "Leaves Approval",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "salary",
+    label: "Salary Slip",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "massSalary",
+    label: "Generate Salary",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "reportingAdmin",
+    label: "Employee Daily Reporting",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "holidaysAdmin",
+    label: "Add Holidays",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "performanceReview",
+    label: "Employee Performance",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+
+  {
+    key: "myPerformance",
+    label: "My Performance",
+    allowedRoles: ["admin", "manager", "hr", "employee"],
+  }, // Accessible to all employees
+  {
+    key: "leaderboardAdmin",
+    label: "Leaderboard",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
+    key: "myTodayReporting",
+    label: "My Reporting",
+    allowedRoles: ["admin", "manager", "hr", "employee"],
+  },
+  {
+    key: "applyLeave",
+    label: "Apply Leave",
+    allowedRoles: ["admin", "manager", "hr", "employee"],
+  },
 ];
 
 // Helper function to check if user has required role
@@ -91,11 +167,11 @@ export default function DashboardPage({ initialTab = "candidates" }) {
 
   // Filter tabs based on user role
   const visibleTabs = useMemo(() => {
-    return TABS.filter(tab => hasAccess(user?.role, tab.allowedRoles));
+    return TABS.filter((tab) => hasAccess(user?.role, tab.allowedRoles));
   }, [user?.role]);
 
   // Check if current active tab is accessible
-  const activeTab = TABS.find(tab => tab.key === active);
+  const activeTab = TABS.find((tab) => tab.key === active);
   const canAccessActiveTab = hasAccess(user?.role, activeTab?.allowedRoles);
 
   // If user tries to access restricted tab, redirect to first available tab
@@ -134,7 +210,7 @@ export default function DashboardPage({ initialTab = "candidates" }) {
       case "EmployeeCode":
         return (
           <Suspense fallback={<div>Loading...</div>}>
-            <EmployeeTable/>
+            <EmployeeTable />
           </Suspense>
         );
       case "documents":
@@ -181,20 +257,36 @@ export default function DashboardPage({ initialTab = "candidates" }) {
             <AdminUsersWithDetail />
           </Suspense>
         );
-        case "holidaysAdmin":
+      case "holidaysAdmin":
         return (
           <Suspense fallback={<div>Loading...</div>}>
             <AdminHolidays />
           </Suspense>
         );
-        case "myPerformance":
+      case "myPerformance":
         return (
           <Suspense fallback={<div>Loading...</div>}>
-            <MyPerformancePage />
+            <MyPerformancePage key="myPerformance" />
           </Suspense>
         );
-
-        
+      case "leaderboardAdmin":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <AdminLeaderBoard />
+          </Suspense>
+        );
+      case "myTodayReporting":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <EmployeeAttendancePage />
+          </Suspense>
+        );
+      case "applyLeave":
+        return (
+          <Suspense fallback={<div>Loading...</div>}>
+            <EmployeeLeave />
+          </Suspense>
+        );
 
       default:
         return <div>Not found</div>;

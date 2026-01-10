@@ -132,6 +132,69 @@ const deletePerformance = async (req, res) => {
   }
 };
 
+// ✅ Get leaderboard (top performers)
+const getLeaderboard = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 3;
+    
+    // Get all performances grouped by employee
+    const performances = await EmployeePerformance.find({})
+      .populate('employee', 'firstName lastName email Designation photoUrl')
+      .lean();
+
+    // Group by employee and calculate averages
+    const employeeStats = {};
+    
+    performances.forEach(perf => {
+      if (!perf.employee) return;
+      
+      const empId = perf.employee._id.toString();
+      if (!employeeStats[empId]) {
+        employeeStats[empId] = {
+          employee: perf.employee,
+          scores: [],
+          count: 0
+        };
+      }
+      
+      const score = Number(perf.performanceScore) || 0;
+      if (score > 0) {
+        employeeStats[empId].scores.push(score);
+        employeeStats[empId].count++;
+      }
+    });
+
+    // Calculate averages and format
+    const leaderboard = Object.values(employeeStats)
+      .map(stat => {
+        const avgScore = stat.scores.length > 0
+          ? stat.scores.reduce((a, b) => a + b, 0) / stat.scores.length
+          : 0;
+        
+        return {
+          employeeId: stat.employee._id,
+          name: `${stat.employee.firstName || ''} ${stat.employee.lastName || ''}`.trim() || 'Unknown',
+          designation: stat.employee.Designation || 'Employee',
+          photoUrl: stat.employee.photoUrl || null,
+          avgScore: Math.round(avgScore * 100) / 100,
+          reviewCount: stat.count
+        };
+      })
+      .filter(emp => emp.avgScore > 0) // Only include employees with valid scores
+      .sort((a, b) => b.avgScore - a.avgScore) // Sort by average score descending
+      .slice(0, limit); // Get top N
+
+    res.json({
+      success: true,
+      data: leaderboard,
+      count: leaderboard.length
+    });
+  } catch (err) {
+    console.error('getLeaderboard error:', err);
+    res.status(500).json({ message: 'Failed to load leaderboard', error: err.message });
+  }
+};
+
 module.exports = {
   createPerformance,
   getAllPerformances,
@@ -139,4 +202,5 @@ module.exports = {
   updatePerformance,
   deletePerformance,
   getMyPerformance,
+  getLeaderboard,
 };

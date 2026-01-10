@@ -7,6 +7,7 @@ const {
   updatePerformance,
   deletePerformance,
   getMyPerformance,
+  getLeaderboard,
 } = require('../controllers/performance.controller');
 const { protect } = require('../middlewares/auth.middleware');
 
@@ -16,8 +17,11 @@ router.post('/:id', createPerformance);
 // Get all performances (optional ?employeeId=)
 router.get('/', getAllPerformances);
 
-router.get('/me', protect, getMyPerformance);
+// Get leaderboard (top performers)
+router.get('/leaderboard', getLeaderboard);
 
+// Get my performance
+router.get('/me', protect, getMyPerformance);
 
 // Get specific performance
 router.get('/:performanceId', getPerformanceById);
