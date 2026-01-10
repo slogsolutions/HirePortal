@@ -34,6 +34,7 @@ const STATUS_COLORS = {
 };
 
 // Status dropdown options
+const HIDDEN_EMAIL = "admin@hireportal.com";
 const STATUS_OPTIONS = ["Working", "On Leave", "Holiday", "Missed", "Absent"];
 
 // Chart colors
@@ -61,7 +62,7 @@ export default function AdminUsersWithDetail() {
   const [days, setDays] = useState([]);
   const [editingDay, setEditingDay] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
-
+  
   // Per-user summary derived for chart and left panel
   const [allUsersSummary, setAllUsersSummary] = useState([]);
   const [stackedChartData, setStackedChartData] = useState([]);
@@ -82,7 +83,9 @@ export default function AdminUsersWithDetail() {
     try {
       // fetch users
       const uRes = await api.get("/attendance/admin/users");
-      const usersData = uRes.data?.data || uRes.data || [];
+      const usersData = (uRes.data?.data || uRes.data || []).filter(
+        (u) => u.email !== HIDDEN_EMAIL
+      );
       setUsers(usersData);
 
       // compute start/end ISO for the month (UTC)
@@ -218,103 +221,101 @@ export default function AdminUsersWithDetail() {
   //   }
   // };
 
- const fetchUserMonth = async (userId, y = year, m = month) => {
-  if (!userId) return;
-  setLoadingDetail(true);
+  const fetchUserMonth = async (userId, y = year, m = month) => {
+    if (!userId) return;
+    setLoadingDetail(true);
 
-  try {
-    const { data } = await api.get(`/attendance/admin/user/${userId}`, {
-      params: { year: y, month: m },
-    });
+    try {
+      const { data } = await api.get(`/attendance/admin/user/${userId}`, {
+        params: { year: y, month: m },
+      });
 
-    const daysData = (data?.days || []).map((d) => {
-      const fullNote = d.note || "";
-      let displayNote = fullNote.split(" ").slice(0, 15).join(" ");
-      if (fullNote.split(" ").length > 15) displayNote += "...";
+      const daysData = (data?.days || []).map((d) => {
+        const fullNote = d.note || "";
+        let displayNote = fullNote.split(" ").slice(0, 15).join(" ");
+        if (fullNote.split(" ").length > 15) displayNote += "...";
 
-      const dayDate = new Date(d.date + "T00:00:00Z");
-      const isFuture = dayDate > new Date();
+        const dayDate = new Date(d.date + "T00:00:00Z");
+        const isFuture = dayDate > new Date();
 
-      let rawTag = (d.tag || "").trim();
-      const lower = rawTag.toLowerCase();
+        let rawTag = (d.tag || "").trim();
+        const lower = rawTag.toLowerCase();
 
-      // -------- STRONG NORMALIZATION --------
-      if (lower === "onleave") rawTag = "On Leave";
-      else if (lower === "leave") rawTag = "On Leave";
-      else if (lower === "on leave") rawTag = "On Leave";
-      else if (lower.includes("leave")) rawTag = "On Leave"; // ANY leave text
-      // --------------------------------------
+        // -------- STRONG NORMALIZATION --------
+        if (lower === "onleave") rawTag = "On Leave";
+        else if (lower === "leave") rawTag = "On Leave";
+        else if (lower === "on leave") rawTag = "On Leave";
+        else if (lower.includes("leave")) rawTag = "On Leave"; // ANY leave text
+        // --------------------------------------
 
-      // Sunday always wins
-      if (d.isSunday) {
-        rawTag = "Sunday";
-      }
-      // Future rule (do NOT override Leave/Holiday)
-      else if (isFuture && rawTag !== "On Leave" && rawTag !== "Holiday") {
-        rawTag = "Future";
-      }
-      // default fallback
-      else if (!rawTag) {
-        rawTag = "Working";
-      }
+        // Sunday always wins
+        if (d.isSunday) {
+          rawTag = "Sunday";
+        }
+        // Future rule (do NOT override Leave/Holiday)
+        else if (isFuture && rawTag !== "On Leave" && rawTag !== "Holiday") {
+          rawTag = "Future";
+        }
+        // default fallback
+        else if (!rawTag) {
+          rawTag = "Working";
+        }
 
-      // Display messages
-      if (rawTag === "On Leave")
-        displayNote = fullNote || "Employee on approved leave";
+        // Display messages
+        if (rawTag === "On Leave")
+          displayNote = fullNote || "Employee on approved leave";
 
-      if (rawTag === "Missed") displayNote = fullNote || "No reporting";
-      if (rawTag === "Holiday") displayNote = fullNote || "Holiday";
-      if (rawTag === "Future") displayNote = "Coming Soon...";
+        if (rawTag === "Missed") displayNote = fullNote || "No reporting";
+        if (rawTag === "Holiday") displayNote = fullNote || "Holiday";
+        if (rawTag === "Future") displayNote = "Coming Soon...";
 
-      return { ...d, fullNote, displayNote, tag: rawTag };
-    });
+        return { ...d, fullNote, displayNote, tag: rawTag };
+      });
 
-    setDays(daysData);
+      setDays(daysData);
 
-    // ===== Summary Calculation =====
-    const daysInMonth = getDaysInMonth(new Date(y, m - 1));
+      // ===== Summary Calculation =====
+      const daysInMonth = getDaysInMonth(new Date(y, m - 1));
 
-    const totalWorking = daysData.reduce(
-      (a, d) =>
-        a + (d.tag === "Working" || d.tag === "Holiday" ? 1 : 0),
-      0
-    );
+      const totalWorking = daysData.reduce(
+        (a, d) => a + (d.tag === "Working" || d.tag === "Holiday" ? 1 : 0),
+        0
+      );
 
-    const totalLeave = daysData.reduce(
-      (a, d) => a + (d.tag === "On Leave" ? 1 : 0),
-      0
-    );
+      const totalLeave = daysData.reduce(
+        (a, d) => a + (d.tag === "On Leave" ? 1 : 0),
+        0
+      );
 
-    const totalHoliday = daysData.reduce(
-      (a, d) => a + (d.tag === "Holiday" ? 1 : 0),
-      0
-    );
+      const totalHoliday = daysData.reduce(
+        (a, d) => a + (d.tag === "Holiday" ? 1 : 0),
+        0
+      );
 
-    const reported = totalWorking + totalLeave;
-    const recalculatedMissed = Math.max(0, daysInMonth - reported);
+      const reported = totalWorking + totalLeave;
+      const recalculatedMissed = Math.max(0, daysInMonth - reported);
 
-    const perf =
-      daysInMonth > 0
-        ? (((totalWorking + totalHoliday) / daysInMonth) * 100).toFixed(2)
-        : "0.00";
+      const perf =
+        daysInMonth > 0
+          ? (((totalWorking + totalHoliday) / daysInMonth) * 100).toFixed(2)
+          : "0.00";
 
-    setUserSummary({
-      total: daysInMonth,
-      working: totalWorking + totalHoliday,
-      leave: totalLeave,
-      holiday: totalHoliday,
-      missed: recalculatedMissed,
-      performance: Number(perf),
-    });
-  } catch (err) {
-    console.error("[admin] fetchUserMonth error", err);
-    setDays([]);
-    setUserSummary({});
-  } finally {
-    setLoadingDetail(false);
-  }
-};
-
+      setUserSummary({
+        total: daysInMonth,
+        working: totalWorking + totalHoliday,
+        leave: totalLeave,
+        holiday: totalHoliday,
+        missed: recalculatedMissed,
+        performance: Number(perf),
+      });
+    } catch (err) {
+      console.error("[admin] fetchUserMonth error", err);
+      setDays([]);
+      setUserSummary({});
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
 
   // local userSummary for right panel (separate state)
   const [userSummary, setUserSummary] = useState({});
@@ -336,8 +337,9 @@ export default function AdminUsersWithDetail() {
     try {
       const res = await api.get("/attendance/admin/today-report");
       // expected res.data.data or res.data (array)
-      const data = res.data?.data || res.data || [];
-      console.log(data, "data for today from backend");
+      const data = (res.data?.data || res.data || []).filter(
+        (u) => u.email !== HIDDEN_EMAIL
+      );
       // Normalize a bit for frontend: create displayNote and tag mapping similar to user month
       const normalized = data.map((u) => {
         const t = u.today || {};
@@ -539,49 +541,54 @@ export default function AdminUsersWithDetail() {
               </div>
             ) : (
               <div className="mt-3 space-y-3 max-h-[60vh] overflow-auto dark:bg-slate-800">
-                {users.map((u) => {
-                  const s =
-                    summaryMap[u._id] ||
-                    allUsersSummary.find((x) => x.userId === u._id) ||
-                    {};
-                  const working = s.Working ?? 0;
-                  const leave = s.OnLeave ?? 0;
-                  const missed = s.Missed ?? 0;
-                  return (
-                    <div
-                      key={u._id}
-                      className={`p-3 rounded border cursor-pointer dark:bg-slate-900 ${
-                        selectedUser?._id === u._id
-                          ? "bg-indigo-50 border-indigo-200"
-                          : "bg-white"
-                      }`}
-                      onClick={() => setSelectedUser(u)}
-                    >
-                      <div className="flex justify-between items-start ">
-                        <div>
-                          <div className="font-semibold">
-                            {u.name || u.email}
-                          </div>
-                          <div className="text-xs text-gray-600">{u.email}</div>
-                          <div className="text-xs text-gray-500">
-                            role: {u.role}
-                          </div>
-                        </div>
-                        <div className="text-right text-xs">
+                {users
+                  .filter((u) => u.email !== HIDDEN_EMAIL)
+                  .map((u) => {
+                    const s =
+                      summaryMap[u._id] ||
+                      allUsersSummary.find((x) => x.userId === u._id) ||
+                      {};
+                    const working = s.Working ?? 0;
+                    const leave = s.OnLeave ?? 0;
+                    const missed = s.Missed ?? 0;
+                    return (
+                      <div
+                        key={u._id}
+                        className={`p-3 rounded border cursor-pointer dark:bg-slate-900 ${
+                          selectedUser?._id === u._id
+                            ? "bg-indigo-50 border-indigo-200"
+                            : "bg-white"
+                        }`}
+                        onClick={() => setSelectedUser(u)}
+                      >
+                        <div className="flex justify-between items-start ">
                           <div>
-                            W: <span className="font-semibold">{working}</span>
+                            <div className="font-semibold">
+                              {u.name || u.email}
+                            </div>
+                            <div className="text-xs text-gray-600">
+                              {u.email}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              role: {u.role}
+                            </div>
                           </div>
-                          <div>
-                            L: <span className="font-semibold">{leave}</span>
-                          </div>
-                          <div>
-                            M: <span className="font-semibold">{missed}</span>
+                          <div className="text-right text-xs">
+                            <div>
+                              W:{" "}
+                              <span className="font-semibold">{working}</span>
+                            </div>
+                            <div>
+                              L: <span className="font-semibold">{leave}</span>
+                            </div>
+                            <div>
+                              M: <span className="font-semibold">{missed}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
               </div>
             )}
           </div>
