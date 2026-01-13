@@ -6,10 +6,9 @@ describe("POST /api/auth/login", () => {
 
   it("logs in successfully with correct credentials", async () => {
 
-    // 👇 DO NOT hash manually — model will hash via pre-save hook
     await User.create({
       name: "Test User",
-      email: "test@example.com",
+      email: "login@test.com",   // 🔥 unique per test
       password: "123456",
       role: "admin",
     });
@@ -17,27 +16,28 @@ describe("POST /api/auth/login", () => {
     const res = await request(app)
       .post("/api/auth/login")
       .send({
-        email: "test@example.com",
+        email: "login@test.com",
         password: "123456",
       });
 
     expect(res.statusCode).toBe(200);
     expect(res.body.token).toBeDefined();
-    expect(res.body.user.email).toBe("test@example.com");
+    expect(res.body.user.email).toBe("login@test.com");
   });
 
   it("fails with wrong password", async () => {
+
     await User.create({
       name: "Test User",
-      email: "test@example.com",
-      password: "123456", // hashed by model
+      email: "wrong@test.com",   // 🔥 different email
+      password: "123456",
       role: "admin",
     });
 
     const res = await request(app)
       .post("/api/auth/login")
       .send({
-        email: "test@example.com",
+        email: "wrong@test.com",
         password: "wrong",
       });
 

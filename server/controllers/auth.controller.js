@@ -33,23 +33,51 @@ const verifyOtp = asyncHandler(async (req, res) => {
   res.json({ token, message: 'OTP verified' });
 });
 
+// const login = asyncHandler(async (req, res) => {
+
+//   const { email, password } = req.body;
+//   // console.log("entered login",email,password)
+//   // console.log(email,password,"login");
+//   const user = await User.findOne({ email });
+//   console.log(user)
+//   // console.log(user,"after find login");
+//   if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+//   const match = await bcrypt.compare(password, user.password);
+//   console.log("result",match)
+//   // console.log("match->",match,"password ->",password, "--- user.password->",user.password)
+//   if (!match) return res.status(401).json({ message: 'Invalid credentials Try Again!!!' });
+//   const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
+//   res.json({ token, user: { id: user._id, name: user.name, role: user.role, email: user.email } });
+
+
+// });
 const login = asyncHandler(async (req, res) => {
+  try {
+    const { email, password } = req.body;
 
-  const { email, password } = req.body;
-  // console.log("entered login",email,password)
-  // console.log(email,password,"login");
-  const user = await User.findOne({ email });
-  console.log(user)
-  // console.log(user,"after find login");
-  if (!user) return res.status(401).json({ message: 'Invalid credentials' });
-  const match = await bcrypt.compare(password, user.password);
-  console.log("result",match)
-  // console.log("match->",match,"password ->",password, "--- user.password->",user.password)
-  if (!match) return res.status(401).json({ message: 'Invalid credentials Try Again!!!' });
-  const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN || '7d' });
-  res.json({ token, user: { id: user._id, name: user.name, role: user.role, email: user.email } });
+    console.log("LOGIN REQUEST:", email, password);
 
+    const user = await User.findOne({ email });
 
+    console.log("USER FOUND:", user?._id?.toString(), user?.email);
+
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
+    const match = await bcrypt.compare(password, user.password);
+
+    console.log("PASSWORD MATCH:", match);
+
+    if (!match) return res.status(401).json({ message: "Invalid credentials Try Again!!!" });
+
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || "testsecret");
+
+    res.json({ token, user: { id: user._id, name: user.name, role: user.role, email: user.email } });
+
+  } catch (err) {
+    console.error("🔥 LOGIN CRASH:", err);
+    throw err;
+  }
 });
+
 
 module.exports = { sendOtp, verifyOtp, login };

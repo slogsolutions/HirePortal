@@ -20,6 +20,10 @@ userSchema.pre("save", async function (next) {
   this.password = await bcrypt.hash(this.password, 10);
   next();
 });
+userSchema.post("save", function (doc) {
+  console.log("🧬 USER SAVED:", doc._id.toString(), doc.email);
+});
+
 
 // Optional method for password verification
 userSchema.methods.comparePassword = async function (enteredPassword) {
