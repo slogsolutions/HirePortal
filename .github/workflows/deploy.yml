@@ -24,6 +24,11 @@ jobs:
         with:
           node-version: 18
           cache: "npm"
+          cache-dependency-path: |
+           server/package-lock.json
+            client/package-lock.json
+          
+          
 
       # ================= BACKEND =================
       - name: Install Backend Dependencies
