@@ -1,4 +1,3 @@
-// scripts/seedAdmin.js
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const bcrypt = require("bcryptjs");
@@ -7,11 +6,10 @@ const User = require("../models/User.model");
 dotenv.config();
 
 async function seedAdmin() {
-  if (process.env.NODE_ENV !== "test") {
-    mongoose.connection.once("open", async () => {
-      console.log("💾 Database connected");
-      await ensureSuperAdmin();
-    });
+  // 🚫 Do NOTHING in test mode
+  if (process.env.NODE_ENV === "test") {
+    console.log("Skipping admin seed in test environment");
+    process.exit(0);
   }
 
   const existing = await User.findOne({ role: "admin" });
