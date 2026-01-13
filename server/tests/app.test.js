@@ -1,18 +1,10 @@
-const mongoose = require("mongoose");
-const { MongoMemoryServer } = require("mongodb-memory-server");
+const request = require("supertest");
+const app = require("../app");
 
-let mongo;
-
-beforeAll(async () => {
-  mongo = await MongoMemoryServer.create();
-  await mongoose.connect(mongo.getUri());
-});
-
-afterEach(async () => {
-  await mongoose.connection.db.dropDatabase();
-});
-
-afterAll(async () => {
-  await mongoose.connection.close();
-  await mongo.stop();
+describe("Basic API Tests", () => {
+  it("Health check should return 200 OK", async () => {
+    const res = await request(app).get("/health");
+    expect(res.statusCode).toBe(200);
+    expect(res.text).toBe("OK");
+  });
 });
