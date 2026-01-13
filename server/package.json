@@ -6,7 +6,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "postinstall": "echo 'Skipping Puppeteer Chromium download for Render deployment'",
-    "test": "cross-env NODE_ENV=test jest",
+    "test": "cross-env NODE_ENV=test jest --runInBand",
     "test:watch": "jest --watch",
     "coverage": "jest --coverage"
   },
