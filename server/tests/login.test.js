@@ -34,7 +34,7 @@ describe("POST /api/auth/login", () => {
     await User.create({
       name: "Test User",
       email: "test@example.com",
-      password: hashed,
+      password: "123456",
       role: "admin"
     });
 
