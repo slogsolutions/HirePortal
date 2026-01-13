@@ -43,7 +43,7 @@ const useFirebaseMessaging = (user) => {
           }
         }
         
-        console.log("[FCM] ✅ Token saved to backend successfully!");
+        console.log("[FCM]  Token saved to backend successfully!");
         return true;
       } catch (err) {
         const errorMsg = err?.response?.data?.message || err.message || 'Unknown error';
@@ -86,7 +86,7 @@ const useFirebaseMessaging = (user) => {
         const token = await getToken(messaging, {
           vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY,
         });
-        console.log("[FCM] ✅ Received FCM token:", token);
+        console.log("[FCM]  Received FCM token:", token);
         if (!token) return;
 
         // Read existing saved token
@@ -131,7 +131,7 @@ const useFirebaseMessaging = (user) => {
           console.log("[FCM] 💾 Saving token to backend immediately...");
           const saved = await saveTokenToBackend(user.id, token, "web");
           if (saved) {
-            console.log("[FCM] ✅ Token successfully saved to database!");
+            console.log("[FCM]  Token successfully saved to database!");
             // Update localStorage to mark as saved
             localStorage.setItem(localKey, JSON.stringify({ 
               token, 
@@ -205,12 +205,12 @@ const useFirebaseMessaging = (user) => {
         };
         addNotification(tempNotification);
 
-        console.log(`[FCM] ✅ Toast displayed and notifications refreshed: "${title}: ${body}"`);
+        console.log(`[FCM]  Toast displayed and notifications refreshed: "${title}: ${body}"`);
         console.log("------------------------------------------------------");
       });
 
       listenerRef.current.unsub = typeof unsub === "function" ? unsub : undefined;
-      console.log("[FCM] ✅ Foreground onMessage listener setup complete.");
+      console.log("[FCM]  Foreground onMessage listener setup complete.");
     }
 
     // Initial token request - force save on mount

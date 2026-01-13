@@ -30,6 +30,17 @@ function parseEmpCode(code) {
   return { raw: code, prefix, numeric, numericStr };
 }
 
+// function parseEmpCode(code) {
+//   if (!code || typeof code !== 'string') return null;
+//   const m = code.match(/^([A-Za-z]*)(\d+)$/);
+//   if (!m) return null;
+//   const prefix = m[1] || '';
+//   const numStr = m[2];
+//   const number = parseInt(numStr, 10);
+//   const padding = numStr.length;
+//   return { prefix, number, padding };
+// }
+
 /**
  * Helper: find current max numeric suffix across all empCodes and propose next.
  * - Returns { nextEmpCode, currentMaxNumeric, prefix, numericPadding }
@@ -338,159 +349,6 @@ const me = asyncHandler(async (req, res) => {
   }
 });
 
-// ------------------- UPDATE CANDIDATE (OLD) -------------------
-// const updateCandidate = asyncHandler(async (req, res) => {
-//   const { id } = req.params;
-//   const incoming = req.body || {};
-//   const confirmEmpCodeChange = incoming.confirmEmpCodeChange;
-
-//   const candidate = await Candidate.findById(id);
-//   if (!candidate) return res.status(404).json({ message: "Candidate not found" });
-
-//   // normalize email/mobile
-//   if (incoming.email) incoming.email = String(incoming.email).trim().toLowerCase();
-//   if (incoming.mobile) incoming.mobile = String(incoming.mobile).trim();
-//   if (incoming.fatherMobile) incoming.fatherMobile = String(incoming.fatherMobile).trim();
-
-//   // unique check on email
-//   if (incoming.email && incoming.email !== candidate.email) {
-//     const exists = await Candidate.findOne({ email: incoming.email, _id: { $ne: id } });
-//     if (exists) return res.status(409).json({ message: "Another candidate with this email already exists" });
-//   }
-
-//   // EMP CODE update logic (if incoming contains empCode and it's different)
-//   if (Object.prototype.hasOwnProperty.call(incoming, 'empCode')) {
-//     const newCode = incoming.empCode;
-//     if (!newCode) {
-//       // user attempted to clear empCode: allow (if you want to forbid clearing, change this)
-//       candidate.empCode = undefined;
-//     } else if (String(candidate.empCode || '') !== String(newCode)) {
-//       // Check uniqueness
-//       const conflict = await Candidate.findOne({ empCode: newCode, _id: { $ne: id } });
-//       if (conflict) return res.status(409).json({ message: "empCode already assigned to another candidate" });
-
-//       // Sequence check: if new numeric is ahead of next expected and !confirmEmpCodeChange -> warn
-//       const seq = await computeNextEmpCode();
-//       const providedParsed = parseEmpCode(String(newCode));
-//       const providedNumeric = providedParsed.numeric;
-
-//       if (providedNumeric !== null && providedNumeric > (seq.currentMaxNumeric + 1) && !confirmEmpCodeChange) {
-//         return res.status(400).json({
-//           message: "EmpCode deviates from automatic sequence",
-//           warning: {
-//             message: "Provided empCode numeric part is ahead of the next expected sequence.",
-//             currentMaxNumeric: seq.currentMaxNumeric,
-//             nextExpectedNumeric: seq.currentMaxNumeric + 1,
-//             providedNumeric
-//           }
-//         });
-//       }
-
-//       // if passes checks (or confirmEmpCodeChange is true), set it
-//       incoming.empCode = newCode;
-//     } else {
-//       // no change to empCode
-//       delete incoming.empCode;
-//     }
-//   }
-
-//   const allowed = [
-//     "firstName", "lastName", "email", "mobile", "fatherMobile", "AlternativeMobile",
-//     "BloodGroup", "DateOfJoining", "photoUrl", "Designation", "Salary",
-//     "NextIncreament", "NextIncreamentDate", "Gender", "MotherName", "fatherName",
-//     "dob", "address", "aadhaarNumber", "panNumber", "drivingLicenseNumber",
-//     "pfNumber", "esicNumber", "medicalPolicyNumber", "status", "department",
-//     "isMarried", "spouseName", "spouseNumber", "empCode"
-//   ];
-
-//   const update = {};
-//   allowed.forEach(k => {
-//     if (Object.prototype.hasOwnProperty.call(incoming, k)) {
-//       if ((k === "dob" || k === "DateOfJoining" || k === "NextIncreamentDate") && incoming[k]) {
-//         const d = new Date(incoming[k]);
-//         update[k] = isNaN(d.getTime()) ? candidate[k] : d;
-//       } else if (k === "address" && incoming.address) {
-//         update.address = {
-//           current: { ...candidate.address?.current, ...incoming.address.current },
-//           permanent: { ...candidate.address?.permanent, ...incoming.address.permanent },
-//           isPermanentSameAsCurrent: incoming.address.isPermanentSameAsCurrent ?? candidate.address?.isPermanentSameAsCurrent,
-//           isPG: incoming.address.isPG ?? candidate.address?.isPG,
-//           pgOwnerName: incoming.address.pgOwnerName ?? candidate.address?.pgOwnerName,
-//           pgName: incoming.address.pgName ?? candidate.address?.pgName,
-//           pgNumber: incoming.address.pgNumber ?? candidate.address?.pgNumber
-//         };
-//       } else update[k] = incoming[k];
-//     }
-//   });
-
-//   // If incoming contains a password, handle it separately (update linked User)
-//   if (incoming.password) {
-//     try {
-//       // Prefer updating the linked userId
-//       let userToUpdate = null;
-//       if (candidate.userId) {
-//         userToUpdate = await User.findById(candidate.userId);
-//       }
-
-//       // If no user by userId, try finding user by candidate email
-//       if (!userToUpdate) {
-//         userToUpdate = await User.findOne({ email: candidate.email || incoming.email });
-//       }
-
-//       const hashed = await bcrypt.hash(incoming.password, 10);
-
-//       if (userToUpdate) {
-//         userToUpdate.password = hashed;
-//         await userToUpdate.save();
-
-//         await AuditLog.create({
-//           actor: req.user?._id,
-//           action: "password_changed",
-//           details: { candidateId: id, userId: userToUpdate._id }
-//         });
-//       } else {
-//         // No user exists; create one but link it.
-//         const newUser = await User.create({
-//           name: `${incoming.firstName || candidate.firstName} ${incoming.lastName || candidate.lastName}`,
-//           email: incoming.email || candidate.email,
-//           password: hashed,
-//           role: incoming.role || 'employee',
-//           candidateId: candidate._id
-//         });
-
-//         candidate.userId = newUser._id;
-//         await candidate.save();
-
-//         await AuditLog.create({
-//           actor: req.user?._id,
-//           action: "password_set_and_user_created",
-//           details: { candidateId: id, userId: newUser._id }
-//         });
-//       }
-//     } catch (err) {
-//       console.error("Error updating password for candidate", id, err);
-//       return res.status(500).json({ message: "Failed to update password", error: err.message });
-//     }
-//   }
-
-//   // If there are candidate fields to update, apply them
-//   let updatedCandidate = candidate;
-//   if (Object.keys(update).length > 0) {
-//     updatedCandidate = await Candidate.findByIdAndUpdate(id, { $set: update }, { new: true })
-//       .populate("documents")
-//       .populate("userId");
-//     await AuditLog.create({
-//       actor: req.user?._id,
-//       action: "candidate_updated",
-//       details: { candidateId: id, changed: Object.keys(update) }
-//     });
-//   } else {
-//     // still populate if password-only change
-//     updatedCandidate = await Candidate.findById(id).populate("documents").populate("userId");
-//   }
-
-//   res.json(updatedCandidate);
-// });
 
 // -----------------NEW UPDATE CANDIDATE WITH EMAIL UPDATE IN BOTH USER AND CANDIDATE 
 const updateCandidate = asyncHandler(async (req, res) => {
@@ -850,16 +708,7 @@ const changePassword = asyncHandler(async (req, res) => {
  * Parse empCode like "S20824" -> { prefix: "S", number: 20824, padding: 5 }
  * Returns null if cannot parse.
  */
-function parseEmpCode(code) {
-  if (!code || typeof code !== 'string') return null;
-  const m = code.match(/^([A-Za-z]*)(\d+)$/);
-  if (!m) return null;
-  const prefix = m[1] || '';
-  const numStr = m[2];
-  const number = parseInt(numStr, 10);
-  const padding = numStr.length;
-  return { prefix, number, padding };
-}
+
 
 /**
  * Build empCode string from parts

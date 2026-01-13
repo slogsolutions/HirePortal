@@ -36,13 +36,13 @@ pipeline {
                         mkdir -p ${APP_DIR}
                         cd ${APP_DIR}
 
-                        echo "📦 Saving current state for rollback"
+                        echo " Saving current state for rollback"
                         docker compose ps > previous_state.txt || true
 
-                        echo "🛑 Stopping old containers"
+                        echo " Stopping old containers"
                         docker compose down || true
 
-                        echo "🧹 Cleaning old files"
+                        echo " Cleaning old files"
                         rm -rf server client docker-compose.yml
 
                         exit
@@ -58,10 +58,10 @@ pipeline {
                     ssh ${SERVER_USER}@${SERVER_IP} '
                         cd ${APP_DIR}
 
-                        echo "🚀 Starting new deployment"
+                        echo " Starting new deployment"
                         docker compose up -d --build
 
-                        echo "⏳ Waiting for app to start"
+                        echo "Waiting for app to start"
                         sleep 15
 
                         STATUS=\$(curl -s -o /dev/null -w "%{http_code}" ${HEALTH_URL})
@@ -76,7 +76,7 @@ pipeline {
                             exit 1
                         fi
 
-                        echo "✅ Deployment successful"
+                        echo " Deployment successful"
                     '
                     """
                 }

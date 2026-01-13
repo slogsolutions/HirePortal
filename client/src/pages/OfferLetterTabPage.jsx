@@ -329,7 +329,7 @@ const deleteOffer = async (o) => {
       console.log("Email send response:", res.data);
       
       if (res.data.successCount > 0) {
-        alert(`✅ Email sent successfully to ${res.data.successCount} recipient(s)${res.data.failureCount > 0 ? `\n❌ ${res.data.failureCount} failed` : ""}`);
+        alert(` Email sent successfully to ${res.data.successCount} recipient(s)${res.data.failureCount > 0 ? `\n❌ ${res.data.failureCount} failed` : ""}`);
         closeEmailModal();
       } else {
         alert(`❌ Failed to send emails. Please check the error details.`);

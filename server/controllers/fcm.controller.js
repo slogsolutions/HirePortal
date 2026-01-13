@@ -33,7 +33,7 @@ exports.upsertToken = asyncHandler(async (req, res) => {
       existingToken.userAgent = userAgent;
       existingToken.platform = platformValue;
       await existingToken.save();
-      console.log(`[FCM] ✅ Token updated for user ${userId}`);
+      console.log(`[FCM]  Token updated for user ${userId}`);
       return res.json({ message: 'token updated', data: existingToken });
     }
 
@@ -50,7 +50,7 @@ exports.upsertToken = asyncHandler(async (req, res) => {
       lastSeenAt: new Date()
     });
 
-    console.log(`[FCM] ✅ New token saved for user ${userId} (total tokens: ${userTokens.length + 1})`);
+    console.log(`[FCM]  New token saved for user ${userId} (total tokens: ${userTokens.length + 1})`);
 
     res.json({ message: 'token saved', data: doc });
   } catch (error) {
@@ -62,7 +62,7 @@ exports.upsertToken = asyncHandler(async (req, res) => {
         existing.userAgent = userAgent;
         existing.platform = platformValue;
         await existing.save();
-        console.log(`[FCM] ✅ Token updated (race condition handled) for user ${userId}`);
+        console.log(`[FCM]  Token updated (race condition handled) for user ${userId}`);
         return res.json({ message: 'token updated', data: existing });
       }
     }
@@ -347,7 +347,7 @@ exports.adminSend = asyncHandler(async (req, res) => {
   const successCount = responses.filter(r => r.success).length;
   const failureCount = responses.length - successCount;
 
-  console.log(`[FCM] ✅ Notification send completed: ${successCount} successful, ${failureCount} failed out of ${tokens.length} tokens`);
+  console.log(`[FCM]  Notification send completed: ${successCount} successful, ${failureCount} failed out of ${tokens.length} tokens`);
 
   return res.json({ 
     success: true, 

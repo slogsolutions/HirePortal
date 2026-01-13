@@ -14,4 +14,6 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-export const messaging = getMessaging(app);
+export const messaging =
+  import.meta.env.MODE === "test" ? null : getMessaging(app);
+

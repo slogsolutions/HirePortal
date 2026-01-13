@@ -15,7 +15,7 @@ const createLeave = async (req, res) => {
     console.log("🆕 Creating leave for candidate:", appliedBy);
 
     const leave = await Leave.create({ startDate, endDate, reason, appliedBy });
-    console.log("✅ Leave created:", leave);
+    console.log(" Leave created:", leave);
 
     const populatedLeave = await leave.populate(
       "appliedBy",
@@ -107,7 +107,7 @@ const getLeaves = async (req, res) => {
 
     const leaves = await query.exec();
 
-    console.log("✅ Leaves fetched from DB:", {
+    console.log(" Leaves fetched from DB:", {
       count: leaves.length,
       filter,
       limit,

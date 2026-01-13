@@ -10,6 +10,7 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
+
 const testimonials = [
   {
     quote: "Working with this team has been an absolute game-changer for our business. Their expertise and dedication are unmatched.",

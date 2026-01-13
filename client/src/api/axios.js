@@ -1,7 +1,8 @@
 
 import axios from "axios";
 
-const API_BASE = import.meta.env.VITE_API_BASE || "/api";
+const API_BASE = import.meta.env?.VITE_API_BASE || "http://localhost:3001/api";
+
 
 const instance = axios.create({
   baseURL: API_BASE,
@@ -34,7 +35,7 @@ instance.interceptors.request.use(
           parsed?.data?.token ||
           parsed?.data?.accessToken;
 
-        console.log("🔑 Token found:", token ? "✅ Yes" : "❌ No");
+        console.log("🔑 Token found:", token ? " Yes" : "❌ No");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
@@ -61,7 +62,7 @@ instance.interceptors.request.use(
  */
 instance.interceptors.response.use(
   (response) => {
-    console.groupCollapsed("✅ [Axios Response]");
+    console.groupCollapsed(" [Axios Response]");
     console.log("➡️ URL:", response.config.url);
     console.log("➡️ Status:", response.status);
     console.log("📦 Data:", response.data);

@@ -10,7 +10,7 @@ const createRound = async (req, res) => {
     const candidate = await Candidate.findById(id);
     if (!candidate) return res.status(404).json({ message: 'Candidate not found' });
 
-    // ✅ Sanitize scores (0–10 range)
+    //  Sanitize scores (0–10 range)
     const sanitizedScores = {
       grooming: Math.max(0, Math.min(10, Number(scores.grooming || 0))),
       personality: Math.max(0, Math.min(10, Number(scores.personality || 0))),
@@ -28,7 +28,7 @@ const createRound = async (req, res) => {
       comments,
     });
 
-    // ✅ Update candidate’s score summary
+    //  Update candidate’s score summary
     try {
       const rounds = await InterviewRound.find({ candidate: id });
       const totals = rounds.reduce((acc, r) => acc + r.total, 0);

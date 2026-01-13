@@ -1,7 +1,7 @@
 const EmployeePerformance = require('../models/Performance.model');
 const Candidate = require('../models/Candidate.model');
 
-// ✅ Create new performance record
+//  Create new performance record
 const createPerformance = async (req, res) => {
   try {
     const { id } = req.params; // candidate id
@@ -26,7 +26,7 @@ const createPerformance = async (req, res) => {
   }
 };
 
-// ✅ Get all performances (optional: filter by employee)
+//  Get all performances (optional: filter by employee)
 const getAllPerformances = async (req, res) => {
   try {
     const { employeeId } = req.query;
@@ -44,7 +44,7 @@ const getAllPerformances = async (req, res) => {
   }
 };
 
-// ✅ Get performance by ID
+//  Get performance by ID
 const getPerformanceById = async (req, res) => {
   try {
     const { performanceId } = req.params;
@@ -61,7 +61,7 @@ const getPerformanceById = async (req, res) => {
   }
 };
 
-// ✅ Get performance for the logged-in user (/me)
+//  Get performance for the logged-in user (/me)
 const getMyPerformance = async (req, res) => {
   try {
     const userId = req.user?._id; // User ID from auth middleware
@@ -102,7 +102,7 @@ const getMyPerformance = async (req, res) => {
   }
 };
 
-// ✅ Update performance
+//  Update performance
 const updatePerformance = async (req, res) => {
   try {
     const { performanceId } = req.params;
@@ -118,7 +118,7 @@ const updatePerformance = async (req, res) => {
   }
 };
 
-// ✅ Delete performance
+//  Delete performance
 const deletePerformance = async (req, res) => {
   try {
     const { performanceId } = req.params;
@@ -132,7 +132,7 @@ const deletePerformance = async (req, res) => {
   }
 };
 
-// ✅ Get leaderboard (top performers)
+//  Get leaderboard (top performers)
 const getLeaderboard = async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 3;

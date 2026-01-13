@@ -55,7 +55,7 @@ class NotificationService {
 
       console.log(`[FCM] 📤 Sending message to token ${token.substring(0, 20)}...`);
       const result = await admin.messaging().send(message);
-      console.log(`[FCM] ✅ Message sent successfully: ${result}`);
+      console.log(`[FCM]  Message sent successfully: ${result}`);
       return result;
     } catch (err) {
       const code = err?.errorInfo?.code || err?.code;

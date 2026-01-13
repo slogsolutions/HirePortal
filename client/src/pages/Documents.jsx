@@ -441,7 +441,7 @@ export default function DocumentManager() {
             {sendStatus && (
               <div className="border rounded-lg p-3 bg-gray-50 text-sm">
                 <p className="font-semibold text-gray-700">
-                  ✅ Sent: {sendStatus.sent} / {sendStatus.total} — ❌ Failed: {sendStatus.failed}
+                   Sent: {sendStatus.sent} / {sendStatus.total} — ❌ Failed: {sendStatus.failed}
                 </p>
                 <div className="mt-2 space-y-1 max-h-32 overflow-y-auto">
                   {sendStatus.logs?.map((log, idx) => (

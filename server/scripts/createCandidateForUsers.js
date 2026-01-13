@@ -9,7 +9,7 @@ const Candidate = require('../models/Candidate.model');
 async function main() {
   try {
     await mongoose.connect(mongoUri, { useNewUrlParser: true, useUnifiedTopology: true });
-    console.log('✅ Connected to MongoDB');
+    console.log(' Connected to MongoDB');
 
     // Fetch all users without candidateId
     const users = await User.find({ candidateId: null }).exec();
@@ -44,7 +44,7 @@ async function main() {
 
       const candidate = new Candidate(candidatePayload);
       const savedCandidate = await candidate.save();
-      console.log('✅ Created candidate with id:', savedCandidate._id.toString());
+      console.log(' Created candidate with id:', savedCandidate._id.toString());
 
       // Update user to link candidate
       user.candidateId = savedCandidate._id;

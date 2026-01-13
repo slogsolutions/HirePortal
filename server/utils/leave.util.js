@@ -56,7 +56,7 @@ const markApprovedLeaveDays = async (
     await DailyEntry.bulkWrite(bulkOps);
   }
 
-  console.log("✅ BULK WRITE COMPLETED for user:", userId);
+  console.log(" BULK WRITE COMPLETED for user:", userId);
 };
 
 module.exports = {

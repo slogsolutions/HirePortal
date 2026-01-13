@@ -1,9 +1,85 @@
+# name: HirePortal deploy
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout Repo
+#         uses: actions/checkout@v4
+
+#       - name: Use Node
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: 18
+
+
+#       # ================= Backend =================
+#       - name: Deploy Backend
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.SERVER_IP }}
+#           username: ${{ secrets.SERVER_USER }}
+#           key: ${{ secrets.SSH_KEY }}
+#           script: |
+#             cd /var/www/hireportalWithCiCd
+#             git pull
+
+#             cd server
+#             npm install
+#             pm2 restart hireportal-cicd || pm2 start index.js --name hireportal-cicd
+
+
+#       # ================= Frontend Build on VPS =================
+#       - name: Build Frontend on VPS
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.SERVER_IP }}
+#           username: ${{ secrets.SERVER_USER }}
+#           key: ${{ secrets.SSH_KEY }}
+#           script: |
+#             cd /var/www/hireportalWithCiCd
+#             git pull
+
+#             cd client
+#             npm install --legacy-peer-deps
+
+#             # clean old build
+#             rm -rf dist
+
+#             # build using VPS .env
+#             npm run build
+
+
+#       # ================= Reload Nginx =================
+#       - name: Reload Nginx
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.SERVER_IP }}
+#           username: ${{ secrets.SERVER_USER }}
+#           key: ${{ secrets.SSH_KEY }}
+#           script: sudo systemctl reload nginx
+
+
+#  Very Basic was that up ||
+
+
 name: HirePortal deploy
 
 on:
   push:
     branches:
       - main
+
+# Prevent two deployments running at the same time
+concurrency:
+  group: hireportal-production
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -18,45 +94,109 @@ jobs:
         with:
           node-version: 18
 
+      # ================= BACKEND TESTS =================
+      - name: Install Backend Dependencies
+        working-directory: server
+        run: npm install
 
-      # ================= Backend =================
-      - name: Deploy Backend
+      - name: Run Backend Tests (Jest)
+        working-directory: server
+        env:
+          NODE_ENV: test
+        run: npm test
+
+      # ================= FRONTEND TESTS =================
+      - name: Install Frontend Dependencies
+        working-directory: client
+        run: npm install --legacy-peer-deps
+
+      - name: Run Frontend Unit Tests (Vitest)
+        working-directory: client
+        run: npm test -- --run
+
+      # ================= PLAYWRIGHT =================
+      - name: Install Playwright Browsers
+        working-directory: client
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright E2E Tests
+        working-directory: client
+        run: npx playwright test
+
+       # ================= DEPLOY BACKEND WITH ROLLBACK =================
+      - name: Deploy Backend (Safe + Rollback)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
+            set -e
+
             cd /var/www/hireportalWithCiCd
+
+            echo " Saving last working commit"
+            git rev-parse HEAD > .last_successful_commit
+
+            echo "⬇ Pulling new code"
             git pull
 
+            echo " Installing backend deps"
             cd server
             npm install
-            pm2 restart hireportal-cicd || pm2 start index.js --name hireportal-cicd
+
+            echo " Restarting backend"
+            if pm2 restart hireportal-cicd || pm2 start index.js --name hireportal-cicd; then
+              echo " Backend running"
+            else
+              echo " Backend failed — rolling back"
+
+              cd /var/www/hireportalWithCiCd
+              git reset --hard $(cat .last_successful_commit)
+
+              cd server
+              npm install
+              pm2 restart hireportal-cicd
+
+              echo "♻ Rolled back to last working version"
+              exit 1
+            fi
 
 
-      # ================= Frontend Build on VPS =================
-      - name: Build Frontend on VPS
+       # ================= BUILD FRONTEND WITH ROLLBACK =================
+      - name: Build Frontend on VPS (Safe)
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
-            cd /var/www/hireportalWithCiCd
-            git pull
+            set -e
 
+            cd /var/www/hireportalWithCiCd
+
+            echo " Installing frontend deps"
             cd client
             npm install --legacy-peer-deps
 
-            # clean old build
-            rm -rf dist
+            echo " Building frontend"
+            if npm run build; then
+              echo " Frontend build OK"
+            else
+              echo " Frontend build failed — rolling back"
 
-            # build using VPS .env
-            npm run build
+              cd /var/www/hireportalWithCiCd
+              git reset --hard $(cat .last_successful_commit)
 
+              cd client
+              npm install --legacy-peer-deps
+              npm run build
 
-      # ================= Reload Nginx =================
+              echo " Rolled back frontend"
+              exit 1
+            fi
+
+      # ================= RELOAD NGINX =================
       - name: Reload Nginx
         uses: appleboy/ssh-action@master
         with:

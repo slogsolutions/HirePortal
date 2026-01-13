@@ -4,7 +4,10 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Zap, Shield, Rocket, Globe } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
-gsap.registerPlugin(ScrollTrigger);
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
+
 
 const features = [
   {

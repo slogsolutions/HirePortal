@@ -11,7 +11,7 @@ async function cleanupStaleTokens() {
   try {
     console.log("[FCM Cleanup] 🧹 Starting stale token cleanup...");
     const deletedCount = await NotificationService.cleanupStaleTokens(90);
-    console.log(`[FCM Cleanup] ✅ Cleanup completed. Removed ${deletedCount} stale tokens.`);
+    console.log(`[FCM Cleanup]  Cleanup completed. Removed ${deletedCount} stale tokens.`);
   } catch (err) {
     console.error("[FCM Cleanup] ❌ Error during cleanup:", err);
   }
@@ -31,7 +31,7 @@ function startFcmCleanupCron() {
     }
   );
 
-  console.log("[FCM Cleanup] ✅ Cleanup cron scheduled (every day at 2:00 AM server time).");
+  console.log("[FCM Cleanup]  Cleanup cron scheduled (every day at 2:00 AM server time).");
 }
 
 module.exports = { startFcmCleanupCron, cleanupStaleTokens };

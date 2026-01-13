@@ -110,7 +110,7 @@ const sendDocument = async (req, res) => {
             };
             const info = await transporter.sendMail(mailOptions);
             sent++;
-            console.log(`✅ Delivered to: ${toEmail}`);
+            console.log(` Delivered to: ${toEmail}`);
             return { ok: true, to: toEmail, info };
           } catch (err) {
             failed++;

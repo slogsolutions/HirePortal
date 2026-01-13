@@ -632,7 +632,7 @@ const sendOfferEmail = async (req, res) => {
       if (err) {
         console.error('❌ SMTP verification failed:', err);
       } else {
-        console.log('✅ SMTP verified:', success);
+        console.log(' SMTP verified:', success);
       }
     });
 
@@ -661,7 +661,7 @@ const sendOfferEmail = async (req, res) => {
         const info = await transporter.sendMail(mailOptions);
         successCount++;
         results.push({ email, success: true, messageId: info.messageId });
-        console.log(`✅ Email sent successfully to: ${email}`);
+        console.log(` Email sent successfully to: ${email}`);
       } catch (err) {
         failureCount++;
         results.push({ email, success: false, error: err.message });
