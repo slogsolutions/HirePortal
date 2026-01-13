@@ -112,7 +112,9 @@ jobs:
 
       - name: Run Frontend Unit Tests (Vitest)
         working-directory: client
-        run: npm test -- --run
+        env:
+            CI: true
+        run: npm test 
 
       # ================= PLAYWRIGHT =================
       - name: Install Playwright Browsers

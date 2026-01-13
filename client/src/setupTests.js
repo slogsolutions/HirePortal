@@ -11,9 +11,8 @@ Object.defineProperty(import.meta, "env", {
 });
 
 /* ================================
-   Browser APIs needed by GSAP
+   Browser APIs
 ================================ */
-
 Object.defineProperty(window, "matchMedia", {
   writable: true,
   value: () => ({
@@ -36,10 +35,10 @@ class ResizeObserver {
 window.ResizeObserver = ResizeObserver;
 
 /* ================================
-   GSAP mock (Vite safe)
+   GSAP mock
 ================================ */
 vi.mock("gsap", () => {
-  const mockGsap = {
+  const mock = {
     registerPlugin: () => {},
     to: () => {},
     from: () => {},
@@ -52,8 +51,8 @@ vi.mock("gsap", () => {
   };
 
   return {
-    default: mockGsap, // import gsap from "gsap"
-    gsap: mockGsap, // import { gsap } from "gsap"
+    default: mock,
+    gsap: mock,
   };
 });
 
@@ -69,7 +68,6 @@ vi.mock("gsap/ScrollTrigger", () => ({
 /* ================================
    Firebase mocks
 ================================ */
-
 vi.mock("firebase/app", () => ({
   initializeApp: () => ({}),
 }));

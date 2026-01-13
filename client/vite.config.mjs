@@ -12,34 +12,40 @@ export default defineConfig({
 
   plugins: [react(), tailwindcss()],
 
-  // 🧪 Vitest configuration
   test: {
     environment: "jsdom",
     globals: true,
     setupFiles: "./src/setupTests.js",
     css: true,
 
-    //  ONLY run your tests
+    // ONLY run your unit tests
     include: [
       "src/**/*.{test,spec}.{js,jsx,ts,tsx}",
-      "tests/**/*.{test}.{js,ts}",  // if you keep non-playwright tests here
     ],
 
-    // ❌ NEVER run dependency tests or Playwright
+    // NEVER run Playwright or deps
     exclude: [
       "node_modules",
       "dist",
       "build",
       "coverage",
       "playwright.config.*",
-      "tests/login-flow.spec.ts",
       "**/*.e2e.*",
-      "**/*.spec.ts", // Playwright naming pattern
+      "**/*.spec.ts",
+      "tests/**", // Playwright folder
     ],
 
-    // prevents vite from crawling node_modules test files
+    // 💀 This fixes CI hanging
+    threads: false,
+    isolate: false,
+    watch: false,
+    pool: "forks",
+
     deps: {
       inline: [],
     },
+
+    testTimeout: 30000,
+    hookTimeout: 30000,
   },
 });
