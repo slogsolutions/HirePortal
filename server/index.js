@@ -1,88 +1,45 @@
-// // two Files means  app.js --> only for Express to easy test the express routes without starting the actual server
-// // and the index.js to actual start the server via app.listen 
-
-// const app = require("./app");
-// const { connectDB } = require("./config/db.config");
-// const { startCron } = require("./jobs/attendanceCron");
-// const { startFcmCleanupCron } = require("./jobs/fcmCleanupCron");
-//   const User = require("./models/User.model");
-// const mongoose = require("mongoose");
-// if (process.env.NODE_ENV !== "test") {
-//   connectDB();
-
-
-
-// async function seedTestUser() {
-//   if (process.env.NODE_ENV !== "test") return;
-
-//   const exists = await User.findOne({ email: "admin@test.com" });
-//   if (exists) return;
-
-//   await User.create({
-//     name: "Test Admin",
-//     email: "admin@test.com",
-//     password: "123456",
-//     role: "admin",
-//   });
-
-//   console.log("🧪 Test admin created");
-// }
-
-// seedTestUser();
-
-
-//   mongoose.connection.once("open", async () => {
-//     console.log("Database connected");
-//     // await ensureSuperAdmin();
-//     startCron();
-//     startFcmCleanupCron();
-
-//     const port = process.env.PORT || 3001;
-//     app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
-//   });
-// }
-
 require("dotenv").config();
 const app = require("./app");
 const { connectDB } = require("./config/db.config");
 const { startCron } = require("./jobs/attendanceCron");
 const { startFcmCleanupCron } = require("./jobs/fcmCleanupCron");
 const User = require("./models/User.model");
-const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
 
 async function seedTestUser() {
   if (process.env.NODE_ENV !== "test") return;
 
-  const exists = await User.findOne({ email: "admin@test.com" });
+  const email = "login@test.com";
+  const password = "123456";
+
+  const exists = await User.findOne({ email });
   if (exists) return;
 
+  const hash = await bcrypt.hash(password, 10);
+
   await User.create({
-    name: "Test Admin",
-    email: "admin@test.com",
-    password: "123456",
+    name: "E2E User",
+    email,
+    password: hash,
     role: "admin",
   });
 
-  console.log("🧪 Test admin created");
+  console.log("🧪 E2E user seeded");
 }
 
-async function startServer() {
+async function start() {
   await connectDB();
   await seedTestUser();
 
-  mongoose.connection.once("open", () => {
-    console.log("Database connected");
+  if (process.env.NODE_ENV !== "test") {
+    startCron();
+    startFcmCleanupCron();
+  }
 
-    if (process.env.NODE_ENV !== "test") {
-      startCron();
-      startFcmCleanupCron();
-    }
-
-    const port = process.env.PORT || 3001;
-    app.listen(port, () => {
-      console.log(`🚀 Server running on port ${port}`);
-    });
+  const port = process.env.PORT || 3001;
+  app.listen(port, () => {
+    console.log(`🚀 Server running on ${port}`);
   });
 }
 
-startServer();
+start();

@@ -68,8 +68,20 @@ jobs:
         env:
           NODE_ENV: test
         run: |
-          npm run e2e &
-          sleep 8
+          npm run e2e > /tmp/backend.log 2>&1 &
+          sleep 10
+
+      # ================= WAIT FOR BACKEND =================
+      - name: Wait for backend to be ready
+        run: |
+          for i in {1..20}; do
+            if curl -s http://localhost:3001/health; then
+              echo "Backend is up"
+              break
+            fi
+            echo "Waiting for backend..."
+            sleep 2
+          done
 
       # ================= START FRONTEND =================
       - name: Start Frontend
@@ -77,13 +89,21 @@ jobs:
         env:
           VITE_API_BASE: http://localhost:3001/api
         run: |
-          npm run dev &
-          sleep 12
+          npm run dev > /tmp/frontend.log 2>&1 &
+          sleep 15
 
       # ================= RUN PLAYWRIGHT =================
       - name: Run Playwright E2E Tests
         working-directory: client
-        run: npx playwright test
+        run: |
+          npx playwright test || (
+            echo "❌ Playwright failed"
+            echo "====== BACKEND LOGS ======"
+            cat /tmp/backend.log
+            echo "====== FRONTEND LOGS ======"
+            cat /tmp/frontend.log
+            exit 1
+          )
 
       # ================= DEPLOY BACKEND =================
       - name: Deploy Backend (Safe + Rollback)
@@ -122,7 +142,7 @@ jobs:
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_IP }}
-          username: $${{ secrets.SERVER_USER }}
+          username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: |
             set -e
