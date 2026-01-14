@@ -4,7 +4,7 @@ const { connectDB } = require("./config/db.config");
 const { startCron } = require("./jobs/attendanceCron");
 const { startFcmCleanupCron } = require("./jobs/fcmCleanupCron");
 const User = require("./models/User.model");
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 
 async function seedTestUser() {
   if (process.env.NODE_ENV !== "test") return;
