@@ -10,7 +10,7 @@ if (process.env.NODE_ENV !== "test") {
   connectDB();
 
   mongoose.connection.once("open", async () => {
-    console.log("💾 Database connected");
+    console.log("Database connected");
     // await ensureSuperAdmin();
     startCron();
     startFcmCleanupCron();
