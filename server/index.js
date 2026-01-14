@@ -12,20 +12,18 @@ async function seedTestUser() {
   const email = "login@test.com";
   const password = "123456";
 
-  // 🔥 Always reset E2E user to avoid stale hashes
   await User.deleteMany({ email });
-
-  const hash = await bcrypt.hash(password, 10);
 
   await User.create({
     name: "E2E User",
     email,
-    password: hash,
+    password,   // 🔥 plain text — model will hash it
     role: "admin",
   });
 
-  console.log("🧪 E2E user seeded with fresh hash");
+  console.log("🧪 E2E user seeded (model will hash)");
 }
+
 
 async function start() {
   await connectDB();
