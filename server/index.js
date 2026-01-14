@@ -4,7 +4,7 @@ const { connectDB } = require("./config/db.config");
 const { startCron } = require("./jobs/attendanceCron");
 const { startFcmCleanupCron } = require("./jobs/fcmCleanupCron");
 const User = require("./models/User.model");
-const bcrypt = require("bcrypt");
+const bcrypt = require("bcryptjs");
 
 async function seedTestUser() {
   if (process.env.NODE_ENV !== "test") return;
@@ -12,8 +12,8 @@ async function seedTestUser() {
   const email = "login@test.com";
   const password = "123456";
 
-  const exists = await User.findOne({ email });
-  if (exists) return;
+  // 🔥 Always reset E2E user to avoid stale hashes
+  await User.deleteMany({ email });
 
   const hash = await bcrypt.hash(password, 10);
 
@@ -24,7 +24,7 @@ async function seedTestUser() {
     role: "admin",
   });
 
-  console.log("🧪 E2E user seeded");
+  console.log("🧪 E2E user seeded with fresh hash");
 }
 
 async function start() {
