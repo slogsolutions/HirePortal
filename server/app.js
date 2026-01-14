@@ -40,5 +40,6 @@ app.use("/api/performance", performanceRoutes);
 app.use("/api/attendance", attendanceRoutes);
 
 app.get("/health", (req, res) => res.status(200).send("OK"));
+app.get("/laksh", (req, res) => res.status(200).send("OK"));
 
 module.exports = app;
