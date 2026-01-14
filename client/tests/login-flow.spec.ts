@@ -6,8 +6,8 @@ test("user can login and see dashboard", async ({ page }) => {
   // You are already on /login, no need to click Login
   await page.waitForSelector('input[type="email"]');
 
-  await page.fill('input[type="email"]', "admin@test.com");
-  await page.fill('input[type="password"]', "123456");
+ await page.fill('input[type="email"]', 'login@test.com');
+await page.fill('input[type="password"]', '123456');
 
   await page.click('button[type="submit"]');
 
