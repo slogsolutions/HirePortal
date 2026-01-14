@@ -1,4 +1,4 @@
-const bcrypt = require("bcryptjs");
+const bcrypt = require("bcrypt");
 
 async function seedTestUser() {
   if (process.env.NODE_ENV !== "test") return;
