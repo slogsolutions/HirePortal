@@ -28,7 +28,7 @@ function Stars({ value }) {
   const v = Math.max(0, Math.min(5, Number(value || 0)));
   return (
     <div className="flex items-center gap-1">
-      {[1,2,3,4,5].map(i => (
+      {[1, 2, 3, 4, 5].map(i => (
         <FaStar key={i} className={i <= v ? "text-yellow-400" : "text-gray-300"} />
       ))}
       <span className="ml-2 text-sm text-gray-400">{v.toFixed(1)}/5</span>
@@ -39,7 +39,7 @@ function Stars({ value }) {
 /* ---------------- Avatar with Initials ---------------- */
 function Avatar({ src, name, size = "w-24 h-24", className = "" }) {
   const [imgError, setImgError] = useState(false);
-  
+
   const getInitials = (name) => {
     if (!name) return "?";
     const parts = name.trim().split(" ");
@@ -51,16 +51,16 @@ function Avatar({ src, name, size = "w-24 h-24", className = "" }) {
 
   const initials = getInitials(name);
   const colors = [
-    "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-pink-500", 
+    "bg-blue-500", "bg-green-500", "bg-purple-500", "bg-pink-500",
     "bg-indigo-500", "bg-yellow-500", "bg-red-500", "bg-teal-500"
   ];
   const colorIndex = name ? name.charCodeAt(0) % colors.length : 0;
 
   if (src && !imgError) {
     return (
-      <img 
-        src={src} 
-        alt={name || "User"} 
+      <img
+        src={src}
+        alt={name || "User"}
         className={`${size} rounded-full object-cover ${className}`}
         onError={() => setImgError(true)}
       />
@@ -68,7 +68,7 @@ function Avatar({ src, name, size = "w-24 h-24", className = "" }) {
   }
 
   return (
-    <div 
+    <div
       className={`${size} rounded-full ${colors[colorIndex]} flex items-center justify-center text-white font-bold text-lg shadow-lg ${className}`}
     >
       {initials}
@@ -104,14 +104,14 @@ function getRank(avg, hasWarning = false) {
   } else {
     league = {
       name: "Iron",
-      tagline: avg >= 2 
+      tagline: avg >= 2
         ? "Performance needs improvement; support and guidance are recommended."
         : "Immediate improvement is required to continue in the role.",
       icon: <FaUserAstronaut />,
       color: "from-slate-600 to-slate-800"
     };
   }
-  
+
   return {
     ...league,
     hasWarning
@@ -123,13 +123,14 @@ export default function MyPerformancePage() {
   const [performances, setPerformances] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [showCelebration, setShowCelebration] = useState(true);
-  
+
   // NEW: Cycle-based state
   const [currentCycle, setCurrentCycle] = useState(null);
   const [selectedCycleId, setSelectedCycleId] = useState(null);
   const [availableCycles, setAvailableCycles] = useState([]);
   const [monthlySummaries, setMonthlySummaries] = useState([]);
   const [cycleSummary, setCycleSummary] = useState(null);
+  const [companyStats, setCompanyStats] = useState(null); // NEW: Company-wide stats
 
   useEffect(() => {
     loadAll();
@@ -165,17 +166,22 @@ export default function MyPerformancePage() {
     try {
       const url = cycleId ? `/performance/me?cycleId=${cycleId}` : '/performance/me';
       const perfRes = await api.get(url);
-      
+
       const data = perfRes.data?.data || {};
       setCurrentCycle(data.currentCycle || null);
       setPerformances(data.reviews || []);
       setMonthlySummaries(data.monthlySummaries || []);
       setCycleSummary(data.cycleSummary || null);
       setAvailableCycles(data.availableCycles || []);
-      
+
       // Set selected cycle if not set
       if (!selectedCycleId && data.currentCycle) {
         setSelectedCycleId(data.currentCycle._id);
+      }
+
+      // Load company-wide stats for the cycle
+      if (cycleId || data.currentCycle) {
+        loadCompanyStats(cycleId || data.currentCycle._id);
       }
     } catch (err) {
       console.error("Failed to load performance data:", err);
@@ -183,12 +189,32 @@ export default function MyPerformancePage() {
     }
   }
 
+  async function loadCompanyStats(cycleId) {
+    try {
+      const res = await api.get(`/performance?cycleId=${cycleId}`);
+      const allPerformances = res.data?.data || [];
+
+      // Calculate company-wide statistics
+      const stats = {
+        totalReviews: allPerformances.length,
+        totalPenalties: allPerformances.reduce((sum, p) => sum + (p.penaltyAmount || 0), 0),
+        totalIncentives: allPerformances.reduce((sum, p) => sum + (p.incentiveAmount || 0), 0),
+        uniqueEmployees: new Set(allPerformances.map(p => p.employee?._id || p.employee)).size,
+      };
+
+      setCompanyStats(stats);
+    } catch (err) {
+      console.error("Failed to load company stats:", err);
+      setCompanyStats(null);
+    }
+  }
+
   const stats = useMemo(() => {
     if (!performances.length) return { avg: 0, trend: "stable", latest: null };
     const scores = performances.map(p => Number(p.performanceScore || 0));
-    const avg = scores.reduce((a,b)=>a+b,0)/scores.length;
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
     return {
-      avg: Math.round(avg*10)/10,
+      avg: Math.round(avg * 10) / 10,
       latest: performances[0],
       trend: scores[0] > scores[1] ? "up" : "stable",
       totalIncentives: performances.reduce((sum, p) => sum + (p.incentiveAmount || 0), 0),
@@ -230,7 +256,7 @@ export default function MyPerformancePage() {
               <p className="text-sm opacity-90 italic mb-4">
                 {rank.tagline}
               </p>
-              
+
               {/* Warning Message - shown AFTER league */}
               {rank.hasWarning && (
                 <motion.div
@@ -344,13 +370,12 @@ export default function MyPerformancePage() {
                     </p>
                   </div>
                 ) : (
-                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
-                    cycleSummary.finalPerformanceTag === 'Outstanding' ? 'bg-green-500 text-white' :
-                    cycleSummary.finalPerformanceTag === 'Very Good' ? 'bg-blue-500 text-white' :
-                    cycleSummary.finalPerformanceTag === 'Average' ? 'bg-yellow-500 text-white' :
-                    cycleSummary.finalPerformanceTag === 'Below Average' ? 'bg-orange-500 text-white' :
-                    'bg-red-500 text-white'
-                  }`}>
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${cycleSummary.finalPerformanceTag === 'Outstanding' ? 'bg-green-500 text-white' :
+                      cycleSummary.finalPerformanceTag === 'Very Good' ? 'bg-blue-500 text-white' :
+                        cycleSummary.finalPerformanceTag === 'Average' ? 'bg-yellow-500 text-white' :
+                          cycleSummary.finalPerformanceTag === 'Below Average' ? 'bg-orange-500 text-white' :
+                            'bg-red-500 text-white'
+                    }`}>
                     {cycleSummary.finalPerformanceTag}
                   </span>
                 )}
@@ -360,11 +385,51 @@ export default function MyPerformancePage() {
         </div>
       )}
 
+      {/* Company-Wide Statistics */}
+      {companyStats && (
+        <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 p-6 rounded-xl shadow mb-6 border-2 border-orange-200 dark:border-orange-800">
+          <h3 className="text-xl font-bold mb-4 dark:text-white flex items-center gap-2">
+            <FaTrophy className="text-orange-500" /> Company Performance Stats
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Employees Reviewed</div>
+              <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                {companyStats.uniqueEmployees}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                {companyStats.totalReviews} total reviews
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Incentives Paid</div>
+              <div className="text-2xl font-bold text-green-600">
+                ₹{companyStats.totalIncentives.toLocaleString()}
+              </div>
+              <div className="text-xs text-gray-500 mt-1">
+                Company-wide rewards
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-4 rounded-lg border-2 border-red-300 dark:border-red-700">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Penalties Collected</div>
+              <div className="text-2xl font-bold text-red-600">
+                ₹{companyStats.totalPenalties.toLocaleString()}
+              </div>
+              <div className="text-xs text-red-500 dark:text-red-400 mt-1 font-semibold">
+                This amount will be allocated towards employee welfare
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Profile */}
       {profile && (
         <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow flex flex-wrap gap-6 items-center">
-          <Avatar 
-            src={profile?.photoUrl} 
+          <Avatar
+            src={profile?.photoUrl}
             name={`${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || profile?.fullName}
             size="w-24 h-24"
             className="border-4 border-indigo-500"
@@ -375,7 +440,7 @@ export default function MyPerformancePage() {
             </h2>
             <p className="text-gray-500 dark:text-gray-400">{profile?.Designation || "Employee"}</p>
             <div className="mt-2">
-              <Stars value={stats.avg}/>
+              <Stars value={stats.avg} />
             </div>
           </div>
           <div className={`px-6 py-3 rounded-xl text-white bg-gradient-to-r ${rank.color} max-w-sm`}>
@@ -391,7 +456,7 @@ export default function MyPerformancePage() {
           <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
             <FaTrophy className="text-yellow-500" /> Top Performers
           </h2>
-          
+
           <div className="flex items-end justify-center gap-4 md:gap-8 mb-8">
             {/* 2nd Place - Left */}
             {leaderboard[1] && (
@@ -403,8 +468,8 @@ export default function MyPerformancePage() {
               >
                 <div className="relative mb-4">
                   <div className="w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-lg relative">
-                    <Avatar 
-                      src={leaderboard[1].photoUrl} 
+                    <Avatar
+                      src={leaderboard[1].photoUrl}
                       name={leaderboard[1].name}
                       size="w-full h-full"
                     />
@@ -433,8 +498,8 @@ export default function MyPerformancePage() {
               >
                 <div className="relative mb-4">
                   <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-yellow-400 overflow-hidden bg-yellow-100 dark:bg-yellow-900/30 shadow-2xl ring-4 ring-yellow-300 dark:ring-yellow-600 relative">
-                    <Avatar 
-                      src={leaderboard[0].photoUrl} 
+                    <Avatar
+                      src={leaderboard[0].photoUrl}
                       name={leaderboard[0].name}
                       size="w-full h-full"
                     />
@@ -470,8 +535,8 @@ export default function MyPerformancePage() {
               >
                 <div className="relative mb-4">
                   <div className="w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-orange-300 dark:border-orange-700 overflow-hidden bg-orange-200 dark:bg-orange-900/30 shadow-lg relative">
-                    <Avatar 
-                      src={leaderboard[2].photoUrl} 
+                    <Avatar
+                      src={leaderboard[2].photoUrl}
                       name={leaderboard[2].name}
                       size="w-full h-full"
                     />
@@ -505,28 +570,28 @@ export default function MyPerformancePage() {
               score: Number(p.performanceScore || 0)
             }))}>
               <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-              <XAxis 
-                dataKey="date" 
+              <XAxis
+                dataKey="date"
                 className="text-xs"
                 stroke="currentColor"
               />
-              <YAxis 
+              <YAxis
                 domain={[0, 5]}
                 className="text-xs"
                 stroke="currentColor"
               />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: "rgba(0,0,0,0.8)", 
+              <Tooltip
+                contentStyle={{
+                  backgroundColor: "rgba(0,0,0,0.8)",
                   border: "none",
                   borderRadius: "8px",
                   color: "white"
                 }}
               />
-              <Line 
-                type="monotone" 
-                dataKey="score" 
-                stroke="#6366f1" 
+              <Line
+                type="monotone"
+                dataKey="score"
+                stroke="#6366f1"
                 strokeWidth={3}
                 dot={{ fill: "#6366f1", r: 5 }}
                 activeDot={{ r: 8 }}
@@ -577,13 +642,12 @@ export default function MyPerformancePage() {
                       <Stars value={perf.performanceScore || 0} />
                     </div>
                     <div className="mt-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                        perf.performanceTag === 'Outstanding' ? 'bg-green-500 text-white' :
-                        perf.performanceTag === 'Very Good' ? 'bg-blue-500 text-white' :
-                        perf.performanceTag === 'Average' ? 'bg-yellow-500 text-white' :
-                        perf.performanceTag === 'Below Average' ? 'bg-orange-500 text-white' :
-                        'bg-red-500 text-white'
-                      }`}>
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${perf.performanceTag === 'Outstanding' ? 'bg-green-500 text-white' :
+                          perf.performanceTag === 'Very Good' ? 'bg-blue-500 text-white' :
+                            perf.performanceTag === 'Average' ? 'bg-yellow-500 text-white' :
+                              perf.performanceTag === 'Below Average' ? 'bg-orange-500 text-white' :
+                                'bg-red-500 text-white'
+                        }`}>
                         {perf.performanceTag || 'Average'}
                       </span>
                     </div>
@@ -603,9 +667,8 @@ export default function MyPerformancePage() {
                         Penalty: -₹{perf.penaltyAmount.toLocaleString()}
                       </span>
                     )}
-                    <span className={`font-bold ${
-                      ((perf.incentiveAmount || 0) - (perf.penaltyAmount || 0)) >= 0 ? 'text-green-700' : 'text-red-700'
-                    }`}>
+                    <span className={`font-bold ${((perf.incentiveAmount || 0) - (perf.penaltyAmount || 0)) >= 0 ? 'text-green-700' : 'text-red-700'
+                      }`}>
                       Net: ₹{((perf.incentiveAmount || 0) - (perf.penaltyAmount || 0)).toLocaleString()}
                     </span>
                   </div>

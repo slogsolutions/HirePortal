@@ -5,6 +5,21 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  Legend,
+  PieChart,
+  Pie,
+  Cell
+} from "recharts";
 
 // Performance tags with colors
 const PERFORMANCE_TAGS = {
@@ -302,6 +317,15 @@ const AdminPerformancePage = () => {
 
   // Get current cycle info
   const currentCycle = cycles.find(c => c._id === selectedCycle);
+  
+  // Calculate cycle statistics
+  const cycleStats = {
+    totalReviews: performances.length,
+    totalIncentives: performances.reduce((sum, p) => sum + (p.incentiveAmount || 0), 0),
+    totalPenalties: performances.reduce((sum, p) => sum + (p.penaltyAmount || 0), 0),
+    uniqueEmployees: new Set(performances.map(p => p.employee?._id || p.employee)).size,
+  };
+  cycleStats.netAmount = cycleStats.totalIncentives - cycleStats.totalPenalties;
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen dark:bg-slate-900">
@@ -339,6 +363,193 @@ const AdminPerformancePage = () => {
                 Close Cycle
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Cycle Statistics */}
+      {currentCycle && performances.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Reviews</div>
+            <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+              {cycleStats.totalReviews}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {cycleStats.uniqueEmployees} employees
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Incentives</div>
+            <div className="text-2xl font-bold text-green-600">
+              ₹{cycleStats.totalIncentives.toLocaleString()}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Paid to employees
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Penalties</div>
+            <div className="text-2xl font-bold text-red-600">
+              ₹{cycleStats.totalPenalties.toLocaleString()}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              Collected from all employees
+            </div>
+          </div>
+          
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-4">
+            <div className="text-sm text-gray-600 dark:text-gray-400 mb-1">Net Amount</div>
+            <div className={`text-2xl font-bold ${cycleStats.netAmount >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              ₹{cycleStats.netAmount.toLocaleString()}
+            </div>
+            <div className="text-xs text-gray-500 mt-1">
+              {cycleStats.netAmount >= 0 ? 'Incentives > Penalties' : 'Penalties > Incentives'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Performance Analytics Graphs */}
+      {currentCycle && performances.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          {/* Performance Trend Over Time */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-bold mb-4 dark:text-white">Performance Trend</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={performances.slice(0, 20).reverse().map((p, idx) => ({
+                name: p.employee?.firstName ? `${p.employee.firstName.substring(0, 8)}...` : `Emp ${idx + 1}`,
+                score: p.performanceScore || 0,
+                date: p.reviewDate ? format(new Date(p.reviewDate), 'MMM dd') : `Review ${idx + 1}`
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="date" className="text-xs" stroke="currentColor" />
+                <YAxis domain={[0, 5]} className="text-xs" stroke="currentColor" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: "rgba(0,0,0,0.8)", 
+                    border: "none",
+                    borderRadius: "8px",
+                    color: "white"
+                  }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="score" 
+                  stroke="#6366f1" 
+                  strokeWidth={3}
+                  dot={{ fill: "#6366f1", r: 4 }}
+                  activeDot={{ r: 6 }}
+                  name="Performance Score"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Incentives vs Penalties */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-bold mb-4 dark:text-white">Incentives vs Penalties</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={performances.slice(0, 15).map((p, idx) => ({
+                name: p.employee?.firstName ? `${p.employee.firstName.substring(0, 8)}...` : `Emp ${idx + 1}`,
+                incentive: p.incentiveAmount || 0,
+                penalty: p.penaltyAmount || 0
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="name" className="text-xs" stroke="currentColor" />
+                <YAxis className="text-xs" stroke="currentColor" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: "rgba(0,0,0,0.8)", 
+                    border: "none",
+                    borderRadius: "8px",
+                    color: "white"
+                  }}
+                  formatter={(value) => `₹${value.toLocaleString()}`}
+                />
+                <Legend />
+                <Bar dataKey="incentive" fill="#10b981" name="Incentive" />
+                <Bar dataKey="penalty" fill="#ef4444" name="Penalty" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Performance Distribution */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-bold mb-4 dark:text-white">Performance Distribution</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={[
+                    { name: '5★ Outstanding', value: performances.filter(p => p.performanceScore === 5).length, color: '#10b981' },
+                    { name: '4★ Very Good', value: performances.filter(p => p.performanceScore === 4).length, color: '#3b82f6' },
+                    { name: '3★ Average', value: performances.filter(p => p.performanceScore === 3).length, color: '#eab308' },
+                    { name: '2★ Below Avg', value: performances.filter(p => p.performanceScore === 2).length, color: '#f97316' },
+                    { name: '1★ Worst', value: performances.filter(p => p.performanceScore === 1).length, color: '#ef4444' }
+                  ].filter(d => d.value > 0)}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {[
+                    { name: '5★ Outstanding', value: performances.filter(p => p.performanceScore === 5).length, color: '#10b981' },
+                    { name: '4★ Very Good', value: performances.filter(p => p.performanceScore === 4).length, color: '#3b82f6' },
+                    { name: '3★ Average', value: performances.filter(p => p.performanceScore === 3).length, color: '#eab308' },
+                    { name: '2★ Below Avg', value: performances.filter(p => p.performanceScore === 2).length, color: '#f97316' },
+                    { name: '1★ Worst', value: performances.filter(p => p.performanceScore === 1).length, color: '#ef4444' }
+                  ].filter(d => d.value > 0).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: "rgba(0,0,0,0.8)", 
+                    border: "none",
+                    borderRadius: "8px",
+                    color: "white"
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Financial Overview */}
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
+            <h3 className="text-lg font-bold mb-4 dark:text-white">Financial Overview</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={[
+                {
+                  name: 'Cycle Totals',
+                  Incentives: cycleStats.totalIncentives,
+                  Penalties: cycleStats.totalPenalties,
+                  Net: cycleStats.netAmount
+                }
+              ]}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis dataKey="name" className="text-xs" stroke="currentColor" />
+                <YAxis className="text-xs" stroke="currentColor" />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: "rgba(0,0,0,0.8)", 
+                    border: "none",
+                    borderRadius: "8px",
+                    color: "white"
+                  }}
+                  formatter={(value) => `₹${value.toLocaleString()}`}
+                />
+                <Legend />
+                <Bar dataKey="Incentives" fill="#10b981" />
+                <Bar dataKey="Penalties" fill="#ef4444" />
+                <Bar dataKey="Net" fill="#6366f1" />
+              </BarChart>
+            </ResponsiveContainer>
           </div>
         </div>
       )}
