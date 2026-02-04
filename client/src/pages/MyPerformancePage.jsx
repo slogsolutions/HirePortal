@@ -155,7 +155,15 @@ export default function MyPerformancePage() {
     // Load leaderboard
     try {
       const lb = await api.get("/performance/leaderboard?limit=3");
-      setLeaderboard(lb.data?.data || lb.data || []);
+      const leaderboardData = lb.data?.data || lb.data || [];
+      
+      // Map the data to ensure we have the correct field names
+      const mappedLeaderboard = leaderboardData.map(emp => ({
+        ...emp,
+        avgScore: emp.ceilingAverageScore || emp.averageScore || 0
+      }));
+      
+      setLeaderboard(mappedLeaderboard);
     } catch (err) {
       console.error("Failed to load leaderboard:", err);
       setLeaderboard([]);
@@ -497,8 +505,18 @@ export default function MyPerformancePage() {
                     {leaderboard[1].designation || ""}
                   </p>
                   <div className="mt-2 flex justify-center relative z-10">
-                    <div className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
-                      <Stars value={leaderboard[1].avgScore || 0} />
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <FaStar
+                          key={i}
+                          className={`text-xs ${
+                            i <= (leaderboard[1].avgScore || 0) ? "text-white" : "text-white/30"
+                          }`}
+                        />
+                      ))}
+                      <span className="ml-1 text-xs text-white font-semibold">
+                        {(leaderboard[1].avgScore || 0).toFixed(1)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -574,8 +592,18 @@ export default function MyPerformancePage() {
                     {leaderboard[0].designation || ""}
                   </p>
                   <div className="mt-2 flex justify-center relative z-10">
-                    <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
-                      <Stars value={leaderboard[0].avgScore || 0} />
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <FaStar
+                          key={i}
+                          className={`${
+                            i <= (leaderboard[0].avgScore || 0) ? "text-yellow-300" : "text-white/30"
+                          }`}
+                        />
+                      ))}
+                      <span className="ml-2 text-sm text-white font-semibold">
+                        {(leaderboard[0].avgScore || 0).toFixed(1)}
+                      </span>
                     </div>
                   </div>
                   <div className="mt-2 text-xs text-purple-200 font-semibold relative z-10">
@@ -624,8 +652,18 @@ export default function MyPerformancePage() {
                     {leaderboard[2].designation || ""}
                   </p>
                   <div className="mt-2 flex justify-center relative z-10">
-                    <div className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
-                      <Stars value={leaderboard[2].avgScore || 0} />
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map((i) => (
+                        <FaStar
+                          key={i}
+                          className={`text-xs ${
+                            i <= (leaderboard[2].avgScore || 0) ? "text-white" : "text-white/30"
+                          }`}
+                        />
+                      ))}
+                      <span className="ml-1 text-xs text-white font-semibold">
+                        {(leaderboard[2].avgScore || 0).toFixed(1)}
+                      </span>
                     </div>
                   </div>
                 </div>
