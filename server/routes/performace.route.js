@@ -8,28 +8,48 @@ const {
   deletePerformance,
   getMyPerformance,
   getLeaderboard,
+  getAllCycles,
+  getActiveCycle,
+  closeCycle,
+  getMonthlySummaries,
+  getCycleSummary,
+  getWarnings,
 } = require('../controllers/performance.controller');
 const { protect } = require('../middlewares/auth.middleware');
 
-// Create performance for candidate
-router.post('/:id', createPerformance);
+// Cycle management
+router.get('/cycles', getAllCycles);
+router.get('/cycles/active', getActiveCycle);
+router.post('/cycles/:cycleId/close', protect, closeCycle);
 
-// Get all performances (optional ?employeeId=)
-router.get('/', getAllPerformances);
+// Warnings
+router.get('/warnings', protect, getWarnings);
 
-// Get leaderboard (top performers)
+// Monthly summaries
+router.get('/monthly/:employeeId', protect, getMonthlySummaries);
+
+// Cycle summaries
+router.get('/cycle-summary/:employeeId/:cycleId', protect, getCycleSummary);
+
+// Leaderboard (with cycle support)
 router.get('/leaderboard', getLeaderboard);
 
-// Get my performance
+// My performance (candidate view)
 router.get('/me', protect, getMyPerformance);
 
-// Get specific performance
+// Create performance review for candidate
+router.post('/:id', protect, createPerformance);
+
+// Get all performance reviews (with advanced filtering)
+router.get('/', getAllPerformances);
+
+// Get specific performance review
 router.get('/:performanceId', getPerformanceById);
 
-// Update performance
-router.put('/:performanceId', updatePerformance);
+// Update performance review
+router.put('/:performanceId', protect, updatePerformance);
 
-// Delete performance
-router.delete('/:performanceId', deletePerformance);
+// Delete performance review
+router.delete('/:performanceId', protect, deletePerformance);
 
 module.exports = router;

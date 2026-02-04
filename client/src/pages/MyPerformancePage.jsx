@@ -18,7 +18,8 @@ import {
   FaStar,
   FaTrophy,
   FaComments,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaExclamationTriangle
 } from "react-icons/fa";
 import { format } from "date-fns";
 
@@ -75,13 +76,46 @@ function Avatar({ src, name, size = "w-24 h-24", className = "" }) {
   );
 }
 
-/* ---------------- Rank System ---------------- */
-function getRank(avg) {
-  if (avg >= 4.5) return { name: "Platinum", icon: <FaCrown />, color: "from-purple-600 to-indigo-600" };
-  if (avg >= 4) return { name: "Gold", icon: <FaMedal />, color: "from-yellow-400 to-yellow-600" };
-  if (avg >= 3) return { name: "Silver", icon: <FaMedal />, color: "from-gray-300 to-gray-500" };
-  if (avg >= 2) return { name: "Bronze", icon: <FaMedal />, color: "from-orange-400 to-orange-600" };
-  return { name: "Iron", icon: <FaUserAstronaut />, color: "from-slate-600 to-slate-800" };
+/* ---------------- Rank System with Taglines ---------------- */
+function getRank(avg, hasWarning = false) {
+  // Determine league/tier based on average (ignore warning for league)
+  let league = {};
+  if (avg >= 4.5) {
+    league = {
+      name: "Platinum",
+      tagline: "Exceptional performance — you set the benchmark for others.",
+      icon: <FaCrown />,
+      color: "from-purple-600 to-indigo-600"
+    };
+  } else if (avg >= 4) {
+    league = {
+      name: "Gold",
+      tagline: "Strong performance with reliable results.",
+      icon: <FaMedal />,
+      color: "from-yellow-400 to-yellow-600"
+    };
+  } else if (avg >= 3) {
+    league = {
+      name: "Silver",
+      tagline: "You met the basic expectations for this period.",
+      icon: <FaMedal />,
+      color: "from-gray-300 to-gray-500"
+    };
+  } else {
+    league = {
+      name: "Iron",
+      tagline: avg >= 2 
+        ? "Performance needs improvement; support and guidance are recommended."
+        : "Immediate improvement is required to continue in the role.",
+      icon: <FaUserAstronaut />,
+      color: "from-slate-600 to-slate-800"
+    };
+  }
+  
+  return {
+    ...league,
+    hasWarning
+  };
 }
 
 export default function MyPerformancePage() {
@@ -89,11 +123,25 @@ export default function MyPerformancePage() {
   const [performances, setPerformances] = useState([]);
   const [leaderboard, setLeaderboard] = useState([]);
   const [showCelebration, setShowCelebration] = useState(true);
+  
+  // NEW: Cycle-based state
+  const [currentCycle, setCurrentCycle] = useState(null);
+  const [selectedCycleId, setSelectedCycleId] = useState(null);
+  const [availableCycles, setAvailableCycles] = useState([]);
+  const [monthlySummaries, setMonthlySummaries] = useState([]);
+  const [cycleSummary, setCycleSummary] = useState(null);
 
   useEffect(() => {
     loadAll();
+    loadPerformanceData();
     setTimeout(() => setShowCelebration(false), 3000);
   }, []);
+
+  useEffect(() => {
+    if (selectedCycleId) {
+      loadPerformanceData(selectedCycleId);
+    }
+  }, [selectedCycleId]);
 
   async function loadAll() {
     try {
@@ -103,21 +151,35 @@ export default function MyPerformancePage() {
       console.error("Failed to load profile:", err);
     }
 
-    try {
-      const perfRes = await api.get("/performance/me");
-      setPerformances(perfRes.data?.data || perfRes.data || []);
-    } catch (err) {
-      console.error("Failed to load performances:", err);
-      setPerformances([]);
-    }
-
-    // 👑 TOP 3 Employees
+    // Load leaderboard
     try {
       const lb = await api.get("/performance/leaderboard?limit=3");
       setLeaderboard(lb.data?.data || lb.data || []);
     } catch (err) {
       console.error("Failed to load leaderboard:", err);
       setLeaderboard([]);
+    }
+  }
+
+  async function loadPerformanceData(cycleId = null) {
+    try {
+      const url = cycleId ? `/performance/me?cycleId=${cycleId}` : '/performance/me';
+      const perfRes = await api.get(url);
+      
+      const data = perfRes.data?.data || {};
+      setCurrentCycle(data.currentCycle || null);
+      setPerformances(data.reviews || []);
+      setMonthlySummaries(data.monthlySummaries || []);
+      setCycleSummary(data.cycleSummary || null);
+      setAvailableCycles(data.availableCycles || []);
+      
+      // Set selected cycle if not set
+      if (!selectedCycleId && data.currentCycle) {
+        setSelectedCycleId(data.currentCycle._id);
+      }
+    } catch (err) {
+      console.error("Failed to load performance data:", err);
+      setPerformances([]);
     }
   }
 
@@ -128,12 +190,19 @@ export default function MyPerformancePage() {
     return {
       avg: Math.round(avg*10)/10,
       latest: performances[0],
-      trend: scores[0] > scores[1] ? "up" : "stable"
+      trend: scores[0] > scores[1] ? "up" : "stable",
+      totalIncentives: performances.reduce((sum, p) => sum + (p.incentiveAmount || 0), 0),
+      totalPenalties: performances.reduce((sum, p) => sum + (p.penaltyAmount || 0), 0),
     };
   }, [performances]);
 
-  const rank = getRank(stats.avg);
-  const photo = profile?.photoUrl || "https://via.placeholder.com/150";
+  stats.netAmount = stats.totalIncentives - stats.totalPenalties;
+
+  // Determine rank with warning check
+  const rank = getRank(
+    cycleSummary?.ceilingAverageScore || stats.avg,
+    cycleSummary?.hadNoticePeriodWarning || false
+  );
 
   /* ---------------- UI ---------------- */
   return (
@@ -146,18 +215,40 @@ export default function MyPerformancePage() {
             initial={{ opacity: 0, scale: 0.6 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center"
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
           >
             <motion.div
               initial={{ y: 100 }}
               animate={{ y: 0 }}
-              className="bg-gradient-to-r from-indigo-600 to-purple-600 p-10 rounded-3xl text-white text-center shadow-2xl"
+              className={`bg-gradient-to-r ${rank.color} p-10 rounded-3xl text-white text-center shadow-2xl max-w-md w-full`}
             >
-              <h1 className="text-3xl font-bold mb-4">🎉 Welcome Back!</h1>
-              <p>You are currently</p>
-              <div className="text-4xl font-extrabold mt-2 flex items-center justify-center gap-2">
+              <h1 className="text-3xl font-bold mb-4"> Welcome Back!</h1>
+              <p className="text-lg mb-2">You are currently</p>
+              <div className="text-4xl font-extrabold mt-2 mb-4 flex items-center justify-center gap-2">
                 {rank.icon} {rank.name}
               </div>
+              <p className="text-sm opacity-90 italic mb-4">
+                {rank.tagline}
+              </p>
+              
+              {/* Warning Message - shown AFTER league */}
+              {rank.hasWarning && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="mt-6 pt-6 border-t-2 border-white/30"
+                >
+                  <div className="bg-red-600 bg-opacity-50 backdrop-blur-sm p-4 rounded-xl">
+                    <div className="flex items-center justify-center gap-2 text-xl font-bold mb-2">
+                      <FaExclamationTriangle /> Notice Period Warning
+                    </div>
+                    <p className="text-sm">
+                      Immediate improvement is required. Further HR review is required.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           </motion.div>
         )}
@@ -167,6 +258,107 @@ export default function MyPerformancePage() {
       <h1 className="text-3xl font-bold mb-8 text-gray-900 dark:text-white flex items-center gap-3">
         <FaChartLine /> Performance Hub
       </h1>
+
+      {/* Cycle Selector */}
+      {availableCycles.length > 0 && (
+        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl shadow mb-6">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+            Select Performance Cycle
+          </label>
+          <select
+            value={selectedCycleId || currentCycle?._id || ''}
+            onChange={(e) => setSelectedCycleId(e.target.value)}
+            className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-800 dark:text-white"
+          >
+            {availableCycles.map((cycle) => (
+              <option key={cycle._id} value={cycle._id}>
+                Cycle {cycle.cycleNumber}: {format(new Date(cycle.startDate), 'MMM yyyy')} - {format(new Date(cycle.endDate), 'MMM yyyy')}
+                {cycle.status === 'active' ? ' (Current)' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {/* Warning Banner */}
+      {cycleSummary?.hadNoticePeriodWarning && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-100 border-2 border-red-500 rounded-xl p-6 mb-6"
+        >
+          <div className="flex items-center gap-4">
+            <div className="text-5xl">
+              <FaExclamationTriangle className="text-red-600" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-red-800 flex items-center gap-2">
+                🚨 Notice Period Warning
+              </h3>
+              <p className="text-red-700 mt-2">
+                You have received low performance ratings for 2 consecutive months.
+                Please schedule a meeting with HR to discuss your performance improvement plan.
+              </p>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Cycle Summary Card */}
+      {cycleSummary && (
+        <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 p-6 rounded-xl shadow mb-6">
+          <h3 className="text-xl font-bold mb-4 dark:text-white">Cycle Summary</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Total Reviews</div>
+              <div className="text-2xl font-bold dark:text-white">{cycleSummary.totalReviews}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Average Score</div>
+              <div className="text-2xl font-bold dark:text-white">{cycleSummary.ceilingAverageScore}/5</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Total Incentives</div>
+              <div className="text-2xl font-bold text-green-600">₹{cycleSummary.totalIncentives.toLocaleString()}</div>
+            </div>
+            <div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">Total Penalties</div>
+              <div className="text-2xl font-bold text-red-600">₹{cycleSummary.totalPenalties.toLocaleString()}</div>
+            </div>
+            <div className="col-span-2">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Net Amount</div>
+              <div className={`text-3xl font-bold ${cycleSummary.netAmount >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                ₹{cycleSummary.netAmount.toLocaleString()}
+              </div>
+            </div>
+            <div className="col-span-2">
+              <div className="text-sm text-gray-600 dark:text-gray-400">Performance Status</div>
+              <div className="mt-1">
+                {cycleSummary.hadNoticePeriodWarning ? (
+                  <div className="flex flex-col gap-2">
+                    <span className="px-3 py-1 rounded-full text-sm font-semibold bg-red-500 text-white inline-flex items-center gap-2">
+                      <FaExclamationTriangle /> Notice Period Can Be Initiated
+                    </span>
+                    <p className="text-xs text-red-600 dark:text-red-400">
+                      Due to consistent low performance (2 consecutive months with 1★), further HR review is required.
+                    </p>
+                  </div>
+                ) : (
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    cycleSummary.finalPerformanceTag === 'Outstanding' ? 'bg-green-500 text-white' :
+                    cycleSummary.finalPerformanceTag === 'Very Good' ? 'bg-blue-500 text-white' :
+                    cycleSummary.finalPerformanceTag === 'Average' ? 'bg-yellow-500 text-white' :
+                    cycleSummary.finalPerformanceTag === 'Below Average' ? 'bg-orange-500 text-white' :
+                    'bg-red-500 text-white'
+                  }`}>
+                    {cycleSummary.finalPerformanceTag}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Profile */}
       {profile && (
@@ -186,8 +378,9 @@ export default function MyPerformancePage() {
               <Stars value={stats.avg}/>
             </div>
           </div>
-          <div className={`px-6 py-3 rounded-xl text-white bg-gradient-to-r ${rank.color}`}>
-            <div className="text-xl font-bold flex items-center gap-2">{rank.icon} {rank.name}</div>
+          <div className={`px-6 py-3 rounded-xl text-white bg-gradient-to-r ${rank.color} max-w-sm`}>
+            <div className="text-xl font-bold flex items-center gap-2 mb-2">{rank.icon} {rank.name}</div>
+            <p className="text-xs opacity-90 italic">{rank.tagline}</p>
           </div>
         </div>
       )}
@@ -367,14 +560,12 @@ export default function MyPerformancePage() {
                       <h3 className="font-semibold text-gray-900 dark:text-white">
                         Review #{performances.length - idx}
                       </h3>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">
-                        {perf.createdAt 
-                          ? format(new Date(perf.createdAt), "MMMM dd, yyyy")
-                          : perf.period || "Date not available"}
+                      <p className="text-sm font-semibold text-indigo-600 dark:text-indigo-400">
+                        For: {perf.reviewForMonth ? format(new Date(perf.reviewForMonth), 'MMMM yyyy') : 'N/A'}
                       </p>
-                      {perf.period && (
-                        <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">Period: {perf.period}</p>
-                      )}
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Given on: {perf.reviewDate ? format(new Date(perf.reviewDate), 'MMM dd, yyyy') : 'N/A'}
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -385,9 +576,42 @@ export default function MyPerformancePage() {
                     <div className="mt-1 flex justify-end">
                       <Stars value={perf.performanceScore || 0} />
                     </div>
+                    <div className="mt-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                        perf.performanceTag === 'Outstanding' ? 'bg-green-500 text-white' :
+                        perf.performanceTag === 'Very Good' ? 'bg-blue-500 text-white' :
+                        perf.performanceTag === 'Average' ? 'bg-yellow-500 text-white' :
+                        perf.performanceTag === 'Below Average' ? 'bg-orange-500 text-white' :
+                        'bg-red-500 text-white'
+                      }`}>
+                        {perf.performanceTag || 'Average'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
+                {/* Financial Info */}
+                <div className="bg-gray-50 dark:bg-slate-800 p-3 rounded-lg mb-3">
+                  <div className="flex justify-between text-sm flex-wrap gap-2">
+                    {perf.incentiveAmount > 0 && (
+                      <span className="text-green-600 font-semibold">
+                        Incentive: +₹{perf.incentiveAmount.toLocaleString()}
+                      </span>
+                    )}
+                    {perf.penaltyAmount > 0 && (
+                      <span className="text-red-600 font-semibold">
+                        Penalty: -₹{perf.penaltyAmount.toLocaleString()}
+                      </span>
+                    )}
+                    <span className={`font-bold ${
+                      ((perf.incentiveAmount || 0) - (perf.penaltyAmount || 0)) >= 0 ? 'text-green-700' : 'text-red-700'
+                    }`}>
+                      Net: ₹{((perf.incentiveAmount || 0) - (perf.penaltyAmount || 0)).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Feedback */}
                 {perf.feedback && (
                   <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-800 rounded-lg">
                     <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Feedback:</h4>
@@ -397,16 +621,19 @@ export default function MyPerformancePage() {
                   </div>
                 )}
 
+                {/* Override Info */}
+                {perf.overrideReason && (
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                    <div className="text-xs text-blue-700 dark:text-blue-400">
+                      <strong>Note:</strong> Financial amounts were adjusted. Reason: {perf.overrideReason}
+                    </div>
+                  </div>
+                )}
+
+                {/* Reviewer Info */}
                 {perf.reviewer && (
-                  <div className="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
-                    <span>
-                      Reviewed by: <span className="font-semibold">{perf.reviewer?.name || perf.reviewer?.email || "Unknown"}</span>
-                    </span>
-                    {perf.nextReview && (
-                      <span>
-                        Next review: {format(new Date(perf.nextReview), "MMM dd, yyyy")}
-                      </span>
-                    )}
+                  <div className="mt-4 text-xs text-gray-500 dark:text-gray-400">
+                    Reviewed by: <span className="font-semibold">{perf.reviewer?.name || perf.reviewer?.email || "Unknown"}</span>
                   </div>
                 )}
               </motion.div>

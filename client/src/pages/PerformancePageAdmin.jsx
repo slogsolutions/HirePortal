@@ -1,21 +1,19 @@
-// AdminPerformancePage.jsx
+// AdminPerformancePage.jsx - NEW CYCLE-BASED SYSTEM
 import React, { useEffect, useState } from "react";
 import api from "../api/axios";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
-import {
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  BarChart,
-  Bar,
-  LabelList,
-} from "recharts";
 import { motion } from "framer-motion";
+import { format } from "date-fns";
+
+// Performance tags with colors
+const PERFORMANCE_TAGS = {
+  'Outstanding': { color: 'bg-green-500', textColor: 'text-green-700', bgLight: 'bg-green-100' },
+  'Very Good': { color: 'bg-blue-500', textColor: 'text-blue-700', bgLight: 'bg-blue-100' },
+  'Average': { color: 'bg-yellow-500', textColor: 'text-yellow-700', bgLight: 'bg-yellow-100' },
+  'Below Average': { color: 'bg-orange-500', textColor: 'text-orange-700', bgLight: 'bg-orange-100' },
+  'Worst': { color: 'bg-red-500', textColor: 'text-red-700', bgLight: 'bg-red-100' }
+};
 
 // Star rating for forms
 const StarRating = ({ value, setValue }) => (
@@ -23,7 +21,7 @@ const StarRating = ({ value, setValue }) => (
     {[1, 2, 3, 4, 5].map((i) => (
       <span
         key={i}
-        className={`cursor-pointer text-2xl ${i <= (Number(value) || 0) ? "text-yellow-500" : "text-gray-300"}`}
+        className={`cursor-pointer text-3xl ${i <= (Number(value) || 0) ? "text-yellow-500" : "text-gray-300"}`}
         onClick={() => setValue(i)}
       >
         ★
@@ -32,7 +30,7 @@ const StarRating = ({ value, setValue }) => (
   </div>
 );
 
-// Read-only stars with half-star support
+// Read-only stars
 const Stars = ({ value }) => {
   const num = Number(value);
   const safeValue = Number.isFinite(num) ? Math.max(0, Math.min(5, num)) : 0;
@@ -41,135 +39,64 @@ const Stars = ({ value }) => {
   const emptyStars = 5 - fullStars - (halfStar ? 1 : 0);
 
   return (
-    <div className="flex space-x-1">
-      {Array(fullStars)
-        .fill(0)
-        .map((_, i) => (
-          <span key={"f" + i} className="text-yellow-500">★</span>
-        ))}
+    <div className="flex space-x-1 items-center">
+      {Array(fullStars).fill(0).map((_, i) => (
+        <span key={"f" + i} className="text-yellow-500">★</span>
+      ))}
       {halfStar && <span className="text-yellow-500">☆</span>}
-      {Array(emptyStars)
-        .fill(0)
-        .map((_, i) => (
-          <span key={"e" + i} className="text-gray-300">★</span>
-        ))}
+      {Array(emptyStars).fill(0).map((_, i) => (
+        <span key={"e" + i} className="text-gray-300">★</span>
+      ))}
+      <span className="ml-2 text-sm text-gray-600">{safeValue.toFixed(1)}</span>
     </div>
   );
 };
 
-// Employee Line Chart
-const EmployeeLineChart = ({ records, color }) => {
-  if (!Array.isArray(records) || records.length === 0) {
-    return <div className="p-4 text-sm text-gray-500">No performance records to chart.</div>;
-  }
-
-  const chartData = [...records]
-    .filter(r => r && r.period)
-    .sort((a, b) => new Date(a.period) - new Date(b.period))
-    .map((r) => ({
-      period: r.period,
-      score: typeof r.performanceScore === "number" ? r.performanceScore : (Number(r.performanceScore) || 0),
-    }));
-
-  if (chartData.length === 0) {
-    return <div className="p-4 text-sm text-gray-500">No chartable data.</div>;
-  }
-
+// Performance Tag Badge
+const PerformanceTag = ({ tag, className = "" }) => {
+  const tagInfo = PERFORMANCE_TAGS[tag] || PERFORMANCE_TAGS['Average'];
   return (
-    <ResponsiveContainer width="100%" height={250}>
-      <LineChart data={chartData}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="period" />
-        <YAxis domain={[0, 5]} />
-        <Tooltip />
-        <Line type="monotone" dataKey="score" stroke={color || "#4f46e5"} strokeWidth={3} />
-      </LineChart>
-    </ResponsiveContainer>
+    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${tagInfo.color} text-white ${className}`}>
+      {tag}
+    </span>
   );
 };
 
-// Modern Overall Bar Chart (avg score per employee)
-const OverallBarChart = ({ grouped, onBarClick }) => {
-  const data = Object.keys(grouped || {}).map((id) => {
-    const g = grouped[id] || { employeeName: "Unknown", average: 0, records: [] };
-    const latest = Array.isArray(g.records) && g.records.length ? g.records.slice().sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))[0] : null;
-    return {
-      id,
-      name: g.employeeName || "Unknown",
-      average: Math.round(((Number(g.average) || 0) + Number.EPSILON) * 100) / 100,
-      records: Array.isArray(g.records) ? g.records.length : 0,
-      latestComment: latest?.feedback || "",
-    };
-  });
-
-  data.sort((a, b) => b.average - a.average);
-
-  if (!data.length) {
-    return <div className="p-4 text-sm text-gray-500">No performance data available.</div>;
-  }
-
-  const CustomTooltip = ({ active, payload }) => {
-    if (!active || !payload || payload.length === 0) return null;
-    const d = payload[0].payload || {};
-    return (
-      <div className="bg-white p-3 rounded-lg shadow-md border border-gray-100 text-sm w-64">
-        <div className="font-semibold text-gray-800 truncate">{d.name}</div>
-        <div className="text-gray-600 mt-1">Average: <span className="font-bold">{d.average}/5</span></div>
-        <div className="text-gray-600">Records: {d.records}</div>
-        {d.latestComment ? <div className="mt-2 text-gray-700 truncate">{d.latestComment}</div> : null}
-      </div>
-    );
-  };
-
-  const labelFormatter = (val) => `${val}/5`;
-
+// Warning Badge
+const WarningBadge = ({ hasWarning, consecutiveCount = 0 }) => {
+  if (!hasWarning) return null;
+  
   return (
-    <div className="w-full">
-      <ResponsiveContainer width="100%" height={340}>
-        <BarChart
-          data={data}
-          margin={{ top: 10, right: 20, left: 0, bottom: 60 }}
-        >
-          <defs>
-            <linearGradient id="gradA" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#6366f1" stopOpacity={0.95}/>
-              <stop offset="100%" stopColor="#06b6d4" stopOpacity={0.95}/>
-            </linearGradient>
-          </defs>
-
-          <CartesianGrid vertical={false} strokeDasharray="3 3" />
-          <XAxis
-            dataKey="name"
-            tickLine={false}
-            interval={0}
-            angle={-35}
-            textAnchor="end"
-            height={60}
-            tick={{ fontSize: 12 }}
-          />
-          <YAxis domain={[0, 5]} tickCount={6} tickFormatter={(v) => `${v}`} />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(99,102,241,0.06)" }} />
-
-          <Bar
-            dataKey="average"
-            fill="url(#gradA)"
-            radius={[8, 8, 8, 8]}
-            barSize={32}
-            animationDuration={800}
-            onClick={(e) => onBarClick && onBarClick(e?.id)}
-          >
-            <LabelList dataKey="average" position="top" formatter={labelFormatter} />
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-
-      <div className="mt-3 flex items-center gap-3 text-sm text-gray-600">
-        <span className="inline-flex items-center gap-2">
-          <span className="w-3 h-3 rounded-sm" style={{ background: "linear-gradient(90deg,#6366f1,#06b6d4)" }} />
-          Average score (0–5)
+    <div className="flex items-center gap-2 mt-2">
+      <span className="px-2 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold animate-pulse">
+        🚨 Notice Period Warning
+      </span>
+      {consecutiveCount > 0 && (
+        <span className="text-xs text-red-600">
+          ({consecutiveCount} consecutive low months)
         </span>
-        <span className="text-xs text-gray-400">• Click a bar to open employee details</span>
-      </div>
+      )}
+    </div>
+  );
+};
+
+// Financial Display
+const FinancialDisplay = ({ incentives, penalties, net, className = "" }) => {
+  return (
+    <div className={`flex gap-4 text-sm ${className}`}>
+      {incentives > 0 && (
+        <span className="text-green-600 font-semibold">
+          +₹{incentives.toLocaleString()}
+        </span>
+      )}
+      {penalties > 0 && (
+        <span className="text-red-600 font-semibold">
+          -₹{penalties.toLocaleString()}
+        </span>
+      )}
+      <span className={`font-bold ${net >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+        Net: ₹{net.toLocaleString()}
+      </span>
     </div>
   );
 };
@@ -177,20 +104,24 @@ const OverallBarChart = ({ grouped, onBarClick }) => {
 const AdminPerformancePage = () => {
   const [performances, setPerformances] = useState([]);
   const [candidates, setCandidates] = useState([]);
+  const [cycles, setCycles] = useState([]);
+  const [selectedCycle, setSelectedCycle] = useState(null);
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedPerformance, setSelectedPerformance] = useState(null);
   const [formData, setFormData] = useState({
     employee: "",
-    period: "",
+    reviewForMonth: null,
     performanceScore: 3,
     feedback: "",
-    nextReview: null,
+    incentiveOverride: "",
+    penaltyOverride: "",
+    overrideReason: "",
   });
   const [isEdit, setIsEdit] = useState(false);
   const [expandedEmployee, setExpandedEmployee] = useState(null);
 
-  // Fetch data
+  // Fetch candidates
   const fetchCandidates = async () => {
     try {
       const { data } = await api.get("/candidates");
@@ -201,10 +132,28 @@ const AdminPerformancePage = () => {
     }
   };
 
-  const fetchPerformances = async () => {
+  // Fetch cycles
+  const fetchCycles = async () => {
     try {
-      const { data } = await api.get("/performance");
-      setPerformances(Array.isArray(data) ? data : (data?.performances || []));
+      const { data } = await api.get("/performance/cycles");
+      setCycles(data?.data || []);
+      
+      // Set active cycle as default
+      const activeCycle = (data?.data || []).find(c => c.status === 'active');
+      if (activeCycle && !selectedCycle) {
+        setSelectedCycle(activeCycle._id);
+      }
+    } catch (err) {
+      console.error("fetchCycles error:", err);
+    }
+  };
+
+  // Fetch performances by cycle
+  const fetchPerformances = async (cycleId) => {
+    try {
+      const url = cycleId ? `/performance?cycleId=${cycleId}` : '/performance';
+      const { data } = await api.get(url);
+      setPerformances(data?.data || []);
     } catch (err) {
       console.error("fetchPerformances error:", err);
       setPerformances([]);
@@ -213,15 +162,20 @@ const AdminPerformancePage = () => {
 
   useEffect(() => {
     fetchCandidates();
-    fetchPerformances();
+    fetchCycles();
   }, []);
+
+  useEffect(() => {
+    if (selectedCycle) {
+      fetchPerformances(selectedCycle);
+    }
+  }, [selectedCycle]);
 
   // Form handling
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-  const handleDateChange = (date) => setFormData((prev) => ({ ...prev, nextReview: date }));
 
   const handleEdit = (performance) => {
     if (!performance || !performance.employee) {
@@ -230,10 +184,12 @@ const AdminPerformancePage = () => {
     }
     setFormData({
       employee: performance.employee._id || performance.employee.id || "",
-      period: performance.period || "",
-      performanceScore: typeof performance.performanceScore === "number" ? performance.performanceScore : (Number(performance.performanceScore) || 3),
+      reviewForMonth: performance.reviewForMonth ? new Date(performance.reviewForMonth) : null,
+      performanceScore: typeof performance.performanceScore === "number" ? performance.performanceScore : 3,
       feedback: performance.feedback || "",
-      nextReview: performance.nextReview ? new Date(performance.nextReview) : null,
+      incentiveOverride: performance.incentiveOverride || "",
+      penaltyOverride: performance.penaltyOverride || "",
+      overrideReason: performance.overrideReason || "",
     });
     setSelectedPerformance(performance);
     setIsEdit(true);
@@ -242,59 +198,100 @@ const AdminPerformancePage = () => {
 
   const handleDelete = async (id) => {
     if (!id) return;
-    if (!window.confirm("Are you sure you want to delete this performance?")) return;
+    if (!window.confirm("Are you sure you want to delete this performance review?")) return;
     try {
       await api.delete(`/performance/${id}`);
-      await fetchPerformances();
+      await fetchPerformances(selectedCycle);
       setSelectedPerformance(null);
     } catch (err) {
       console.error("handleDelete error:", err);
-      alert("Failed to delete performance");
+      alert("Failed to delete performance review");
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
     if (!formData.employee) return alert("Select a candidate");
+    if (!formData.reviewForMonth) return alert("Select which month you are reviewing");
+    if (!formData.feedback.trim()) return alert("Feedback is required");
+    
     try {
-      const stored = JSON.parse(localStorage.getItem("auth:v1"));
-      const reviewerId = stored?.user?._id || stored?.user?.id;
-
-      if (isEdit && selectedPerformance) {
-        await api.put(`/performance/${selectedPerformance._id}`, {
-          ...formData,
-          reviewer: reviewerId,
-        });
-      } else {
-        await api.post(`/performance/${formData.employee}`, {
-          ...formData,
-          reviewer: reviewerId,
-        });
+      const submitData = {
+        reviewForMonth: formData.reviewForMonth.toISOString(),
+        performanceScore: formData.performanceScore,
+        feedback: formData.feedback.trim(),
+      };
+      
+      // Add overrides if provided
+      if (formData.incentiveOverride) {
+        submitData.incentiveOverride = parseFloat(formData.incentiveOverride);
+      }
+      if (formData.penaltyOverride) {
+        submitData.penaltyOverride = parseFloat(formData.penaltyOverride);
+      }
+      if (formData.overrideReason) {
+        submitData.overrideReason = formData.overrideReason.trim();
       }
 
-      setFormData({ employee: "", period: "", performanceScore: 3, feedback: "", nextReview: null });
+      if (isEdit && selectedPerformance) {
+        await api.put(`/performance/${selectedPerformance._id}`, submitData);
+      } else {
+        const response = await api.post(`/performance/${formData.employee}`, submitData);
+        
+        // Show warning if notice period triggered
+        if (response.data.warning) {
+          alert(response.data.message);
+        }
+      }
+
+      // Reset form
+      setFormData({ 
+        employee: "", 
+        reviewForMonth: null,
+        performanceScore: 3, 
+        feedback: "",
+        incentiveOverride: "",
+        penaltyOverride: "",
+        overrideReason: ""
+      });
       setSelectedPerformance(null);
       setIsEdit(false);
       setShowModal(false);
-      await fetchPerformances();
+      
+      await fetchPerformances(selectedCycle);
     } catch (err) {
       console.error("handleSubmit error:", err);
-      alert("Failed to save performance");
+      const errorMsg = err.response?.data?.message || "Failed to save performance";
+      alert(errorMsg);
     }
   };
 
-  // Group by employee (defensive)
+  // Group performances by employee
   const grouped = performances.reduce((acc, curr) => {
     if (!curr || !curr.employee) return acc;
-    const id = curr.employee._id || curr.employee.id || "unknown-" + (curr.employee._id || curr.employee.id || Math.random());
+    const id = curr.employee._id || curr.employee.id || "unknown";
     const name = `${curr.employee.firstName || ""} ${curr.employee.lastName || ""}`.trim() || "Unknown employee";
+    
     if (!acc[id]) {
-      acc[id] = { employeeName: name, records: [], scores: [] };
+      acc[id] = { 
+        employeeName: name, 
+        records: [], 
+        scores: [],
+        totalIncentives: 0,
+        totalPenalties: 0,
+        hasWarnings: false
+      };
     }
+    
     acc[id].records.push(curr);
     const score = typeof curr.performanceScore === "number" ? curr.performanceScore : (Number(curr.performanceScore) || 0);
     acc[id].scores.push(score);
+    acc[id].totalIncentives += curr.incentiveAmount || 0;
+    acc[id].totalPenalties += curr.penaltyAmount || 0;
+    acc[id].netAmount = acc[id].totalIncentives - acc[id].totalPenalties;
     acc[id].average = acc[id].scores.length ? (acc[id].scores.reduce((a, b) => a + b, 0) / acc[id].scores.length) : 0;
+    
     return acc;
   }, {});
 
@@ -303,68 +300,144 @@ const AdminPerformancePage = () => {
     return name.includes((search || "").toLowerCase());
   });
 
+  // Get current cycle info
+  const currentCycle = cycles.find(c => c._id === selectedCycle);
+
   return (
     <div className="p-6 bg-gray-50 min-h-screen dark:bg-slate-900">
-      <h1 className="text-3xl font-bold mb-6 text-indigo-600 dark:bg-slate-900 dark:text-gray-100">
-        Employee Performance Dashboard
+      <h1 className="text-3xl font-bold mb-6 text-indigo-600 dark:text-gray-100">
+        Performance Management System
       </h1>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-6 items-center dark:bg-slate-900">
-        <input
-          type="text"
-          placeholder="Search employee..."
-          className="border p-2 rounded-lg flex-1 focus:ring-2 focus:ring-indigo-500 outline-none"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-        />
+      {/* Current Cycle Info */}
+      {currentCycle && (
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-blue-800 dark:text-blue-300">
+                Cycle {currentCycle.cycleNumber}: {format(new Date(currentCycle.startDate), 'MMM yyyy')} - {format(new Date(currentCycle.endDate), 'MMM yyyy')}
+              </h3>
+              <p className="text-sm text-blue-700 dark:text-blue-400">
+                Status: {currentCycle.status === 'active' ? '🟢 Active' : '🔴 Closed'}
+              </p>
+            </div>
+            {currentCycle.status === 'active' && (
+              <button
+                onClick={async () => {
+                  if (window.confirm('Are you sure you want to close this cycle? This will freeze all summaries.')) {
+                    try {
+                      await api.post(`/performance/cycles/${currentCycle._id}/close`);
+                      alert('Cycle closed successfully!');
+                      fetchCycles();
+                    } catch (err) {
+                      alert('Failed to close cycle: ' + (err.response?.data?.message || err.message));
+                    }
+                  }
+                }}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition text-sm"
+              >
+                Close Cycle
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Filters and Actions */}
+      <div className="flex flex-wrap gap-4 mb-6 items-end">
+        {/* Cycle Selector */}
+        <div className="flex-1 min-w-[250px]">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+            Performance Cycle
+          </label>
+          <select
+            value={selectedCycle || ''}
+            onChange={(e) => setSelectedCycle(e.target.value)}
+            className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-800 dark:text-gray-100"
+          >
+            <option value="">All Cycles</option>
+            {cycles.map((cycle) => (
+              <option key={cycle._id} value={cycle._id}>
+                Cycle {cycle.cycleNumber}: {format(new Date(cycle.startDate), 'MMM yyyy')} - {format(new Date(cycle.endDate), 'MMM yyyy')}
+                {cycle.status === 'active' ? ' (Active)' : ' (Closed)'}
+              </option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Search */}
+        <div className="flex-1 min-w-[200px]">
+          <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+            Search Employee
+          </label>
+          <input
+            type="text"
+            placeholder="Search by name..."
+            className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-800 dark:text-gray-100"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        
+        {/* Add Button */}
         <button
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
-          onClick={() => { setShowModal(true); setIsEdit(false); }}
+          className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition font-semibold"
+          onClick={() => { 
+            setShowModal(true); 
+            setIsEdit(false);
+            setFormData({
+              employee: "",
+              reviewForMonth: null,
+              performanceScore: 3,
+              feedback: "",
+              incentiveOverride: "",
+              penaltyOverride: "",
+              overrideReason: "",
+            });
+          }}
         >
-          Add Performance
+          + Add Review
         </button>
       </div>
 
-      {/* Modern Overall Bar Chart */}
-      {Object.keys(grouped).length > 0 ? (
-        <div className="bg-white p-4 rounded-lg shadow mb-6 dark:bg-slate-900 dark:text-gray-100">
-          <div className="flex items-center justify-between mb-3 dark:bg-slate-900 dark:text-gray-100 ">
-            <h2 className="text-xl font-semibold dark:bg-slate-900 dark:text-gray-100">Overall Employee Performance</h2>
-            <div className="text-sm text-gray-500 dark:bg-slate-900 dark:text-gray-100">Average score per employee</div>
-          </div>
-
-          <OverallBarChart
-            grouped={grouped}
-            onBarClick={(employeeId) => {
-              setExpandedEmployee(employeeId);
-            }}
-          />
-        </div>
-      ) : (
-        <div className="bg-white p-4 rounded-lg shadow mb-6 text-gray-500 dark:bg-slate-900 dark:text-gray-100">No performance data to display.</div>
-      )}
-
       {/* Employee Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 dark:bg-slate-900 dark:text-gray-100">
-        {/* {filteredEmployees.length === 0 && (
-          <p className="text-gray-500 col-span-full">No employees found.</p>
-        )} */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredEmployees.length === 0 && (
+          <p className="text-gray-500 col-span-full text-center py-12">
+            {search ? "No employees found matching your search." : "No performance reviews yet. Click 'Add Review' to get started."}
+          </p>
+        )}
+        
         {filteredEmployees.map((id) => {
-          const emp = grouped[id] || { employeeName: "Unknown", records: [], average: 0 };
+          const emp = grouped[id] || { employeeName: "Unknown", records: [], average: 0, netAmount: 0 };
           return (
             <motion.div
               key={id}
-              className="bg-white shadow rounded-lg p-4 hover:shadow-lg transition cursor-pointer flex flex-col justify-between dark:bg-slate-800 dark:text-gray-100"
+              className="bg-white dark:bg-slate-800 shadow rounded-lg p-4 hover:shadow-lg transition cursor-pointer"
               whileHover={{ scale: 1.02 }}
               onClick={() => setExpandedEmployee(id)}
             >
-              <div>
-                <h3 className="text-lg font-bold dark:bg-slate-800 dark:text-gray-100">{emp.employeeName}</h3>
-                <Stars value={emp.average} />
-                <p className="text-gray-500 mt-1 dark:bg-slate-800 dark:text-gray-100">{(Array.isArray(emp.records) ? emp.records.length : 0)} records</p>
+              <div className="flex justify-between items-start mb-3">
+                <h3 className="text-lg font-bold dark:text-gray-100">{emp.employeeName}</h3>
+                {emp.hasWarnings && <span className="text-red-500 text-xl">⚠️</span>}
               </div>
-              <EmployeeLineChart records={Array.isArray(emp.records) ? emp.records : []} />
+              
+              <Stars value={emp.average} />
+              
+              <p className="text-gray-500 dark:text-gray-400 mt-2 text-sm">
+                {emp.records.length} review{emp.records.length !== 1 ? 's' : ''}
+              </p>
+              
+              <FinancialDisplay 
+                incentives={emp.totalIncentives}
+                penalties={emp.totalPenalties}
+                net={emp.netAmount}
+                className="mt-3"
+              />
+              
+              <div className="mt-3 text-xs text-gray-500 dark:text-gray-400">
+                Click to view details →
+              </div>
             </motion.div>
           );
         })}
@@ -373,145 +446,268 @@ const AdminPerformancePage = () => {
       {/* Expanded Employee Details */}
       {expandedEmployee && grouped[expandedEmployee] && (
         <motion.div
-          className="fixed top-[64px] right-0 h-[calc(100%-64px)] w-full md:w-1/3 bg-white shadow-lg p-6 z-40 overflow-y-auto dark:bg-slate-800 dark:text-gray-100"
+          className="fixed top-0 right-0 h-full w-full md:w-1/2 bg-white dark:bg-slate-800 shadow-2xl p-6 z-50 overflow-y-auto"
           initial={{ x: "100%" }}
           animate={{ x: 0 }}
           exit={{ x: "100%" }}
         >
-          {/* Close Button */}
           <button
-            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold dark:bg-slate-800 dark:text-gray-100"
+            className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-3xl font-bold"
             onClick={() => setExpandedEmployee(null)}
           >
             ×
           </button>
 
-          {Array.isArray(grouped[expandedEmployee].records) && grouped[expandedEmployee].records.length > 0 ? (
-            grouped[expandedEmployee].records.map((p, idx) => (
-              <div key={idx} className="border-b py-4 flex flex-col gap-2 mt-8 dark:bg-slate-800 dark:text-gray-100">
-                <p><strong>Period:</strong> {p?.period || "N/A"}</p>
-                <p>
-                  <strong>Performance Score:</strong> <Stars value={p?.performanceScore ?? 0} />
-                </p>
-                <p><strong>Feedback:</strong> {p?.feedback || "N/A"}</p>
-                <p>
-                  <strong>Next Review:</strong>{" "}
-                  {p?.nextReview
-                    ? (() => {
-                        try {
-                          return new Date(p.nextReview).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" });
-                        } catch (e) {
-                          return "Invalid date";
-                        }
-                      })()
-                    : "N/A"}
-                </p>
-                <p>
-                  <strong>Created At:</strong>{" "}
-                  {p?.createdAt
-                    ? (() => {
-                        try {
-                          return new Date(p.createdAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" });
-                        } catch (e) {
-                          return "Invalid date";
-                        }
-                      })()
-                    : "N/A"}
-                </p>
-                <p>
-                  <strong>Updated At:</strong>{" "}
-                  {p?.updatedAt
-                    ? (() => {
-                        try {
-                          return new Date(p.updatedAt).toLocaleString("en-GB", { dateStyle: "short", timeStyle: "short" });
-                        } catch (e) {
-                          return "Invalid date";
-                        }
-                      })()
-                    : "N/A"}
-                </p>
-
-                <div className="flex gap-2 mt-2">
-                  <button
-                    className="bg-yellow-400 px-2 py-1 rounded hover:bg-yellow-500 text-white"
-                    onClick={() => handleEdit(p)}
-                  >
-                    Edit
-                  </button>
-                  <button
-                    className="bg-red-500 px-2 py-1 rounded hover:bg-red-600 text-white"
-                    onClick={() => handleDelete(p?._id)}
-                  >
-                    Delete
-                  </button>
+          <div className="mt-12">
+            <h2 className="text-2xl font-bold mb-4 dark:text-white">{grouped[expandedEmployee].employeeName}</h2>
+            
+            {/* Cycle Summary */}
+            <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 p-4 rounded-lg mb-6">
+              <h3 className="font-semibold text-lg mb-3 dark:text-white">Cycle Summary</h3>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Total Reviews:</span>
+                  <span className="font-bold ml-2 dark:text-white">{grouped[expandedEmployee].records.length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-600 dark:text-gray-400">Average Score:</span>
+                  <span className="font-bold ml-2 dark:text-white">{grouped[expandedEmployee].average?.toFixed(1)}/5</span>
+                </div>
+                <div className="col-span-2">
+                  <FinancialDisplay 
+                    incentives={grouped[expandedEmployee].totalIncentives || 0}
+                    penalties={grouped[expandedEmployee].totalPenalties || 0}
+                    net={grouped[expandedEmployee].netAmount || 0}
+                  />
                 </div>
               </div>
-            ))
-          ) : (
-            <div className="text-gray-500">No details available for this employee.</div>
-          )}
+            </div>
+
+            {/* Individual Reviews */}
+            <h3 className="font-semibold text-lg mb-3 dark:text-white">Review History</h3>
+            <div className="space-y-4">
+              {grouped[expandedEmployee].records
+                .sort((a, b) => new Date(b.reviewDate) - new Date(a.reviewDate))
+                .map((review, idx) => (
+                <div key={idx} className="border dark:border-slate-700 rounded-lg p-4 hover:shadow-md transition">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <div className="font-semibold text-gray-900 dark:text-white">
+                        Review for: {review.reviewForMonth ? format(new Date(review.reviewForMonth), 'MMMM yyyy') : 'N/A'}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">
+                        Given on: {review.reviewDate ? format(new Date(review.reviewDate), 'MMM dd, yyyy') : 'N/A'}
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Stars value={review.performanceScore || 0} />
+                      <PerformanceTag tag={review.performanceTag || 'Average'} className="mt-1" />
+                    </div>
+                  </div>
+                  
+                  <div className="bg-gray-50 dark:bg-slate-700 p-3 rounded mb-3">
+                    <div className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Feedback:</div>
+                    <div className="text-sm text-gray-700 dark:text-gray-300">{review.feedback || 'N/A'}</div>
+                  </div>
+                  
+                  <FinancialDisplay 
+                    incentives={review.incentiveAmount || 0}
+                    penalties={review.penaltyAmount || 0}
+                    net={(review.incentiveAmount || 0) - (review.penaltyAmount || 0)}
+                    className="mb-2"
+                  />
+                  
+                  {review.overrideReason && (
+                    <div className="text-xs text-blue-600 dark:text-blue-400 mb-2 bg-blue-50 dark:bg-blue-900/20 p-2 rounded">
+                      <strong>Override reason:</strong> {review.overrideReason}
+                    </div>
+                  )}
+                  
+                  <div className="flex gap-2 mt-3">
+                    <button
+                      className="bg-yellow-400 px-3 py-1 rounded hover:bg-yellow-500 text-white text-sm font-semibold"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEdit(review);
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button
+                      className="bg-red-500 px-3 py-1 rounded hover:bg-red-600 text-white text-sm font-semibold"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(review._id);
+                      }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </motion.div>
       )}
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 flex justify-center items-center z-50 bg-white/20 backdrop-blur-md dark:bg-slate-800 dark:text-gray-100">
+        <div className="fixed inset-0 flex justify-center items-center z-50 bg-black/50 backdrop-blur-sm">
           <motion.div
-            className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto"
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
           >
-            <h2 className="text-2xl font-bold mb-4 text-gray-800">
-              {isEdit ? "Edit Performance" : "Add Performance"}
+            <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">
+              {isEdit ? "Edit Performance Review" : "Add Performance Review"}
             </h2>
+            
             <form className="space-y-4" onSubmit={handleSubmit}>
-              <select
-                name="employee"
-                value={formData.employee}
-                onChange={handleChange}
-                className="border border-gray-300 p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none"
-                disabled={isEdit}
-              >
-                <option value="">Select Candidate</option>
-                {Array.isArray(candidates) ? (
-                  candidates.map((c) => (
-                    <option key={c._id || c.id} value={c._id || c.id}>{`${c.firstName || ""} ${c.lastName || ""}`.trim() || "Unnamed"}</option>
-                  ))
-                ) : null}
-              </select>
+              {/* Employee Select */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Employee *
+                </label>
+                <select
+                  name="employee"
+                  value={formData.employee}
+                  onChange={handleChange}
+                  className="border border-gray-300 dark:border-slate-600 p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-700 dark:text-white"
+                  disabled={isEdit}
+                  required
+                >
+                  <option value="">Select Candidate</option>
+                  {candidates.map((c) => (
+                    <option key={c._id} value={c._id}>
+                      {`${c.firstName || ""} ${c.lastName || ""}`.trim() || "Unnamed"}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              <input
-                type="text"
-                name="period"
-                placeholder="Period (e.g., Dec 2025)"
-                value={formData.period}
-                onChange={handleChange}
-                className="border border-gray-300 p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
+              {/* Review For Month - THE KEY CHANGE */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Which month are you reviewing? *
+                </label>
+                <DatePicker
+                  selected={formData.reviewForMonth}
+                  onChange={(date) => setFormData(prev => ({ ...prev, reviewForMonth: date }))}
+                  dateFormat="MMMM yyyy"
+                  showMonthYearPicker
+                  placeholderText="Select month (e.g., January 2025)"
+                  className="border border-gray-300 dark:border-slate-600 p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-700 dark:text-white"
+                  required
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  💡 Select the month you are evaluating (not when you're giving the review)
+                </p>
+              </div>
 
-              <StarRating
-                value={formData.performanceScore}
-                setValue={(val) => setFormData(prev => ({ ...prev, performanceScore: val }))}
-              />
+              {/* Performance Score */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Performance Score *
+                </label>
+                <StarRating
+                  value={formData.performanceScore}
+                  setValue={(val) => setFormData(prev => ({ ...prev, performanceScore: val }))}
+                />
+                <div className="text-xs text-gray-500 dark:text-gray-400 mt-2 space-y-1 bg-gray-50 dark:bg-slate-700 p-3 rounded">
+                  <div className="font-semibold mb-1">Default Financial Rules:</div>
+                  <div>5★ = ₹1,000 incentive | 4★ = ₹500 incentive</div>
+                  <div>3★ = No change | 2★ = ₹10 penalty | 1★ = ₹50  penalty</div>
+                  <div className="text-blue-600 dark:text-blue-400 mt-1">You can override these below</div>
+                </div>
+              </div>
 
-              <textarea
-                name="feedback"
-                placeholder="Feedback"
-                value={formData.feedback}
-                onChange={handleChange}
-                className="border border-gray-300 p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
+              {/* Feedback */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                  Feedback *
+                </label>
+                <textarea
+                  name="feedback"
+                  placeholder="Provide detailed feedback about the employee's performance..."
+                  value={formData.feedback}
+                  onChange={handleChange}
+                  className="border border-gray-300 dark:border-slate-600 p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-700 dark:text-white"
+                  rows={4}
+                  required
+                />
+              </div>
 
-              <DatePicker
-                selected={formData.nextReview}
-                onChange={handleDateChange}
-                placeholderText="Next Review Date"
-                className="border border-gray-300 p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none"
-              />
+              {/* Optional Overrides */}
+              <div className="border-t dark:border-slate-600 pt-4">
+                <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                  Override Financial Amounts (Optional)
+                </h4>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      Incentive Override (₹)
+                    </label>
+                    <input
+                      type="number"
+                      name="incentiveOverride"
+                      value={formData.incentiveOverride}
+                      onChange={handleChange}
+                      placeholder="Leave empty for default"
+                      className="border border-gray-300 dark:border-slate-600 p-2 rounded-lg w-full dark:bg-slate-700 dark:text-white"
+                      min="0"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      Penalty Override (₹)
+                    </label>
+                    <input
+                      type="number"
+                      name="penaltyOverride"
+                      value={formData.penaltyOverride}
+                      onChange={handleChange}
+                      placeholder="Leave empty for default"
+                      className="border border-gray-300 dark:border-slate-600 p-2 rounded-lg w-full dark:bg-slate-700 dark:text-white"
+                      min="0"
+                    />
+                  </div>
+                </div>
+                
+                {(formData.incentiveOverride || formData.penaltyOverride) && (
+                  <div className="mt-3">
+                    <label className="block text-xs text-gray-600 dark:text-gray-400 mb-1">
+                      Reason for Override *
+                    </label>
+                    <input
+                      type="text"
+                      name="overrideReason"
+                      value={formData.overrideReason}
+                      onChange={handleChange}
+                      placeholder="Why are you overriding the default amount?"
+                      className="border border-gray-300 dark:border-slate-600 p-2 rounded-lg w-full dark:bg-slate-700 dark:text-white"
+                      required={!!(formData.incentiveOverride || formData.penaltyOverride)}
+                    />
+                  </div>
+                )}
+              </div>
 
-              <div className="flex justify-end gap-3 mt-4">
-                <button type="button" className="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300" onClick={() => setShowModal(false)}>Cancel</button>
-                <button type="submit" className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">{isEdit ? "Update" : "Save"}</button>
+              {/* Buttons */}
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t dark:border-slate-600">
+                <button 
+                  type="button" 
+                  className="bg-gray-200 dark:bg-slate-600 px-6 py-2 rounded-lg hover:bg-gray-300 dark:hover:bg-slate-500 dark:text-white font-semibold" 
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 font-semibold"
+                >
+                  {isEdit ? "Update Review" : "Save Review"}
+                </button>
               </div>
             </form>
           </motion.div>
