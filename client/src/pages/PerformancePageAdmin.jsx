@@ -121,6 +121,7 @@ const AdminPerformancePage = () => {
   const [candidates, setCandidates] = useState([]);
   const [cycles, setCycles] = useState([]);
   const [selectedCycle, setSelectedCycle] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState(""); // NEW: Month filter
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [selectedPerformance, setSelectedPerformance] = useState(null);
@@ -318,14 +319,32 @@ const AdminPerformancePage = () => {
   // Get current cycle info
   const currentCycle = cycles.find(c => c._id === selectedCycle);
   
-  // Calculate cycle statistics
+  // Filter performances by selected month if applicable
+  const filteredPerformances = selectedMonth 
+    ? performances.filter(p => {
+        if (!p.reviewForMonth) return false;
+        const reviewMonth = new Date(p.reviewForMonth);
+        return reviewMonth.getMonth() === parseInt(selectedMonth);
+      })
+    : performances;
+  
+  // Calculate cycle statistics (use filtered data)
   const cycleStats = {
-    totalReviews: performances.length,
-    totalIncentives: performances.reduce((sum, p) => sum + (p.incentiveAmount || 0), 0),
-    totalPenalties: performances.reduce((sum, p) => sum + (p.penaltyAmount || 0), 0),
-    uniqueEmployees: new Set(performances.map(p => p.employee?._id || p.employee)).size,
+    totalReviews: filteredPerformances.length,
+    totalIncentives: filteredPerformances.reduce((sum, p) => sum + (p.incentiveAmount || 0), 0),
+    totalPenalties: filteredPerformances.reduce((sum, p) => sum + (p.penaltyAmount || 0), 0),
+    uniqueEmployees: new Set(filteredPerformances.map(p => p.employee?._id || p.employee)).size,
   };
   cycleStats.netAmount = cycleStats.totalIncentives - cycleStats.totalPenalties;
+  
+  // Get unique months from performances for filter
+  const availableMonths = [...new Set(performances.map(p => {
+    if (!p.reviewForMonth) return null;
+    return new Date(p.reviewForMonth).getMonth();
+  }).filter(m => m !== null))].sort((a, b) => a - b);
+  
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 
+                      'July', 'August', 'September', 'October', 'November', 'December'];
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen dark:bg-slate-900">
@@ -413,13 +432,13 @@ const AdminPerformancePage = () => {
       )}
 
       {/* Performance Analytics Graphs */}
-      {currentCycle && performances.length > 0 && (
+      {currentCycle && filteredPerformances.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Performance Trend Over Time */}
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-bold mb-4 dark:text-white">Performance Trend</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={performances.slice(0, 20).reverse().map((p, idx) => ({
+              <LineChart data={filteredPerformances.slice(0, 20).reverse().map((p, idx) => ({
                 name: p.employee?.firstName ? `${p.employee.firstName.substring(0, 8)}...` : `Emp ${idx + 1}`,
                 score: p.performanceScore || 0,
                 date: p.reviewDate ? format(new Date(p.reviewDate), 'MMM dd') : `Review ${idx + 1}`
@@ -453,7 +472,7 @@ const AdminPerformancePage = () => {
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6">
             <h3 className="text-lg font-bold mb-4 dark:text-white">Incentives vs Penalties</h3>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={performances.slice(0, 15).map((p, idx) => ({
+              <BarChart data={filteredPerformances.slice(0, 15).map((p, idx) => ({
                 name: p.employee?.firstName ? `${p.employee.firstName.substring(0, 8)}...` : `Emp ${idx + 1}`,
                 incentive: p.incentiveAmount || 0,
                 penalty: p.penaltyAmount || 0
@@ -484,11 +503,11 @@ const AdminPerformancePage = () => {
               <PieChart>
                 <Pie
                   data={[
-                    { name: '5★ Outstanding', value: performances.filter(p => p.performanceScore === 5).length, color: '#10b981' },
-                    { name: '4★ Very Good', value: performances.filter(p => p.performanceScore === 4).length, color: '#3b82f6' },
-                    { name: '3★ Average', value: performances.filter(p => p.performanceScore === 3).length, color: '#eab308' },
-                    { name: '2★ Below Avg', value: performances.filter(p => p.performanceScore === 2).length, color: '#f97316' },
-                    { name: '1★ Worst', value: performances.filter(p => p.performanceScore === 1).length, color: '#ef4444' }
+                    { name: '5★ Outstanding', value: filteredPerformances.filter(p => p.performanceScore === 5).length, color: '#10b981' },
+                    { name: '4★ Very Good', value: filteredPerformances.filter(p => p.performanceScore === 4).length, color: '#3b82f6' },
+                    { name: '3★ Average', value: filteredPerformances.filter(p => p.performanceScore === 3).length, color: '#eab308' },
+                    { name: '2★ Below Avg', value: filteredPerformances.filter(p => p.performanceScore === 2).length, color: '#f97316' },
+                    { name: '1★ Worst', value: filteredPerformances.filter(p => p.performanceScore === 1).length, color: '#ef4444' }
                   ].filter(d => d.value > 0)}
                   cx="50%"
                   cy="50%"
@@ -499,11 +518,11 @@ const AdminPerformancePage = () => {
                   dataKey="value"
                 >
                   {[
-                    { name: '5★ Outstanding', value: performances.filter(p => p.performanceScore === 5).length, color: '#10b981' },
-                    { name: '4★ Very Good', value: performances.filter(p => p.performanceScore === 4).length, color: '#3b82f6' },
-                    { name: '3★ Average', value: performances.filter(p => p.performanceScore === 3).length, color: '#eab308' },
-                    { name: '2★ Below Avg', value: performances.filter(p => p.performanceScore === 2).length, color: '#f97316' },
-                    { name: '1★ Worst', value: performances.filter(p => p.performanceScore === 1).length, color: '#ef4444' }
+                    { name: '5★ Outstanding', value: filteredPerformances.filter(p => p.performanceScore === 5).length, color: '#10b981' },
+                    { name: '4★ Very Good', value: filteredPerformances.filter(p => p.performanceScore === 4).length, color: '#3b82f6' },
+                    { name: '3★ Average', value: filteredPerformances.filter(p => p.performanceScore === 3).length, color: '#eab308' },
+                    { name: '2★ Below Avg', value: filteredPerformances.filter(p => p.performanceScore === 2).length, color: '#f97316' },
+                    { name: '1★ Worst', value: filteredPerformances.filter(p => p.performanceScore === 1).length, color: '#ef4444' }
                   ].filter(d => d.value > 0).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
@@ -554,6 +573,124 @@ const AdminPerformancePage = () => {
         </div>
       )}
 
+      {/* All Employees Performance Overview */}
+      {currentCycle && filteredPerformances.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 rounded-lg shadow p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold dark:text-white">
+              All Employees Performance Overview
+              {selectedMonth && ` - ${monthNames[parseInt(selectedMonth)]}`}
+            </h3>
+            <div className="text-sm text-gray-600 dark:text-gray-400">
+              {cycleStats.uniqueEmployees} employees • {cycleStats.totalReviews} reviews
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={Math.max(400, cycleStats.uniqueEmployees * 30)}>
+            <BarChart 
+              data={Object.entries(
+                filteredPerformances.reduce((acc, p) => {
+                  const empId = p.employee?._id || p.employee;
+                  const empName = p.employee?.firstName 
+                    ? `${p.employee.firstName} ${p.employee.lastName || ''}`.trim()
+                    : 'Unknown';
+                  
+                  if (!acc[empId]) {
+                    acc[empId] = {
+                      name: empName,
+                      scores: [],
+                      totalIncentive: 0,
+                      totalPenalty: 0
+                    };
+                  }
+                  
+                  acc[empId].scores.push(p.performanceScore || 0);
+                  acc[empId].totalIncentive += p.incentiveAmount || 0;
+                  acc[empId].totalPenalty += p.penaltyAmount || 0;
+                  
+                  return acc;
+                }, {})
+              ).map(([id, data]) => ({
+                name: data.name.length > 20 ? data.name.substring(0, 20) + '...' : data.name,
+                avgScore: (data.scores.reduce((a, b) => a + b, 0) / data.scores.length).toFixed(1),
+                reviews: data.scores.length,
+                incentive: data.totalIncentive,
+                penalty: data.totalPenalty,
+                net: data.totalIncentive - data.totalPenalty
+              })).sort((a, b) => b.avgScore - a.avgScore)}
+              layout="vertical"
+              margin={{ top: 5, right: 30, left: 150, bottom: 5 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+              <XAxis type="number" domain={[0, 5]} className="text-xs" stroke="currentColor" />
+              <YAxis 
+                dataKey="name" 
+                type="category" 
+                className="text-xs" 
+                stroke="currentColor"
+                width={140}
+              />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: "rgba(0,0,0,0.8)", 
+                  border: "none",
+                  borderRadius: "8px",
+                  color: "white"
+                }}
+                formatter={(value, name) => {
+                  if (name === 'avgScore') return [value, 'Avg Score'];
+                  if (name === 'reviews') return [value, 'Reviews'];
+                  if (name === 'incentive') return [`₹${value.toLocaleString()}`, 'Incentive'];
+                  if (name === 'penalty') return [`₹${value.toLocaleString()}`, 'Penalty'];
+                  if (name === 'net') return [`₹${value.toLocaleString()}`, 'Net'];
+                  return [value, name];
+                }}
+              />
+              <Legend />
+              <Bar 
+                dataKey="avgScore" 
+                fill="#6366f1" 
+                name="Average Score"
+                label={{ position: 'right', fill: '#6366f1', fontSize: 12 }}
+              />
+            </BarChart>
+          </ResponsiveContainer>
+          
+          {/* Summary Stats Below Chart */}
+          <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="text-center">
+              <div className="text-xs text-gray-600 dark:text-gray-400">5★ Outstanding</div>
+              <div className="text-lg font-bold text-green-600">
+                {filteredPerformances.filter(p => p.performanceScore === 5).length}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs text-gray-600 dark:text-gray-400">4★ Very Good</div>
+              <div className="text-lg font-bold text-blue-600">
+                {filteredPerformances.filter(p => p.performanceScore === 4).length}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs text-gray-600 dark:text-gray-400">3★ Average</div>
+              <div className="text-lg font-bold text-yellow-600">
+                {filteredPerformances.filter(p => p.performanceScore === 3).length}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs text-gray-600 dark:text-gray-400">2★ Below Avg</div>
+              <div className="text-lg font-bold text-orange-600">
+                {filteredPerformances.filter(p => p.performanceScore === 2).length}
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-xs text-gray-600 dark:text-gray-400">1★ Worst</div>
+              <div className="text-lg font-bold text-red-600">
+                {filteredPerformances.filter(p => p.performanceScore === 1).length}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Filters and Actions */}
       <div className="flex flex-wrap gap-4 mb-6 items-end">
         {/* Cycle Selector */}
@@ -563,7 +700,10 @@ const AdminPerformancePage = () => {
           </label>
           <select
             value={selectedCycle || ''}
-            onChange={(e) => setSelectedCycle(e.target.value)}
+            onChange={(e) => {
+              setSelectedCycle(e.target.value);
+              setSelectedMonth(""); // Reset month filter when cycle changes
+            }}
             className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-800 dark:text-gray-100"
           >
             <option value="">All Cycles</option>
@@ -575,6 +715,27 @@ const AdminPerformancePage = () => {
             ))}
           </select>
         </div>
+        
+        {/* Month Filter */}
+        {selectedCycle && availableMonths.length > 0 && (
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
+              Filter by Month
+            </label>
+            <select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              className="border p-2 rounded-lg w-full focus:ring-2 focus:ring-indigo-500 outline-none dark:bg-slate-800 dark:text-gray-100"
+            >
+              <option value="">All Months</option>
+              {availableMonths.map((monthIndex) => (
+                <option key={monthIndex} value={monthIndex}>
+                  {monthNames[monthIndex]}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
         
         {/* Search */}
         <div className="flex-1 min-w-[200px]">

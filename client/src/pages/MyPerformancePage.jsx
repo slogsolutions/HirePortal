@@ -601,6 +601,133 @@ export default function MyPerformancePage() {
         </div>
       )}
 
+      {/* Financial Analytics - Incentives & Penalties */}
+      {performances.length > 0 && (
+        <div className="mt-10 grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Incentives vs Penalties Over Time */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow">
+            <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
+              💰 Incentives vs Penalties
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={[...performances].reverse().map((p, idx) => ({
+                date: p.reviewForMonth ? format(new Date(p.reviewForMonth), "MMM yyyy") : `Review ${idx + 1}`,
+                incentive: p.incentiveAmount || 0,
+                penalty: p.penaltyAmount || 0,
+                net: (p.incentiveAmount || 0) - (p.penaltyAmount || 0)
+              }))}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis
+                  dataKey="date"
+                  className="text-xs"
+                  stroke="currentColor"
+                />
+                <YAxis
+                  className="text-xs"
+                  stroke="currentColor"
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "rgba(0,0,0,0.8)",
+                    border: "none",
+                    borderRadius: "8px",
+                    color: "white"
+                  }}
+                  formatter={(value) => `₹${value.toLocaleString()}`}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="incentive"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={{ fill: "#10b981", r: 4 }}
+                  name="Incentive"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="penalty"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  dot={{ fill: "#ef4444", r: 4 }}
+                  name="Penalty"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="net"
+                  stroke="#6366f1"
+                  strokeWidth={3}
+                  dot={{ fill: "#6366f1", r: 5 }}
+                  name="Net Amount"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Cumulative Financial Summary */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-xl shadow">
+            <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
+              📊 Cumulative Earnings
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={[...performances].reverse().reduce((acc, p, idx) => {
+                const prev = acc[idx - 1] || { cumIncentive: 0, cumPenalty: 0, cumNet: 0 };
+                acc.push({
+                  date: p.reviewForMonth ? format(new Date(p.reviewForMonth), "MMM yyyy") : `Review ${idx + 1}`,
+                  cumIncentive: prev.cumIncentive + (p.incentiveAmount || 0),
+                  cumPenalty: prev.cumPenalty + (p.penaltyAmount || 0),
+                  cumNet: prev.cumNet + ((p.incentiveAmount || 0) - (p.penaltyAmount || 0))
+                });
+                return acc;
+              }, [])}>
+                <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                <XAxis
+                  dataKey="date"
+                  className="text-xs"
+                  stroke="currentColor"
+                />
+                <YAxis
+                  className="text-xs"
+                  stroke="currentColor"
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "rgba(0,0,0,0.8)",
+                    border: "none",
+                    borderRadius: "8px",
+                    color: "white"
+                  }}
+                  formatter={(value) => `₹${value.toLocaleString()}`}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="cumIncentive"
+                  stroke="#10b981"
+                  strokeWidth={2}
+                  dot={{ fill: "#10b981", r: 4 }}
+                  name="Total Incentives"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="cumPenalty"
+                  stroke="#ef4444"
+                  strokeWidth={2}
+                  dot={{ fill: "#ef4444", r: 4 }}
+                  name="Total Penalties"
+                />
+                <Line
+                  type="monotone"
+                  dataKey="cumNet"
+                  stroke="#6366f1"
+                  strokeWidth={3}
+                  dot={{ fill: "#6366f1", r: 5 }}
+                  name="Net Cumulative"
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
       {/* Performance Reviews & Feedback */}
       {performances.length > 0 && (
         <div className="mt-10">
