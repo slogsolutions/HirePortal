@@ -454,11 +454,11 @@ export default function MyPerformancePage() {
       {leaderboard.length > 0 && (
         <div className="mt-10">
           <h2 className="text-2xl font-bold mb-6 text-gray-900 dark:text-white flex items-center gap-2">
-            <FaTrophy className="text-yellow-500" /> Top Performers
+            <FaTrophy className="text-yellow-500" /> Top Performers League
           </h2>
 
           <div className="flex items-end justify-center gap-4 md:gap-8 mb-8">
-            {/* 2nd Place - Left */}
+            {/* 2nd Place - Gold - Left */}
             {leaderboard[1] && (
               <motion.div
                 initial={{ y: 100, opacity: 0 }}
@@ -466,29 +466,46 @@ export default function MyPerformancePage() {
                 transition={{ delay: 0.2, duration: 0.6, type: "spring" }}
                 className="flex flex-col items-center"
               >
+                {/* League Badge */}
+                <div className="mb-3 px-4 py-1 bg-gradient-to-r from-yellow-400 to-yellow-600 rounded-full shadow-lg">
+                  <span className="text-white font-bold text-sm flex items-center gap-1">
+                    <FaMedal /> GOLD
+                  </span>
+                </div>
+                
                 <div className="relative mb-4">
-                  <div className="w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-lg relative">
+                  <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-yellow-400 overflow-hidden bg-yellow-100 dark:bg-yellow-900/30 shadow-2xl ring-4 ring-yellow-300 dark:ring-yellow-600 relative">
                     <Avatar
                       src={leaderboard[1].photoUrl}
                       name={leaderboard[1].name}
                       size="w-full h-full"
                     />
                   </div>
-                  <div className="absolute -top-2 -right-2 bg-gray-400 dark:bg-gray-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-md z-10">
+                  <div className="absolute -top-2 -right-2 bg-yellow-500 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg z-10 border-2 border-white">
                     2
                   </div>
                 </div>
-                <div className="bg-gray-300 dark:bg-gray-700 w-32 md:w-40 h-24 md:h-32 rounded-t-lg shadow-xl flex flex-col items-center justify-center pt-2 px-2">
-                  <h3 className="font-bold text-sm md:text-base dark:text-white text-center break-words">{leaderboard[1].name || "N/A"}</h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 text-center mt-1">{leaderboard[1].designation || ""}</p>
-                  <div className="mt-1 flex justify-center">
-                    <Stars value={leaderboard[1].avgScore || 0} />
+                
+                <div className="bg-gradient-to-b from-yellow-400 to-yellow-600 dark:from-yellow-500 dark:to-yellow-700 w-36 md:w-44 h-28 md:h-36 rounded-t-lg shadow-2xl flex flex-col items-center justify-center pt-2 px-2 relative overflow-hidden">
+                  {/* Shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                  
+                  <h3 className="font-bold text-sm md:text-base text-white text-center break-words relative z-10">
+                    {leaderboard[1].name || "N/A"}
+                  </h3>
+                  <p className="text-xs text-yellow-100 text-center mt-1 relative z-10">
+                    {leaderboard[1].designation || ""}
+                  </p>
+                  <div className="mt-2 flex justify-center relative z-10">
+                    <div className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
+                      <Stars value={leaderboard[1].avgScore || 0} />
+                    </div>
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* 1st Place - Center (Highest) */}
+            {/* 1st Place - Platinum - Center (Highest) */}
             {leaderboard[0] && (
               <motion.div
                 initial={{ y: 100, opacity: 0, scale: 0.8 }}
@@ -496,36 +513,79 @@ export default function MyPerformancePage() {
                 transition={{ delay: 0.1, duration: 0.6, type: "spring" }}
                 className="flex flex-col items-center"
               >
+                {/* League Badge */}
+                <div className="mb-3 px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-full shadow-2xl animate-pulse">
+                  <span className="text-white font-bold text-base flex items-center gap-2">
+                    <FaCrown className="text-yellow-300" /> PLATINUM
+                  </span>
+                </div>
+                
                 <div className="relative mb-4">
-                  <div className="w-28 h-28 md:w-36 md:h-36 rounded-full border-4 border-yellow-400 overflow-hidden bg-yellow-100 dark:bg-yellow-900/30 shadow-2xl ring-4 ring-yellow-300 dark:ring-yellow-600 relative">
+                  <div className="w-32 h-32 md:w-40 md:h-40 rounded-full border-4 border-purple-400 overflow-hidden bg-purple-100 dark:bg-purple-900/30 shadow-2xl ring-8 ring-purple-300 dark:ring-purple-600 relative">
                     <Avatar
                       src={leaderboard[0].photoUrl}
                       name={leaderboard[0].name}
                       size="w-full h-full"
                     />
                   </div>
-                  <div className="absolute -top-2 -right-2 bg-yellow-500 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg z-10">
+                  <div className="absolute -top-3 -right-3 bg-gradient-to-r from-purple-500 to-indigo-500 text-white rounded-full w-12 h-12 flex items-center justify-center font-bold text-lg shadow-2xl z-10 border-4 border-white">
                     1
                   </div>
                   <motion.div
-                    animate={{ rotate: [0, 10, -10, 0] }}
-                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}
-                    className="absolute -top-4 left-1/2 transform -translate-x-1/2 z-10"
+                    animate={{ 
+                      rotate: [0, 10, -10, 0],
+                      scale: [1, 1.1, 1]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity, repeatDelay: 2 }}
+                    className="absolute -top-6 left-1/2 transform -translate-x-1/2 z-10"
                   >
-                    <FaCrown className="text-yellow-400 text-2xl" />
+                    <FaCrown className="text-yellow-400 text-3xl drop-shadow-lg" />
+                  </motion.div>
+                  
+                  {/* Sparkle effects */}
+                  <motion.div
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 0 }}
+                    className="absolute top-0 right-0 text-yellow-400 text-xl"
+                  >
+                    ✨
+                  </motion.div>
+                  <motion.div
+                    animate={{ opacity: [0, 1, 0] }}
+                    transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
+                    className="absolute bottom-0 left-0 text-yellow-400 text-xl"
+                  >
+                    ✨
                   </motion.div>
                 </div>
-                <div className="bg-gradient-to-b from-yellow-400 to-yellow-600 dark:from-yellow-500 dark:to-yellow-700 w-36 md:w-48 h-32 md:h-40 rounded-t-lg shadow-2xl flex flex-col items-center justify-center pt-2 px-2">
-                  <h3 className="font-bold text-base md:text-lg text-white text-center break-words">{leaderboard[0].name || "N/A"}</h3>
-                  <p className="text-xs text-yellow-100 text-center mt-1">{leaderboard[0].designation || ""}</p>
-                  <div className="mt-1 flex justify-center">
-                    <Stars value={leaderboard[0].avgScore || 0} />
+                
+                <div className="bg-gradient-to-b from-purple-500 via-purple-600 to-indigo-700 dark:from-purple-600 dark:to-indigo-800 w-40 md:w-52 h-36 md:h-44 rounded-t-lg shadow-2xl flex flex-col items-center justify-center pt-2 px-2 relative overflow-hidden">
+                  {/* Animated shine effect */}
+                  <motion.div
+                    animate={{ x: ['-100%', '200%'] }}
+                    transition={{ duration: 3, repeat: Infinity, repeatDelay: 2 }}
+                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  ></motion.div>
+                  
+                  <h3 className="font-bold text-lg md:text-xl text-white text-center break-words relative z-10 drop-shadow-lg">
+                    {leaderboard[0].name || "N/A"}
+                  </h3>
+                  <p className="text-sm text-purple-100 text-center mt-1 relative z-10">
+                    {leaderboard[0].designation || ""}
+                  </p>
+                  <div className="mt-2 flex justify-center relative z-10">
+                    <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full">
+                      <Stars value={leaderboard[0].avgScore || 0} />
+                    </div>
+                  </div>
+                  <div className="mt-2 text-xs text-purple-200 font-semibold relative z-10">
+                    🏆 Champion
                   </div>
                 </div>
               </motion.div>
             )}
 
-            {/* 3rd Place - Right */}
+            {/* 3rd Place - Silver - Right */}
             {leaderboard[2] && (
               <motion.div
                 initial={{ y: 100, opacity: 0 }}
@@ -533,23 +593,40 @@ export default function MyPerformancePage() {
                 transition={{ delay: 0.3, duration: 0.6, type: "spring" }}
                 className="flex flex-col items-center"
               >
+                {/* League Badge */}
+                <div className="mb-3 px-4 py-1 bg-gradient-to-r from-gray-300 to-gray-500 rounded-full shadow-lg">
+                  <span className="text-white font-bold text-sm flex items-center gap-1">
+                    <FaMedal /> SILVER
+                  </span>
+                </div>
+                
                 <div className="relative mb-4">
-                  <div className="w-24 h-24 md:w-28 md:h-28 rounded-full border-4 border-orange-300 dark:border-orange-700 overflow-hidden bg-orange-200 dark:bg-orange-900/30 shadow-lg relative">
+                  <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-gray-300 dark:border-gray-600 overflow-hidden bg-gray-200 dark:bg-gray-700 shadow-2xl ring-4 ring-gray-300 dark:ring-gray-600 relative">
                     <Avatar
                       src={leaderboard[2].photoUrl}
                       name={leaderboard[2].name}
                       size="w-full h-full"
                     />
                   </div>
-                  <div className="absolute -top-2 -right-2 bg-orange-500 dark:bg-orange-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-md z-10">
+                  <div className="absolute -top-2 -right-2 bg-gray-500 dark:bg-gray-600 text-white rounded-full w-10 h-10 flex items-center justify-center font-bold shadow-lg z-10 border-2 border-white">
                     3
                   </div>
                 </div>
-                <div className="bg-orange-400 dark:bg-orange-600 w-32 md:w-40 h-20 md:h-24 rounded-t-lg shadow-xl flex flex-col items-center justify-center pt-2 px-2">
-                  <h3 className="font-bold text-sm md:text-base text-white text-center break-words">{leaderboard[2].name || "N/A"}</h3>
-                  <p className="text-xs text-orange-100 text-center mt-1">{leaderboard[2].designation || ""}</p>
-                  <div className="mt-1 flex justify-center">
-                    <Stars value={leaderboard[2].avgScore || 0} />
+                
+                <div className="bg-gradient-to-b from-gray-300 to-gray-500 dark:from-gray-600 dark:to-gray-800 w-36 md:w-44 h-24 md:h-28 rounded-t-lg shadow-2xl flex flex-col items-center justify-center pt-2 px-2 relative overflow-hidden">
+                  {/* Shine effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
+                  
+                  <h3 className="font-bold text-sm md:text-base text-white text-center break-words relative z-10">
+                    {leaderboard[2].name || "N/A"}
+                  </h3>
+                  <p className="text-xs text-gray-100 text-center mt-1 relative z-10">
+                    {leaderboard[2].designation || ""}
+                  </p>
+                  <div className="mt-2 flex justify-center relative z-10">
+                    <div className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
+                      <Stars value={leaderboard[2].avgScore || 0} />
+                    </div>
                   </div>
                 </div>
               </motion.div>
