@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
 import { useNotifications } from "../context/NotificationContext";
+import api from "../api/axios";
 import {
   Bell,
   Check,
@@ -22,14 +23,41 @@ import { Button } from "@/components/ui/button";
 
 export default function UserNotificationsPage() {
   const {
-    notifications,
-    unreadCount,
+    notifications: contextNotifications,
+    unreadCount: contextUnreadCount,
     loading,
     markRead,
     markAllRead,
     deleteNotification,
     refreshNotifications,
   } = useNotifications();
+
+  // Local state to override context when needed
+  const [localNotifications, setLocalNotifications] = useState([]);
+  const [localUnreadCount, setLocalUnreadCount] = useState(0);
+  const [useLocalState, setUseLocalState] = useState(false);
+
+  // Use local state if available, otherwise use context
+  const notifications = useLocalState ? localNotifications : contextNotifications;
+  const unreadCount = useLocalState ? localUnreadCount : contextUnreadCount;
+
+  // Function to load notifications directly
+  const loadNotificationsDirectly = async () => {
+    try {
+      const response = await api.get('/notifications', { params: { limit: 50 } });
+      
+      if (response.data?.success) {
+        const notifs = response.data.data || [];
+        const unread = response.data.unreadCount || 0;
+        
+        setLocalNotifications(notifs);
+        setLocalUnreadCount(unread);
+        setUseLocalState(true);
+      }
+    } catch (error) {
+      console.error("Failed to load notifications directly:", error);
+    }
+  };
 
   const [selectedTab, setSelectedTab] = useState("all"); // "all" | "unread"
   const [selectedFilter, setSelectedFilter] = useState("inbox"); // "inbox" | "saved" | "done"
@@ -39,8 +67,8 @@ export default function UserNotificationsPage() {
   const [hoveredId, setHoveredId] = useState(null);
 
   useEffect(() => {
-    refreshNotifications();
-  }, [refreshNotifications]);
+    loadNotificationsDirectly();
+  }, []);
 
   // Filter notifications based on tab and search
   const filteredNotifications = useMemo(() => {
@@ -80,7 +108,49 @@ export default function UserNotificationsPage() {
   const handleNotificationClick = async (notification) => {
     // Mark as read on click
     if (!notification.read) {
-      await markRead(notification._id);
+      try {
+        await markRead(notification._id);
+        // Update local state
+        if (useLocalState) {
+          setLocalNotifications(prev => 
+            prev.map(n => n._id === notification._id ? { ...n, read: true } : n)
+          );
+          setLocalUnreadCount(prev => Math.max(0, prev - 1));
+        }
+      } catch (error) {
+        console.error("Failed to mark as read:", error);
+      }
+    }
+  };
+
+  const handleMarkRead = async (id) => {
+    try {
+      await markRead(id);
+      // Update local state
+      if (useLocalState) {
+        const notification = localNotifications.find(n => n._id === id);
+        if (notification && !notification.read) {
+          setLocalNotifications(prev => 
+            prev.map(n => n._id === id ? { ...n, read: true, readAt: new Date() } : n)
+          );
+          setLocalUnreadCount(prev => Math.max(0, prev - 1));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to mark notification as read:", error);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllRead();
+      // Update local state
+      if (useLocalState) {
+        setLocalNotifications(prev => prev.map(n => ({ ...n, read: true, readAt: new Date() })));
+        setLocalUnreadCount(0);
+      }
+    } catch (error) {
+      console.error("Failed to mark all as read:", error);
     }
   };
 
@@ -90,6 +160,14 @@ export default function UserNotificationsPage() {
       setDeletingId(id);
       try {
         await deleteNotification(id);
+        // Update local state
+        if (useLocalState) {
+          const deleted = localNotifications.find(n => n._id === id);
+          setLocalNotifications(prev => prev.filter(n => n._id !== id));
+          if (deleted && !deleted.read) {
+            setLocalUnreadCount(prev => Math.max(0, prev - 1));
+          }
+        }
         setSelectedNotifications((prev) => {
           const next = new Set(prev);
           next.delete(id);
@@ -101,8 +179,8 @@ export default function UserNotificationsPage() {
     }
   };
 
-  const handleMarkAllRead = async () => {
-    await markAllRead();
+  const handleMarkAllReadButton = async () => {
+    await handleMarkAllRead();
     setSelectedNotifications(new Set());
   };
 
@@ -343,7 +421,17 @@ export default function UserNotificationsPage() {
 
                   <div className="flex items-center gap-2">
                     <Button
-                      onClick={handleMarkAllRead}
+                      onClick={refreshNotifications}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                      disabled={loading}
+                    >
+                      <Bell className="h-4 w-4" />
+                      Refresh
+                    </Button>
+                    <Button
+                      onClick={handleMarkAllReadButton}
                       variant="outline"
                       size="sm"
                       className="gap-2"
@@ -478,7 +566,7 @@ export default function UserNotificationsPage() {
                                     <Button
                                       onClick={(e) => {
                                         e.stopPropagation();
-                                        markRead(notification._id);
+                                        handleMarkRead(notification._id);
                                       }}
                                       variant="ghost"
                                       size="sm"

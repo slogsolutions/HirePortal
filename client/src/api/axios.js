@@ -21,26 +21,29 @@ instance.interceptors.request.use(
       console.log("➡️ Method:", config.method?.toUpperCase());
       console.log("➡️ Headers before attach:", config.headers);
 
-      // Try multiple keys just in case token is stored differently
-      const stored =
-        localStorage.getItem("auth:v1") ||
-        localStorage.getItem("auth") ||
-        localStorage.getItem("user");
-
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        const token =
-          parsed?.token ||
-          parsed?.accessToken ||
-          parsed?.data?.token ||
-          parsed?.data?.accessToken;
-
-        console.log("🔑 Token found:", token ? " Yes" : "❌ No");
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+      // Get token from the correct storage location used by AuthContext
+      const authData = localStorage.getItem("auth:v1");
+      let token = null;
+      
+      if (authData) {
+        try {
+          const parsed = JSON.parse(authData);
+          token = parsed?.token;
+        } catch (e) {
+          console.warn("⚠️ Failed to parse auth:v1 data:", e);
         }
+      }
+      
+      // Fallback to legacy storage
+      if (!token) {
+        token = localStorage.getItem("token");
+      }
+
+      console.log("🔑 Token found:", token ? "✅ Yes" : "❌ No");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
       } else {
-        console.warn("⚠️ No auth object found in localStorage");
+        console.warn("⚠️ No token found in localStorage");
       }
 
       console.log("📦 Final headers:", config.headers);

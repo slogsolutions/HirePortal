@@ -1,5 +1,8 @@
 const mongoose = require("mongoose");
 require("dotenv").config();
+// console.log("",rocess.env.MONGO_URI);
+
+console.log("DEV--->",process.env.MONGO_URI);
 
 let mongoServer;
 

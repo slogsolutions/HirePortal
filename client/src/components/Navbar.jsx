@@ -8,7 +8,7 @@ import React, {
 import PropTypes from "prop-types";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
-import { useNotifications } from "../context/NotificationContext";
+import api from "../api/axios";
 import FcmTokenModal from "./FcmTokenModal";
 import NotificationDropdown from "./NotificationDropdown";
 import { Sun, Moon, Menu, X, Bell } from "lucide-react";
@@ -24,13 +24,15 @@ import gsap from "gsap";
 
 export default function Navbar({ brand = "Slog Solutions" }) {
   const { user, logout } = useContext(AuthContext);
-  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const [isDark, setIsDark] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [showFcmModal, setShowFcmModal] = useState(false);
+  
+  // Local state for unread count
+  const [unreadCount, setUnreadCount] = useState(0);
 
   const [avatarUrl, setAvatarUrl] = useState(null);
   const [displayName, setDisplayName] = useState("");
@@ -49,6 +51,32 @@ export default function Navbar({ brand = "Slog Solutions" }) {
         y: 10, 
     });
   });
+
+  // Load unread count directly
+  const loadUnreadCount = async () => {
+    if (!user) return;
+    
+    try {
+      const response = await api.get('/notifications/unread-count');
+      if (response.data?.success) {
+        setUnreadCount(response.data.count || 0);
+      }
+    } catch (error) {
+      console.error("Failed to load unread count:", error);
+    }
+  };
+
+  // Load unread count when user is available
+  useEffect(() => {
+    if (user) {
+      loadUnreadCount();
+      // Refresh every 30 seconds
+      const interval = setInterval(loadUnreadCount, 30000);
+      return () => clearInterval(interval);
+    } else {
+      setUnreadCount(0);
+    }
+  }, [user]);
 
   // Initialize theme from localStorage on mount
   useEffect(() => {
@@ -238,12 +266,13 @@ export default function Navbar({ brand = "Slog Solutions" }) {
                 <NotificationDropdown
                   isOpen={notificationOpen}
                   onClose={() => setNotificationOpen(false)}
+                  onUnreadCountChange={setUnreadCount}
                 />
               </div>
             )}
 
             {/* Save FCM Token - visible only when logged in */}
-            {user && (
+            {/* {user && (
               <Button
                 size="sm"
                 onClick={() => setShowFcmModal(true)}
@@ -251,7 +280,7 @@ export default function Navbar({ brand = "Slog Solutions" }) {
               >
                 Save FCM Token
               </Button>
-            )}
+            )} */}
 
             {/* Show Login button only when NOT logged in */}
             {!user && (

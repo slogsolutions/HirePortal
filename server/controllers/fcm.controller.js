@@ -10,7 +10,8 @@ function ensureAdminInitialized() {
 
 exports.upsertToken = asyncHandler(async (req, res) => {
   // Accept userId from either req.user (if authenticated) or req.body
-  const userId = req.user?.id || req.user?._id || req.body.userId;
+  // FIXED: req.user._id is the correct property (User document from DB), not req.user.id
+  const userId = req.user?._id || req.body.userId;
   const { token, platform } = req.body;
   
   if (!userId || !token) {
@@ -37,11 +38,15 @@ exports.upsertToken = asyncHandler(async (req, res) => {
       return res.json({ message: 'token updated', data: existingToken });
     }
 
-    // This is a new token - check if user has other tokens
-    const userTokens = await FcmToken.find({ userId });
+    // FIXED: Remove old tokens for this user and platform to prevent duplicates
+    // Only keep the latest token per user per platform
+    await FcmToken.deleteMany({ 
+      userId, 
+      platform: platformValue,
+      token: { $ne: token } // Don't delete the current token if it somehow exists
+    });
     
-    // Save the new token (multi-device support - keep old tokens)
-    // Invalid tokens will be cleaned up automatically when we try to send notifications
+    // Save the new token (single token per user per platform)
     const doc = await FcmToken.create({
       userId,
       token,
@@ -50,7 +55,7 @@ exports.upsertToken = asyncHandler(async (req, res) => {
       lastSeenAt: new Date()
     });
 
-    console.log(`[FCM]  New token saved for user ${userId} (total tokens: ${userTokens.length + 1})`);
+    console.log(`[FCM]  New token saved for user ${userId}, old tokens removed to prevent duplicates`);
 
     res.json({ message: 'token saved', data: doc });
   } catch (error) {
@@ -301,7 +306,7 @@ exports.adminSend = asyncHandler(async (req, res) => {
   const NotificationService = require('../utils/notification.service');
 
   // Get sender ID from request (if authenticated)
-  const sentBy = req.user?.id || null;
+  const sentBy = req.user?._id || null;
 
   // Build payload factory with proper tag
   const payloadFor = (tkn) => {

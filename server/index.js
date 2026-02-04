@@ -1,4 +1,9 @@
 require("dotenv").config();
+const dns = require("dns");
+dns.setDefaultResultOrder("ipv4first");
+const { debugMongoNetwork } = require("./mongoNetworkDebug");
+
+
 const app = require("./app");
 const { connectDB } = require("./config/db.config");
 const { startCron } = require("./jobs/attendanceCron");
@@ -21,11 +26,13 @@ async function seedTestUser() {
     role: "admin",
   });
 
+
   console.log("🧪 E2E user seeded (model will hash)");
 }
 
 
 async function start() {
+  await debugMongoNetwork();
   await connectDB();
   await seedTestUser();
 

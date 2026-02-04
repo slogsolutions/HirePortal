@@ -29,6 +29,7 @@ const useFirebaseMessaging = (user) => {
             token,
             platform,
           });
+          console.log("[FCM]  Token saved via authenticated route");
         } catch (authErr) {
           // If authenticated route fails (401 or not found), try regular route with userId
           if (authErr.response?.status === 401 || authErr.response?.status === 404) {
@@ -38,6 +39,7 @@ const useFirebaseMessaging = (user) => {
               token,
               platform,
             });
+            console.log("[FCM]  Token saved via regular route");
           } else {
             throw authErr;
           }

@@ -88,11 +88,17 @@ export const AuthProvider = ({ children }) => {
 
       const data = await res.json(); // { token, user }
 
+      console.log("[AuthContext] 🔐 Login successful, received data:", data);
+      console.log("[AuthContext] 🔍 User object from login:", data.user);
+
       const ttl = remember
         ? 1000 * 60 * 60 * 24 * 30
         : 1000 * 60 * 60 * 8;
 
       setAuthState({ user: data.user, token: data.token, ttl });
+      
+      console.log("[AuthContext] ✅ Auth state set with user:", data.user);
+      
       setLoading(false);
       return data;
     } catch (err) {

@@ -1,18 +1,43 @@
-import React, { useEffect, useRef, useMemo } from "react";
+import React, { useEffect, useRef, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../context/NotificationContext";
+import api from "../api/axios";
 import { Bell, X, ArrowRight } from "lucide-react";
 
-export default function NotificationDropdown({ isOpen, onClose }) {
+export default function NotificationDropdown({ isOpen, onClose, onUnreadCountChange }) {
   const {
-    notifications,
-    unreadCount,
-    loading,
     markRead,
-    refreshNotifications,
   } = useNotifications();
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
+
+  // Local state for dropdown notifications
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [loading, setLoading] = useState(false);
+
+  // Load notifications directly
+  const loadNotifications = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/notifications', { params: { limit: 5 } });
+      
+      if (response.data?.success) {
+        setNotifications(response.data.data || []);
+        const newUnreadCount = response.data.unreadCount || 0;
+        setUnreadCount(newUnreadCount);
+        
+        // Update parent component's unread count
+        if (onUnreadCountChange) {
+          onUnreadCountChange(newUnreadCount);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load notifications:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Show only latest 5 notifications in dropdown
   const latestNotifications = useMemo(() => {
@@ -21,9 +46,9 @@ export default function NotificationDropdown({ isOpen, onClose }) {
 
   useEffect(() => {
     if (isOpen) {
-      refreshNotifications();
+      loadNotifications();
     }
-  }, [isOpen, refreshNotifications]);
+  }, [isOpen]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -51,7 +76,22 @@ export default function NotificationDropdown({ isOpen, onClose }) {
   const handleNotificationClick = async (notification) => {
     // Mark as read on click
     if (!notification.read) {
-      await markRead(notification._id);
+      try {
+        await markRead(notification._id);
+        // Update local state
+        setNotifications(prev => 
+          prev.map(n => n._id === notification._id ? { ...n, read: true } : n)
+        );
+        const newUnreadCount = Math.max(0, unreadCount - 1);
+        setUnreadCount(newUnreadCount);
+        
+        // Update parent component's unread count
+        if (onUnreadCountChange) {
+          onUnreadCountChange(newUnreadCount);
+        }
+      } catch (error) {
+        console.error("Failed to mark as read:", error);
+      }
     }
     // Close dropdown and navigate to full notifications page
     onClose();
