@@ -30,16 +30,7 @@ function parseEmpCode(code) {
   return { raw: code, prefix, numeric, numericStr };
 }
 
-// function parseEmpCode(code) {
-//   if (!code || typeof code !== 'string') return null;
-//   const m = code.match(/^([A-Za-z]*)(\d+)$/);
-//   if (!m) return null;
-//   const prefix = m[1] || '';
-//   const numStr = m[2];
-//   const number = parseInt(numStr, 10);
-//   const padding = numStr.length;
-//   return { prefix, number, padding };
-// }
+
 
 /**
  * Helper: find current max numeric suffix across all empCodes and propose next.
@@ -56,6 +47,8 @@ function parseEmpCode(code) {
 //         - if process.env.EMP_CODE_START is set (and numeric) -> start from that number
 //         - otherwise start from 1
 //    - numericPadding chosen as max(existingPadding, digits(startFrom), defaultPadding)
+
+
 async function computeNextEmpCode() {
   // fetch all empCodes that are non-empty
   const docs = await Candidate.find({ empCode: { $exists: true, $ne: null, $ne: '' } }).select('empCode').lean();
@@ -352,7 +345,10 @@ const me = asyncHandler(async (req, res) => {
 
 // -----------------NEW UPDATE CANDIDATE WITH EMAIL UPDATE IN BOTH USER AND CANDIDATE 
 const updateCandidate = asyncHandler(async (req, res) => {
+
   const { id } = req.params;
+  // const {id} = req.body;
+  console.log("DEV from updateCandidate -- >",id);
   const incoming = req.body || {};
   const confirmEmpCodeChange = incoming.confirmEmpCodeChange;
 
@@ -562,7 +558,22 @@ const updateCandidate = asyncHandler(async (req, res) => {
 
 // ------------------- UPLOAD PROFILE PHOTO -------------------
 const uploadProfilePhoto = asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  let id;
+  
+  // Check if route is /me/photo or /:id/photo
+  if (req.params.id === 'me' || !req.params.id) {
+    // Use candidateId from authenticated user
+    id = req.user.candidateId;
+    if (!id) {
+      return res.status(404).json({ message: "Candidate profile not found for logged-in user" });
+    }
+  } else {
+    // Use id from params
+    id = req.params.id;
+  }
+  
+  console.log("Uploading photo for candidate ID:", id);
+  
   const file = req.file;
   if (!file) return res.status(400).json({ message: "photo file required" });
 

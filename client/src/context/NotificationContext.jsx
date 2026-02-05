@@ -14,7 +14,7 @@ export const NotificationProvider = ({ children }) => {
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
-    }
+    } 
   });
   
   const [unreadCount, setUnreadCount] = useState(() => {
