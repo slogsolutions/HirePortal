@@ -142,7 +142,7 @@ export const Hero = () => {
 
         <p className="text-xl md:text-2xl  mb-12 max-w-3xl mx-auto leading-relaxed text-emerald-200">
           Empowering businesses with cutting-edge solutions and innovative
-          technology that drives growth and success in the digital age. Laksh
+          technology that drives growth and success in the digital age.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
