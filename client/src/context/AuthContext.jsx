@@ -1,7 +1,8 @@
 import React, { createContext, useCallback, useEffect, useMemo, useState } from "react";
 
 const STORAGE_KEY = "auth:v1";
-const API_BASE = import.meta.env?.VITE_API_BASE || "http://localhost:3001/api";
+// const API_BASE = import.meta.env?.VITE_API_BASE || "http://localhost:3001/api";
+const API_BASE = import.meta.env?.VITE_API_BASE || "/api";
 
 export const AuthContext = createContext({
   user: null,

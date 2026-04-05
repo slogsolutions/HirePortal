@@ -169,3 +169,138 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
           script: sudo systemctl reload nginx
+
+
+
+
+
+# New Deploy for docker 
+          
+# name: HirePortal Deploy
+
+# on:
+#   push:
+#     branches:
+#       - main
+
+# concurrency:
+#   group: hireportal-production
+#   cancel-in-progress: true
+
+# jobs:
+#   deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       # ================= CHECKOUT =================
+#       - name: Checkout Repo
+#         uses: actions/checkout@v4
+
+#       # ================= NODE SETUP =================
+#       - name: Use Node
+#         uses: actions/setup-node@v4
+#         with:
+#           node-version: 20
+#           cache: "npm"
+#           cache-dependency-path: |
+#             server/package-lock.json
+#             client/package-lock.json
+
+#       # ================= BACKEND TESTS =================
+#       - name: Install Backend Dependencies
+#         working-directory: server
+#         run: npm ci
+
+#       - name: Run Backend Tests
+#         working-directory: server
+#         env:
+#           NODE_ENV: test
+#         run: npm test
+
+#       # ================= FRONTEND TESTS =================
+#       - name: Install Frontend Dependencies
+#         working-directory: client
+#         run: npm ci --legacy-peer-deps
+
+#       - name: Run Frontend Unit Tests
+#         working-directory: client
+#         env:
+#           CI: true
+#         run: npm test
+
+#       # ================= PLAYWRIGHT CACHE =================
+#       - name: Cache Playwright Browsers
+#         uses: actions/cache@v4
+#         with:
+#           path: ~/.cache/ms-playwright
+#           key: ${{ runner.os }}-playwright
+
+#       - name: Install Playwright
+#         working-directory: client
+#         run: npx playwright install chromium
+
+#       # ================= START BACKEND (E2E) =================
+#       - name: Start Backend (Test Mode)
+#         working-directory: server
+#         env:
+#           NODE_ENV: test
+#         run: |
+#           npm run e2e > /tmp/backend.log 2>&1 &
+#           sleep 10
+
+#       - name: Wait for Backend
+#         run: |
+#           for i in {1..20}; do
+#             if curl -s http://localhost:3001/health; then
+#               echo "Backend is ready"
+#               break
+#             fi
+#             echo "Waiting..."
+#             sleep 2
+#           done
+
+#       # ================= START FRONTEND =================
+#       - name: Start Frontend
+#         working-directory: client
+#         env:
+#           VITE_API_BASE: http://localhost:3001/api
+#         run: |
+#           npm run dev > /tmp/frontend.log 2>&1 &
+#           sleep 15
+
+#       # ================= RUN PLAYWRIGHT =================
+#       - name: Run Playwright E2E
+#         working-directory: client
+#         run: |
+#           npx playwright test || (
+#             echo "❌ Playwright failed"
+#             echo "====== BACKEND LOGS ======"
+#             cat /tmp/backend.log
+#             echo "====== FRONTEND LOGS ======"
+#             cat /tmp/frontend.log
+#             exit 1
+#           )
+
+#       # ================= DEPLOY WITH DOCKER =================
+#       - name: Deploy to VPS with Docker
+#         uses: appleboy/ssh-action@master
+#         with:
+#           host: ${{ secrets.SERVER_IP }}
+#           username: ${{ secrets.SERVER_USER }}
+#           key: ${{ secrets.SSH_KEY }}
+#           script: |
+#             set -e
+
+#             cd /var/www/hireportalWithCiCd
+
+#             echo "Pulling latest code..."
+#             git pull origin main
+
+#             echo "Rebuilding Docker containers..."
+#             docker compose down
+#             docker compose up -d --build
+
+#             echo "Cleaning unused Docker images..."
+#             docker image prune -f
+
+#             echo "Deployment successful 🚀"

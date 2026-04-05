@@ -867,13 +867,13 @@ export default function AdminUsersWithDetail() {
                                         </div>
                                       ) : (
                                         <div className="flex justify-end">
-                                          <button
+                                          {/* <button
                                             className="px-2 py-1 bg-indigo-600 text-white rounded text-sm flex items-center gap-1"
                                             onClick={() => startEdit(d.date)}
                                           >
                                             <PencilIcon className="h-4 w-4" />{" "}
                                             Edit
-                                          </button>
+                                          </button> */}
                                         </div>
                                       )}
                                     </>
