@@ -30,6 +30,18 @@ function buildSalaryPayload(body, user) {
   return payload;
 }
 
+async function isPassiveCandidate(candidateId) {
+  if (!candidateId || !mongoose.Types.ObjectId.isValid(candidateId)) return false;
+  const candidate = await Candidate.findById(candidateId).select("currentStatus").lean();
+  return candidate?.currentStatus === "passive";
+}
+
+async function getVisibleCandidateIds(candidateId = null) {
+  const query = { currentStatus: { $ne: "passive" } };
+  if (candidateId) query._id = candidateId;
+  return Candidate.find(query).distinct("_id");
+}
+
 /** EMPLOYEE: list own salaries */
 exports.listMySalaries = async (req, res) => {
   try {
@@ -66,6 +78,9 @@ exports.createSalary = async (req, res) => {
 
     const cand = await Candidate.findById(body.candidate);
     if (!cand) return res.status(404).json({ error: 'candidate not found' });
+    if (cand.currentStatus === "passive") {
+      return res.status(400).json({ error: 'salary cannot be generated for inactive candidate' });
+    }
 
     // Ensure period is set
     if (!body.period || !body.period.month || !body.period.year) {
@@ -108,6 +123,9 @@ exports.createSalary = async (req, res) => {
 exports.getSalaryById = async (req, res) => {
   try {
     const userId = req.params.userId;
+    if (await isPassiveCandidate(userId)) {
+      return res.json([]);
+    }
     const salaries = await Salary.find({ candidate: userId })
       .sort({ createdAt: -1 })
       .populate('candidate', 'firstName lastName email Designation');
@@ -124,9 +142,14 @@ exports.updateSalary = async (req, res) => {
     const id = req.params.id;
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ error: 'invalid id' });
 
+    const existingSalary = await Salary.findById(id).select("candidate");
+    if (!existingSalary) return res.status(404).json({ error: 'salary not found' });
+    if (await isPassiveCandidate(existingSalary.candidate)) {
+      return res.status(400).json({ error: 'salary cannot be updated for inactive candidate' });
+    }
+
     const payload = buildSalaryPayload(req.body, req.user);
     const updated = await Salary.findByIdAndUpdate(id, payload, { new: true });
-    if (!updated) return res.status(404).json({ error: 'salary not found' });
 
     res.json(updated);
   } catch (err) {
@@ -151,8 +174,12 @@ exports.deleteSalary = async (req, res) => {
 exports.getSalary = async (req, res) => {
   try {
     const doc = await Salary.findById(req.params.id)
-      .populate('candidate createdBy', 'firstName lastName email name');
+      .populate('candidate', 'firstName lastName email name currentStatus')
+      .populate('createdBy', 'firstName lastName email name');
     if (!doc) return res.status(404).json({ error: 'not found' });
+    if (doc.candidate?.currentStatus === "passive") {
+      return res.status(404).json({ error: 'not found' });
+    }
     res.json(doc);
   } catch (err) {
     console.error(err);
@@ -165,7 +192,8 @@ exports.listSalaries = async (req, res) => {
   try {
     const { page = 1, limit = 50, candidate } = req.query;
     const q = {};
-    if (candidate) q.candidate = candidate;
+    const visibleCandidateIds = await getVisibleCandidateIds(candidate || null);
+    q.candidate = { $in: visibleCandidateIds };
 
     const docs = await Salary.find(q)
       .sort({ createdAt: -1 })

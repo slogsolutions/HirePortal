@@ -2,6 +2,7 @@ const asyncHandler = require("express-async-handler");
 const DailyEntry = require("../models/DailyEntry.model");
 const Holiday = require("../models/Holiday.model");
 const User = require("../models/User.model");
+const Candidate = require("../models/Candidate.model");
 const mongoose = require("mongoose");
 
 // Helper: normalize date to 00:00:00 UTC
@@ -287,9 +288,31 @@ const adminRemoveHoliday = asyncHandler(async (req, res) => {
 // Admin: list users (id, name, email, role)
 //
 const adminListUsers = asyncHandler(async (req, res) => {
-  // minimal projection, add any fields you want
-  const users = await User.find({}, "_id name email role").lean();
-  res.json(users);
+  const users = await User.find({}, "_id name email role candidateId").lean();
+  const candidateIds = users
+    .map((u) => u.candidateId)
+    .filter(Boolean);
+
+  const candidates = candidateIds.length
+    ? await Candidate.find(
+        { _id: { $in: candidateIds } },
+        "_id currentStatus"
+      ).lean()
+    : [];
+
+  const candidateStatusMap = new Map(
+    candidates.map((candidate) => [
+      String(candidate._id),
+      candidate.currentStatus || "active",
+    ])
+  );
+
+  const filteredUsers = users.filter((user) => {
+    if (!user.candidateId) return true;
+    return candidateStatusMap.get(String(user.candidateId)) !== "passive";
+  });
+
+  res.json(filteredUsers);
 });
 
 //
@@ -453,7 +476,29 @@ const adminTodayReport = asyncHandler(async (req, res) => {
   );
 
   // load users
-  const users = await User.find({}, "_id name email role").lean();
+  const users = await User.find({}, "_id name email role candidateId").lean();
+  const candidateIds = users
+    .map((u) => u.candidateId)
+    .filter(Boolean);
+
+  const candidates = candidateIds.length
+    ? await Candidate.find(
+        { _id: { $in: candidateIds } },
+        "_id currentStatus"
+      ).lean()
+    : [];
+
+  const candidateStatusMap = new Map(
+    candidates.map((candidate) => [
+      String(candidate._id),
+      candidate.currentStatus || "active",
+    ])
+  );
+
+  const activeUsers = users.filter((user) => {
+    if (!user.candidateId) return true;
+    return candidateStatusMap.get(String(user.candidateId)) !== "passive";
+  });
 
   // fetch entries for today
   const entries = await DailyEntry.find({
@@ -480,7 +525,7 @@ const adminTodayReport = asyncHandler(async (req, res) => {
   const isHoliday = holidaySet.has(keyToday);
 
   // Build result array
-  const result = users.map((u) => {
+  const result = activeUsers.map((u) => {
     const uid = String(u._id);
     const entry = entryMap[uid] || null;
     let tag = "Pending"; // no entry yet (today)

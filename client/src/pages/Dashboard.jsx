@@ -54,6 +54,11 @@ const TABS = [
     allowedRoles: ["admin", "manager", "hr"],
   },
   {
+    key: "reportingAdmin",
+    label: "Employee Daily Reporting",
+    allowedRoles: ["admin", "manager", "hr"],
+  },
+  {
     key: "reports",
     label: "Reports",
     allowedRoles: ["admin", "manager", "hr"],
@@ -91,11 +96,6 @@ const TABS = [
   {
     key: "massSalary",
     label: "Generate Salary",
-    allowedRoles: ["admin", "manager", "hr"],
-  },
-  {
-    key: "reportingAdmin",
-    label: "Employee Daily Reporting",
     allowedRoles: ["admin", "manager", "hr"],
   },
   {

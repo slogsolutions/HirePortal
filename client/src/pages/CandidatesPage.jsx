@@ -70,13 +70,14 @@ export default function CandidatesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
+  const [togglingCandidateId, setTogglingCandidateId] = useState(null);
   const navigate = useNavigate();
 
   const fetchCandidates = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/candidates");
+      const res = await api.get("/candidates?includePassive=true");
       setCandidates(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       setError(err?.response?.data?.message || err.message || "Failed to load");
@@ -786,6 +787,26 @@ export default function CandidatesPage() {
     }
   };
 
+  const toggleCandidateCurrentStatus = async (candidate) => {
+    const nextStatus =
+      candidate.currentStatus === "passive" ? "active" : "passive";
+
+    try {
+      setTogglingCandidateId(candidate._id);
+      const res = await api.put(`/candidates/${candidate._id}`, {
+        currentStatus: nextStatus,
+      });
+      setCandidates((cur) =>
+        cur.map((c) => (c._id === candidate._id ? res.data : c))
+      );
+    } catch (err) {
+      console.error("toggle currentStatus error:", err);
+      alert(err?.response?.data?.message || "Failed to update current status");
+    } finally {
+      setTogglingCandidateId(null);
+    }
+  };
+
   const renderRow = (c) => (
     <div key={c._id} className="flex items-center gap-4 p-4 md:p-6 border-b last:border-b-0 bg-white dark:bg-slate-900">
       <div className="flex-shrink-0">
@@ -797,9 +818,31 @@ export default function CandidatesPage() {
         <div className="text-md font-semibold">{(c.firstName || "") + " " + (c.lastName || "")}</div>
         <div className="text-sm text-gray-500">{c.email || "-"} • {c.mobile || "-"}</div>
         <div className="text-sm text-gray-500">{c.Designation || "-"} | {c.department || "-"}</div>
+        <div className="mt-2">
+          <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium ${
+            c.currentStatus === "passive"
+              ? "bg-red-100 text-red-700"
+              : "bg-emerald-100 text-emerald-700"
+          }`}>
+            {c.currentStatus === "passive" ? "Passive" : "Active"}
+          </span>
+        </div>
       </div>
       <div className="flex flex-col sm:flex-row gap-2 items-center">
         <button onClick={() => { setEditing(c); setModalOpen(true); }} className="px-3 py-2 border rounded text-sm">Edit</button>
+        <button
+          onClick={() => toggleCandidateCurrentStatus(c)}
+          disabled={togglingCandidateId === c._id}
+          className={`px-3 py-2 rounded text-sm text-white ${
+            c.currentStatus === "passive" ? "bg-emerald-600" : "bg-amber-600"
+          } disabled:opacity-60`}
+        >
+          {togglingCandidateId === c._id
+            ? "Updating..."
+            : c.currentStatus === "passive"
+              ? "Mark Active"
+              : "Mark Inactive"}
+        </button>
         <button onClick={() => handleDelete(c._id)} className="px-3 py-2 bg-red-600 text-white rounded text-sm">Delete</button>
         <button onClick={() => navigate(`/candidates/${c._id}`)} className="px-3 py-2 bg-indigo-600 text-white rounded text-sm">Details</button>
       </div>

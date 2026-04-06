@@ -90,6 +90,11 @@ empCode: { type: String, unique: true, sparse: true },
     enum: ['applied', 'verifying', 'interviewing', 'offered', 'accepted', 'rejected'],
     default: 'applied'
   },
+  currentStatus: {
+    type: String,
+    enum: ['active', 'passive'],
+    default: 'active'
+  },
 
   // Interview evaluation summary
   scoresSummary: {
