@@ -58,7 +58,7 @@ export default function CandidateTableTanStack({ initialPageSize = 10 }) {
     setLoading(true);
     setError(null);
     try {
-      const res = await api.get("/candidates");
+      const res = await api.get("/candidates?includePassive=true");
       setCandidates(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       setError(err.response?.data?.message || err.message || "Failed to fetch candidates");

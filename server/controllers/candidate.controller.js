@@ -136,6 +136,7 @@ const createCandidate = asyncHandler(async (req, res) => {
     esicNumber,
     medicalPolicyNumber,
     status,
+    currentStatus,
     department,
     isMarried,
     spouseName,
@@ -228,6 +229,7 @@ const createCandidate = asyncHandler(async (req, res) => {
       spouseName,
       spouseNumber,
       status: status || 'applied',
+      currentStatus: currentStatus || 'active',
       createdBy: req.user?._id,
       empCode: finalEmpCode
     }], { session });
@@ -403,7 +405,7 @@ const updateCandidate = asyncHandler(async (req, res) => {
     "NextIncreament", "NextIncreamentDate", "Gender", "MotherName", "fatherName",
     "dob", "address", "aadhaarNumber", "panNumber", "drivingLicenseNumber",
     "pfNumber", "esicNumber", "medicalPolicyNumber", "status", "department",
-    "isMarried", "spouseName", "spouseNumber", "empCode"
+    "isMarried", "spouseName", "spouseNumber", "empCode", "currentStatus"
   ];
 
   const update = {};
@@ -645,7 +647,9 @@ const deleteCandidate = asyncHandler(async (req, res) => {
 
 // ------------------- LIST CANDIDATES -------------------
 const listCandidates = asyncHandler(async (req, res) => {
-  const candidates = await Candidate.find().sort({ createdAt: -1 }).populate("documents");
+  const includePassive = String(req.query.includePassive || "").toLowerCase() === "true";
+  const query = includePassive ? {} : { currentStatus: { $ne: "passive" } };
+  const candidates = await Candidate.find(query).sort({ createdAt: -1 }).populate("documents");
   res.json(candidates);
 });
 
@@ -737,8 +741,10 @@ function buildEmpCode(prefix, number, padding) {
  * Each row: { _id, empCode (string|null), firstName, lastName, email, mobile, Designation, department, createdAt }
  */
 const listCandidatesWithEmpCodes = asyncHandler(async (req, res) => {
+  const includePassive = String(req.query.includePassive || "").toLowerCase() === "true";
+  const query = includePassive ? {} : { currentStatus: { $ne: "passive" } };
   // fetch minimal fields
-  const candidates = await Candidate.find()
+  const candidates = await Candidate.find(query)
     .select('empCode firstName lastName email mobile Designation department createdAt')
     .lean();
 
