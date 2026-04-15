@@ -14,6 +14,8 @@ const DEMO = {
   photoUrl: "/default-photo.jpg",
 };
 
+const CM = 37.7952;
+
 export default function IDCardPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -47,51 +49,44 @@ export default function IDCardPage() {
   const bloodGroup = C.BloodGroup || DEMO.BloodGroup;
   const qrData = "https://www.slogsolutions.com/";
 
-  // Screen preview: 5cm x 8.5cm at 96dpi
-  // 1cm = 37.7952px at 96dpi
-  const CARD_W_PX = Math.round(5 * 37.7952);    // 189px on screen
-  const CARD_H_PX = Math.round(8.5 * 37.7952);  // 321px on screen
-
-  // Download at exactly 5cm x 8.5cm at 150dpi (not 300 — that was causing 9cm issue)
-  // 1cm at 150dpi = 59.055px
-  const DL_W = Math.round(5 * 59.055);    // 295px
-  const DL_H = Math.round(8.5 * 59.055); // 502px
+  // Slightly increased: 5.5cm x 9cm
+  const CARD_W_PX = Math.round(4.5 * CM);
+  const CARD_H_PX = Math.round(8 * CM);
 
   const captureCard = async () => {
     if (!cardRef.current) return null;
 
+    // Capture the card at screen size
     const dataUrl = await htmlToImage.toPng(cardRef.current, {
       cacheBust: true,
-      pixelRatio: 1,         // no scaling — we control exact size
-      width: CARD_W_PX,
-      height: CARD_H_PX,
+      pixelRatio: 2,
       style: {
-        margin: "0",
-        padding: "0",
-        borderRadius: "0",   // avoid clipping border in output
+        borderRadius: "0",
+        boxShadow: "none",
       },
     });
 
-    // Now draw onto a precisely-sized canvas at 150dpi dimensions
+    // Redraw on a clean canvas with border fully visible and centered
     return new Promise((resolve) => {
       const img = new Image();
       img.onload = () => {
+        const BORDER = 3;
         const canvas = document.createElement("canvas");
-        canvas.width = DL_W;
-        canvas.height = DL_H;
+        canvas.width = img.width;
+        canvas.height = img.height;
         const ctx = canvas.getContext("2d");
 
         // White background
         ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, DL_W, DL_H);
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        // Draw card centered (it IS the full canvas, no padding)
-        ctx.drawImage(img, 0, 0, DL_W, DL_H);
+        // Draw card image
+        ctx.drawImage(img, 0, 0);
 
-        // Draw border manually so it's never clipped
+        // Draw border on top so it's never clipped
         ctx.strokeStyle = "#0E2A5A";
-        ctx.lineWidth = 3;
-        ctx.strokeRect(1.5, 1.5, DL_W - 3, DL_H - 3);
+        ctx.lineWidth = BORDER * 2; // *2 because half gets clipped at edge, so draw thicker
+        ctx.strokeRect(0, 0, canvas.width, canvas.height);
 
         resolve(canvas.toDataURL("image/png"));
       };
@@ -181,6 +176,8 @@ export default function IDCardPage() {
       </div>
 
       {/* ── ID CARD PREVIEW ── */}
+      {/* FIX 1: outline instead of border so border never clips or shifts layout */}
+      {/* FIX 2: margin auto centers it horizontally */}
       <div
         ref={cardRef}
         id="id-card"
@@ -189,29 +186,32 @@ export default function IDCardPage() {
           backgroundColor: "white",
           overflow: "hidden",
           marginTop: "16px",
+          marginLeft: "auto",   // ✅ centers horizontally
+          marginRight: "auto",  // ✅ centers horizontally
           width: `${CARD_W_PX}px`,
           height: `${CARD_H_PX}px`,
-          border: "2px solid #0E2A5A",
+          outline: "2.5px solid #0E2A5A",     // ✅ outline never gets clipped (unlike border)
+          outlineOffset: "0px",
           fontFamily: "'Poppins', sans-serif",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
           flexShrink: 0,
         }}
       >
-        {/* ── Left blue strip ── */}
+        {/* Left blue strip */}
         <div
           style={{
             position: "absolute",
             top: 0,
             left: 0,
-            width: "36px",
+            width: `${1 * CM}px`,
             height: "100%",
             backgroundColor: "rgb(14,42,90)",
             writingMode: "vertical-rl",
             transform: "rotate(180deg)",
             color: "white",
             fontWeight: "900",
-            fontSize: "7.5px",
-            letterSpacing: "1.2px",
+            fontSize: "7pt",
+            letterSpacing: "1.5px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -221,17 +221,17 @@ export default function IDCardPage() {
           SLOG SOLUTIONS PVT. LTD.
         </div>
 
-        {/* ── Main content ── */}
+        {/* Main content */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            marginLeft: "36px",
-            paddingTop: "5px",
-            paddingBottom: "6px",
-            paddingLeft: "3px",
-            paddingRight: "3px",
+            marginLeft: `${1 * CM}px`,
+            paddingTop: "6px",
+            paddingBottom: "8px",
+            paddingLeft: "4px",
+            paddingRight: "4px",
             height: "100%",
             boxSizing: "border-box",
           }}
@@ -240,19 +240,19 @@ export default function IDCardPage() {
           <img
             src={`${window.location.origin}/slog-logo.png`}
             alt="Slog Logo"
-            style={{ width: "75px", marginBottom: "4px", objectFit: "contain" }}
+            style={{ width: `${2 * CM}px`, marginBottom: "4px", objectFit: "contain" }}
             crossOrigin="anonymous"
           />
 
-          {/* Photo */}
+          {/* Photo circle */}
           <div
             style={{
-              width: "68px",
-              height: "68px",
+              width: `${1.8 * CM}px`,
+              height: `${1.8 * CM}px`,
               borderRadius: "50%",
               overflow: "hidden",
               border: "2px solid #0E2A5A",
-              backgroundColor: "#0E2A5A",
+              backgroundColor: "transparent",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -263,23 +263,19 @@ export default function IDCardPage() {
               <img
                 src={C.photoUrl}
                 alt="Employee"
-                style={{
-                  width: "100%",
-                  height: "100%",
-                  objectFit: "cover",
-                  objectPosition: "center 20%",
-                }}
+                style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 20%" }}
                 crossOrigin="anonymous"
               />
             ) : (
               <div
                 style={{
+                  backgroundColor: "#0E2A5A",
                   width: "100%",
                   height: "100%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "22px",
+                  fontSize: "18pt",
                   fontWeight: "bold",
                   color: "white",
                 }}
@@ -294,10 +290,9 @@ export default function IDCardPage() {
             style={{
               fontWeight: "800",
               marginTop: "5px",
-              marginBottom: "0px",
               textAlign: "center",
               color: "#0E2A5A",
-              fontSize: "9.5px",
+              fontSize: "8pt",
               lineHeight: "1.3",
             }}
           >
@@ -305,47 +300,31 @@ export default function IDCardPage() {
           </h2>
 
           {/* Emp Code */}
-          <p
-            style={{
-              color: "#dc2626",
-              fontWeight: "600",
-              marginTop: "3px",
-              marginBottom: "0px",
-              fontSize: "8px",
-            }}
-          >
+          <p style={{ color: "#dc2626", fontWeight: "600", marginTop: "3px", fontSize: "7pt" }}>
             Emp. code : {empCode}
           </p>
 
           {/* Blood Group */}
-          <p
-            style={{
-              color: "#dc2626",
-              fontWeight: "600",
-              marginTop: "2px",
-              marginBottom: "4px",
-              fontSize: "8px",
-            }}
-          >
+          <p style={{ color: "#dc2626", fontWeight: "600", marginBottom: "4px", fontSize: "7pt" }}>
             Blood Group : {bloodGroup}
           </p>
 
           {/* QR Code */}
-          <div style={{ marginTop: "3px" }}>
-            <QRCodeCanvas value={qrData} size={55} />
+          <div style={{ marginTop: "4px" }}>
+            <QRCodeCanvas value={qrData} size={60} />
           </div>
 
-          {/* Footer */}
+          {/* Footer address */}
           <div
             style={{
               textAlign: "center",
               fontWeight: "600",
               marginTop: "auto",
-              fontSize: "6.5px",
+              fontSize: "6pt",
               color: "#0E2A5A",
-              lineHeight: "1.5",
-              paddingBottom: "5px",
-              paddingTop: "4px",
+              lineHeight: "1.4",
+              paddingBottom: "6px",
+              paddingTop: "6px",
             }}
           >
             SLOG SOLUTIONS (P) LTD.
