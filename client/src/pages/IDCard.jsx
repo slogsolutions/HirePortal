@@ -14,9 +14,6 @@ const DEMO = {
   photoUrl: "/default-photo.jpg",
 };
 
-// 1cm = 37.7952px at 96dpi (screen). For 300dpi print output: 1cm = 118.11px
-const CM = 37.7952;
-
 export default function IDCardPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -50,20 +47,62 @@ export default function IDCardPage() {
   const bloodGroup = C.BloodGroup || DEMO.BloodGroup;
   const qrData = "https://www.slogsolutions.com/";
 
-  // Card physical dimensions: 5cm x 8.5cm
-  const CARD_W = `${5 * CM}px`;   // ~189px on screen
-  const CARD_H = `${8.5 * CM}px`; // ~321px on screen
+  // Screen preview: 5cm x 8.5cm at 96dpi
+  // 1cm = 37.7952px at 96dpi
+  const CARD_W_PX = Math.round(5 * 37.7952);    // 189px on screen
+  const CARD_H_PX = Math.round(8.5 * 37.7952);  // 321px on screen
+
+  // Download at exactly 5cm x 8.5cm at 150dpi (not 300 — that was causing 9cm issue)
+  // 1cm at 150dpi = 59.055px
+  const DL_W = Math.round(5 * 59.055);    // 295px
+  const DL_H = Math.round(8.5 * 59.055); // 502px
+
+  const captureCard = async () => {
+    if (!cardRef.current) return null;
+
+    const dataUrl = await htmlToImage.toPng(cardRef.current, {
+      cacheBust: true,
+      pixelRatio: 1,         // no scaling — we control exact size
+      width: CARD_W_PX,
+      height: CARD_H_PX,
+      style: {
+        margin: "0",
+        padding: "0",
+        borderRadius: "0",   // avoid clipping border in output
+      },
+    });
+
+    // Now draw onto a precisely-sized canvas at 150dpi dimensions
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = DL_W;
+        canvas.height = DL_H;
+        const ctx = canvas.getContext("2d");
+
+        // White background
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, DL_W, DL_H);
+
+        // Draw card centered (it IS the full canvas, no padding)
+        ctx.drawImage(img, 0, 0, DL_W, DL_H);
+
+        // Draw border manually so it's never clipped
+        ctx.strokeStyle = "#0E2A5A";
+        ctx.lineWidth = 3;
+        ctx.strokeRect(1.5, 1.5, DL_W - 3, DL_H - 3);
+
+        resolve(canvas.toDataURL("image/png"));
+      };
+      img.src = dataUrl;
+    });
+  };
 
   const handleDownload = async () => {
-    if (!cardRef.current) return;
     try {
-      const PX_PER_CM = 118.11; // 300dpi
-      const dataUrl = await htmlToImage.toPng(cardRef.current, {
-        cacheBust: true,
-        width: 5 * PX_PER_CM,
-        height: 8.5 * PX_PER_CM,
-        pixelRatio: 3,
-      });
+      const dataUrl = await captureCard();
+      if (!dataUrl) return;
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `${fullName}_IDCard.png`;
@@ -74,15 +113,9 @@ export default function IDCardPage() {
   };
 
   const handleShareWhatsApp = async () => {
-    if (!cardRef.current) return;
     try {
-      const PX_PER_CM = 118.11;
-      const dataUrl = await htmlToImage.toPng(cardRef.current, {
-        cacheBust: true,
-        width: 5 * PX_PER_CM,
-        height: 8.5 * PX_PER_CM,
-        pixelRatio: 3,
-      });
+      const dataUrl = await captureCard();
+      if (!dataUrl) return;
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `${fullName}_IDCard.png`;
@@ -97,15 +130,9 @@ export default function IDCardPage() {
   };
 
   const handleShareEmail = async () => {
-    if (!cardRef.current) return;
     try {
-      const PX_PER_CM = 118.11;
-      const dataUrl = await htmlToImage.toPng(cardRef.current, {
-        cacheBust: true,
-        width: 5 * PX_PER_CM,
-        height: 8.5 * PX_PER_CM,
-        pixelRatio: 3,
-      });
+      const dataUrl = await captureCard();
+      if (!dataUrl) return;
       const link = document.createElement("a");
       link.href = dataUrl;
       link.download = `${fullName}_IDCard.png`;
@@ -153,38 +180,38 @@ export default function IDCardPage() {
         </button>
       </div>
 
-      {/* ID Card — all sizes in real physical units (cm converted to px at 96dpi) */}
+      {/* ── ID CARD PREVIEW ── */}
       <div
         ref={cardRef}
         id="id-card"
         style={{
           position: "relative",
           backgroundColor: "white",
-          borderRadius: "6px",
           overflow: "hidden",
           marginTop: "16px",
-          width: CARD_W,
-          height: CARD_H,
-          border: "1.5px solid #0E2A5A",
+          width: `${CARD_W_PX}px`,
+          height: `${CARD_H_PX}px`,
+          border: "2px solid #0E2A5A",
           fontFamily: "'Poppins', sans-serif",
-          boxShadow: "0 4px 16px rgba(0,0,0,0.15)",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.18)",
+          flexShrink: 0,
         }}
       >
-        {/* Left blue strip — 1cm wide */}
+        {/* ── Left blue strip ── */}
         <div
           style={{
             position: "absolute",
             top: 0,
             left: 0,
-            width: `${1 * CM}px`,
+            width: "36px",
             height: "100%",
             backgroundColor: "rgb(14,42,90)",
             writingMode: "vertical-rl",
             transform: "rotate(180deg)",
             color: "white",
             fontWeight: "900",
-            fontSize: "7pt",
-            letterSpacing: "1.5px",
+            fontSize: "7.5px",
+            letterSpacing: "1.2px",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
@@ -194,17 +221,17 @@ export default function IDCardPage() {
           SLOG SOLUTIONS PVT. LTD.
         </div>
 
-        {/* Main content */}
+        {/* ── Main content ── */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            marginLeft: `${1 * CM}px`,
-            paddingTop: "6px",
-            paddingBottom: "8px",
-            paddingLeft: "4px",
-            paddingRight: "4px",
+            marginLeft: "36px",
+            paddingTop: "5px",
+            paddingBottom: "6px",
+            paddingLeft: "3px",
+            paddingRight: "3px",
             height: "100%",
             boxSizing: "border-box",
           }}
@@ -213,19 +240,19 @@ export default function IDCardPage() {
           <img
             src={`${window.location.origin}/slog-logo.png`}
             alt="Slog Logo"
-            style={{ width: `${2 * CM}px`, marginBottom: "4px", objectFit: "contain" }}
+            style={{ width: "75px", marginBottom: "4px", objectFit: "contain" }}
             crossOrigin="anonymous"
           />
 
-          {/* Photo circle */}
+          {/* Photo */}
           <div
             style={{
-              width: `${1.8 * CM}px`,
-              height: `${1.8 * CM}px`,
+              width: "68px",
+              height: "68px",
               borderRadius: "50%",
               overflow: "hidden",
               border: "2px solid #0E2A5A",
-              backgroundColor: "transparent",
+              backgroundColor: "#0E2A5A",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -236,19 +263,23 @@ export default function IDCardPage() {
               <img
                 src={C.photoUrl}
                 alt="Employee"
-                style={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 20%" }}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  objectPosition: "center 20%",
+                }}
                 crossOrigin="anonymous"
               />
             ) : (
               <div
                 style={{
-                  backgroundColor: "#0E2A5A",
                   width: "100%",
                   height: "100%",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "18pt",
+                  fontSize: "22px",
                   fontWeight: "bold",
                   color: "white",
                 }}
@@ -263,9 +294,10 @@ export default function IDCardPage() {
             style={{
               fontWeight: "800",
               marginTop: "5px",
+              marginBottom: "0px",
               textAlign: "center",
               color: "#0E2A5A",
-              fontSize: "8pt",
+              fontSize: "9.5px",
               lineHeight: "1.3",
             }}
           >
@@ -273,31 +305,47 @@ export default function IDCardPage() {
           </h2>
 
           {/* Emp Code */}
-          <p style={{ color: "#dc2626", fontWeight: "600", marginTop: "3px", fontSize: "7pt" }}>
+          <p
+            style={{
+              color: "#dc2626",
+              fontWeight: "600",
+              marginTop: "3px",
+              marginBottom: "0px",
+              fontSize: "8px",
+            }}
+          >
             Emp. code : {empCode}
           </p>
 
           {/* Blood Group */}
-          <p style={{ color: "#dc2626", fontWeight: "600", marginBottom: "4px", fontSize: "7pt" }}>
+          <p
+            style={{
+              color: "#dc2626",
+              fontWeight: "600",
+              marginTop: "2px",
+              marginBottom: "4px",
+              fontSize: "8px",
+            }}
+          >
             Blood Group : {bloodGroup}
           </p>
 
           {/* QR Code */}
-          <div style={{ marginTop: "4px" }}>
-            <QRCodeCanvas value={qrData} size={60} />
+          <div style={{ marginTop: "3px" }}>
+            <QRCodeCanvas value={qrData} size={55} />
           </div>
 
-          {/* Footer address */}
+          {/* Footer */}
           <div
             style={{
               textAlign: "center",
               fontWeight: "600",
               marginTop: "auto",
-              fontSize: "6pt",
+              fontSize: "6.5px",
               color: "#0E2A5A",
-              lineHeight: "1.4",
-              paddingBottom: "6px",
-              paddingTop: "6px",
+              lineHeight: "1.5",
+              paddingBottom: "5px",
+              paddingTop: "4px",
             }}
           >
             SLOG SOLUTIONS (P) LTD.
