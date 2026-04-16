@@ -267,12 +267,12 @@ export default function IDCardPage() {
           >
             🖨️ Print (Exact Size)
           </button>
-          <button
+          {/* <button
             onClick={handleDownload}
             className="px-5 py-2 rounded-lg bg-gray-700 text-white font-semibold shadow hover:opacity-90"
           >
             Download PNG
-          </button>
+          </button> */}
           <button
             onClick={handleShareWhatsApp}
             className="px-5 py-2 rounded-lg bg-green-600 text-white font-semibold shadow hover:bg-green-700"
@@ -319,7 +319,7 @@ export default function IDCardPage() {
               transform: "rotate(180deg)",
               color: "white",
               fontWeight: "900",
-              fontSize: "8px",
+              fontSize: "16px",
               letterSpacing: "1.2px",
               display: "flex",
               alignItems: "center",
