@@ -4,21 +4,41 @@ services:
   server:
     build: ./server
     container_name: hireportal-server
-    restart: always
+    restart: unless-stopped
     ports:
       - "3001:3001"
     environment:
       PORT: 3001
     env_file:
       - ./server/.env
+    volumes:
+      - ./logs:/app/logs
 
   client:
-    build: ./client
+    build:
+      context: ./client
+      args:
+        VITE_API_BASE: /api
     container_name: hireportal-client
-    restart: always
+    restart: unless-stopped
     ports:
       - "3015:80"
-    env_file:
-      - ./client/.env 
     depends_on:
       - server
+
+  redis:
+    image: redis:7-alpine
+    container_name: hireportal-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  worker:
+    build: ./server
+    container_name: hireportal-worker
+    command: ["node", "workers/mail.worker.js"]
+    restart: unless-stopped
+    depends_on:
+      - redis
+    env_file:
+      - ./server/.env

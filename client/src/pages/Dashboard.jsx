@@ -1,4 +1,5 @@
 // src/pages/DashboardPage.jsx
+import LazyWrapper from "../components/LazyWrapper";
 import React, {
   useState,
   lazy,
@@ -8,6 +9,7 @@ import React, {
   useEffect,
 } from "react";
 import { AuthContext } from "../context/AuthContext";
+import PageSkeleton from "../components/ui/PageSkeleton";
 import Documents from "./Documents";
 import OfferLetterTabPage from "./OfferLetterTabPage";
 import ReportsPage from "./ReportsPage";
@@ -181,6 +183,12 @@ export default function DashboardPage({ initialTab = "candidates" }) {
     }
   }, [canAccessActiveTab, visibleTabs]);
 
+  const LazyWrapper = ({ children }) => (
+  <Suspense fallback={<PageSkeleton />}>
+    {children}
+  </Suspense>
+);
+
   const renderActive = () => {
     // Show unauthorized message if user doesn't have access
     if (!canAccessActiveTab) {
@@ -190,102 +198,102 @@ export default function DashboardPage({ initialTab = "candidates" }) {
     switch (active) {
       case "candidates":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <CandidatesPage />
-          </Suspense>
+          </LazyWrapper>
         );
       case "reports":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
-            <ReportsPage />;
-          </Suspense>
+         <LazyWrapper>
+            <ReportsPage />
+          </LazyWrapper>
         );
       case "offerLetter":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             {" "}
-            <OfferLetterTabPage />;
-          </Suspense>
+            <OfferLetterTabPage />
+          </LazyWrapper>
         );
       case "EmployeeCode":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <EmployeeTable />
-          </Suspense>
+          </LazyWrapper>
         );
       case "documents":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <Documents />
-          </Suspense>
+          </LazyWrapper>
         );
       case "notification":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <NotificationsAdmin />{" "}
-          </Suspense>
+          </LazyWrapper>
         );
 
       case "leavesApproval":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <AdminLeavePage />
-          </Suspense>
+          </LazyWrapper>
         );
 
       case "salary":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <SalaryEditorModern />
-          </Suspense>
+          </LazyWrapper>
         );
       case "massSalary":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <MassSalaryEditor />
-          </Suspense>
+          </LazyWrapper>
         );
       case "performanceReview":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <AdminReviewPage />
-          </Suspense>
+          </LazyWrapper>
         );
       case "reportingAdmin":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <AdminUsersWithDetail />
-          </Suspense>
+          </LazyWrapper>
         );
       case "holidaysAdmin":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <AdminHolidays />
-          </Suspense>
+          </LazyWrapper>
         );
       case "myPerformance":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <MyPerformancePage key="myPerformance" />
-          </Suspense>
+          </LazyWrapper>
         );
       case "leaderboardAdmin":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <AdminLeaderBoard />
-          </Suspense>
+          </LazyWrapper>
         );
       case "myTodayReporting":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <EmployeeAttendancePage />
-          </Suspense>
+          </LazyWrapper>
         );
       case "applyLeave":
         return (
-          <Suspense fallback={<div>Loading...</div>}>
+         <LazyWrapper>
             <EmployeeLeave />
-          </Suspense>
+          </LazyWrapper>
         );
 
       default:
@@ -319,6 +327,8 @@ export default function DashboardPage({ initialTab = "candidates" }) {
           ))}
         </nav>
       </aside>
+      
+      
 
       {/* Right content */}
       <main className="flex-1 p-6">{renderActive()}</main>

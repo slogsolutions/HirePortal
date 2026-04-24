@@ -4,11 +4,12 @@ import './index.css'
 import App from './App.jsx'
 import './firebase-messaging-sw-register.js'
 import { NotificationProvider } from './context/NotificationContext.jsx'
+import { AppSkeletonProvider } from "./components/ui/SkeletonWrapper";
 
 createRoot(document.getElementById('root')).render(
-  <StrictMode>
+  <AppSkeletonProvider>
     <NotificationProvider>
       <App />
     </NotificationProvider>
-  </StrictMode>,
+    </AppSkeletonProvider>
 )
