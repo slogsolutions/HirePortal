@@ -122,16 +122,18 @@ export default function IDCardPage() {
             .strip {
               position: absolute;
               top: 0; left: 0;
-              width: 1.8cm;
+              width: 1.4cm;
               height: 100%;
               background-color: rgb(14,42,90);
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact;
               writing-mode: vertical-rl;
               transform: rotate(180deg);
               white-space: nowrap;
               color: white;
               font-weight: 900;
-              font-size: 9pt;
-              letter-spacing: 1.5px;
+              font-size: 13pt;
+              letter-spacing: 1.2px;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -141,7 +143,8 @@ export default function IDCardPage() {
               display: flex;
               flex-direction: column;
               align-items: center;
-              margin-left: 1.8cm;
+              width: 1cm;
+              margin-left: 1cm;
               padding: 3mm 2mm 3mm 2mm;
               height: 100%;
             }
