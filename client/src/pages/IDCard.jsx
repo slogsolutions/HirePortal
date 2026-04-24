@@ -125,6 +125,8 @@ export default function IDCardPage() {
               width: 1cm;
               height: 100%;
               background-color: rgb(14,42,90);
+              -webkit-print-color-adjust: exact;
+              print-color-adjust: exact; 
               writing-mode: vertical-rl;
               transform: rotate(180deg);
               color: white;
