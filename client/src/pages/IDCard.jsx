@@ -122,18 +122,15 @@ export default function IDCardPage() {
             .strip {
               position: absolute;
               top: 0; left: 0;
-              width: 1.4cm;
+              width: 1cm;
               height: 100%;
               background-color: rgb(14,42,90);
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
               writing-mode: vertical-rl;
               transform: rotate(180deg);
-              white-space: nowrap;
               color: white;
               font-weight: 900;
-              font-size: 13pt;
-              letter-spacing: 1.2px;
+              font-size: 9pt;
+              letter-spacing: 1px;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -143,7 +140,6 @@ export default function IDCardPage() {
               display: flex;
               flex-direction: column;
               align-items: center;
-              width: 1cm;
               margin-left: 1cm;
               padding: 3mm 2mm 3mm 2mm;
               height: 100%;
@@ -316,15 +312,14 @@ export default function IDCardPage() {
             style={{
               position: "absolute",
               top: 0, left: 0,
-              width: "75px",
+              width: "48px",
               height: "100%",
               backgroundColor: "rgb(14,42,90)",
               writingMode: "vertical-rl",
               transform: "rotate(180deg)",
-              whiteSpace: "nowrap", 
               color: "white",
               fontWeight: "900",
-              fontSize: "17px",
+              fontSize: "11px",
               letterSpacing: "2px",
               display: "flex",
               alignItems: "center",
@@ -341,7 +336,7 @@ export default function IDCardPage() {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              marginLeft: "70px",
+              marginLeft: "48px",
               paddingTop: "8px",
               paddingBottom: "8px",
               paddingLeft: "5px",
