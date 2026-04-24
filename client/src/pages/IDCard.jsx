@@ -131,7 +131,7 @@ export default function IDCardPage() {
               transform: rotate(180deg);
               color: white;
               font-weight: 900;
-              font-size: 9pt;
+              font-size: 11pt;
               letter-spacing: 1px;
               display: flex;
               align-items: center;
