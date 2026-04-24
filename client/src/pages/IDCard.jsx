@@ -97,11 +97,11 @@ export default function IDCardPage() {
           <style>
             * { margin: 0; padding: 0; box-sizing: border-box; }
             @page {
-              size: 5cm 8.5cm;
+              size: 5.4cm 8.5cm;
               margin: 0;
             }
             html, body {
-              width: 5cm;
+              width: 5.4cm;
               height: 8.5cm;
               overflow: hidden;
             }
@@ -111,7 +111,7 @@ export default function IDCardPage() {
               justify-content: center;
             }
             #print-card {
-              width: 5cm !important;
+              width: 5.4cm !important;
               height: 8.5cm !important;
               position: relative;
               background: white;
@@ -122,7 +122,7 @@ export default function IDCardPage() {
             .strip {
               position: absolute;
               top: 0; left: 0;
-              width: 1cm;
+              width: 1.2cm;
               height: 100%;
               background-color: rgb(14,42,90);
               writing-mode: vertical-rl;
@@ -140,7 +140,7 @@ export default function IDCardPage() {
               display: flex;
               flex-direction: column;
               align-items: center;
-              margin-left: 1cm;
+              margin-left: 1.2cm;
               padding: 3mm 2mm 3mm 2mm;
               height: 100%;
             }
@@ -312,15 +312,15 @@ export default function IDCardPage() {
             style={{
               position: "absolute",
               top: 0, left: 0,
-              width: "48px",
+              width: "75px",
               height: "100%",
               backgroundColor: "rgb(14,42,90)",
               writingMode: "vertical-rl",
               transform: "rotate(180deg)",
               color: "white",
               fontWeight: "900",
-              fontSize: "11px",
-              letterSpacing: "2px",
+              fontSize: "18px",
+              letterSpacing: "4px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -336,7 +336,7 @@ export default function IDCardPage() {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              marginLeft: "48px",
+              marginLeft: "75px",
               paddingTop: "8px",
               paddingBottom: "8px",
               paddingLeft: "5px",
