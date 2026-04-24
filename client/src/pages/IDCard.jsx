@@ -122,15 +122,16 @@ export default function IDCardPage() {
             .strip {
               position: absolute;
               top: 0; left: 0;
-              width: 1.2cm;
+              width: 1.8cm;
               height: 100%;
               background-color: rgb(14,42,90);
               writing-mode: vertical-rl;
               transform: rotate(180deg);
+              white-space: nowrap;
               color: white;
               font-weight: 900;
-              font-size: 5pt;
-              letter-spacing: 1px;
+              font-size: 9pt;
+              letter-spacing: 1.5px;
               display: flex;
               align-items: center;
               justify-content: center;
@@ -140,7 +141,7 @@ export default function IDCardPage() {
               display: flex;
               flex-direction: column;
               align-items: center;
-              margin-left: 1.2cm;
+              margin-left: 1.8cm;
               padding: 3mm 2mm 3mm 2mm;
               height: 100%;
             }
@@ -317,10 +318,11 @@ export default function IDCardPage() {
               backgroundColor: "rgb(14,42,90)",
               writingMode: "vertical-rl",
               transform: "rotate(180deg)",
+              whiteSpace: "nowrap", 
               color: "white",
               fontWeight: "900",
-              fontSize: "18px",
-              letterSpacing: "4px",
+              fontSize: "17px",
+              letterSpacing: "2px",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -336,7 +338,7 @@ export default function IDCardPage() {
               display: "flex",
               flexDirection: "column",
               alignItems: "center",
-              marginLeft: "75px",
+              marginLeft: "70px",
               paddingTop: "8px",
               paddingBottom: "8px",
               paddingLeft: "5px",
