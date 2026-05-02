@@ -34,7 +34,7 @@ router.get('/admin/today-report', protect, requireRole(['hr','admin']),adminToda
 // Admin routes (append)
 router.get('/admin/users', protect, requireRole(['hr','admin']), adminListUsers);
 router.get('/admin/user/:userId', protect, requireRole(['hr','admin']), adminGetUserMonth);
-router.post('/admin/entries', protect, requireRole(['hr','admin']), adminSaveEntriesBatch);
+router.post('/admin/entries', protect, requireRole(['admin']), adminSaveEntriesBatch);   //changed 
 
 router.get('/admin/holidays', protect, requireRole(['hr','admin']), adminListHolidays);
 router.delete('/admin/holidays/:id', protect, requireRole(['hr','admin']), adminRemoveHoliday);
